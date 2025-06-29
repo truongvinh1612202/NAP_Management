@@ -3,7 +3,7 @@ import { ServerSideGetRowsRequest, ServerSideGetRowsResponse } from './data-grid
 /**
  * IPC Channels for main-renderer communication
  */
-export const enum IpcChannels {
+export enum IpcChannels {
   // Data Grid Channels
   DATA_GRID_GET_ROWS = 'data-grid:get-rows',
   DATA_GRID_GET_ROW_COUNT = 'data-grid:get-row-count',
