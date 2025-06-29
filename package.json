@@ -20,6 +20,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "ag-grid-enterprise": "^34.0.0",
+    "ag-grid-react": "^34.0.0",
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
