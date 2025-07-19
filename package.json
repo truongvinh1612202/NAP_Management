@@ -22,7 +22,8 @@
   "dependencies": {
     "ag-grid-enterprise": "^34.0.0",
     "ag-grid-react": "^34.0.0",
-    "electron-updater": "^6.3.9"
+    "electron-updater": "^6.3.9",
+    "react-router-dom": "^7.7.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
