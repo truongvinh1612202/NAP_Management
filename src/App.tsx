@@ -1,38 +1,48 @@
-import { useState } from 'react'
-import UpdateElectron from '@/components/update'
-import logoVite from './assets/logo-vite.svg'
-import logoElectron from './assets/logo-electron.svg'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import Login from './pages/Login'
+import Main from './pages/Main'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-  return (
-    <div className='App'>
-      <div className='logo-box'>
-        <a href='https://github.com/electron-vite/electron-vite-react' target='_blank'>
-          <img src={logoVite} className='logo vite' alt='Electron + Vite logo' />
-          <img src={logoElectron} className='logo electron' alt='Electron + Vite logo' />
-        </a>
-      </div>
-      <h1>Electron + Vite + React</h1>
-      <div className='card'>
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className='read-the-docs'>
-        Click on the Electron + Vite logo to learn more
-      </p>
-      <div className='flex-center'>
-        Place static files into the<code>/public</code> folder <img style={{ width: '5em' }} src='./node.svg' alt='Node logo' />
-      </div>
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
-      <UpdateElectron />
-    </div>
-  )
+function App() {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Check authentication status on app load
+  useEffect(() => {
+    // This is just to ensure the app is properly initialized
+    setIsLoaded(true);
+  }, []);
+
+  if (!isLoaded) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route 
+          path="/main" 
+          element={
+            <ProtectedRoute>
+              <Main />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App
