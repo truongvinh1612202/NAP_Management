@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -104,6 +104,13 @@ const DataTable = () => {
     resizable: true,
   };
 
+  
+  const rowSelection: RowSelectionOptions = useMemo(() => { 
+    return {
+          mode: 'multiRow',
+      };
+  }, []);
+
   useEffect(() => {
     // Simulate loading data from API
     const fakeData: RowData[] = [
@@ -117,6 +124,20 @@ const DataTable = () => {
       { id: 8, name: 'Project Theta', status: 'Active', date: '2025-07-22', progress: 60 },
       { id: 9, name: 'Project Iota', status: 'Active', date: '2025-07-23', progress: 45 },
       { id: 10, name: 'Project Kappa', status: 'Pending', date: '2025-07-24', progress: 15 },
+      { id: 11, name: 'Project Lambda', status: 'Active', date: '2025-07-25', progress: 80 },
+      { id: 12, name: 'Project Mu', status: 'Pending', date: '2025-07-26', progress: 55 },
+      { id: 13, name: 'Project Nu', status: 'Active', date: '2025-07-27', progress: 35 },
+      { id: 14, name: 'Project Xi', status: 'Pending', date: '2025-07-28', progress: 70 },
+      { id: 15, name: 'Project Omicron', status: 'Active', date: '2025-07-29', progress: 65 },
+      { id: 16, name: 'Project Pi', status: 'Pending', date: '2025-07-30', progress: 40 },
+      { id: 17, name: 'Project Rho', status: 'Active', date: '2025-07-31', progress: 20 },
+      { id: 18, name: 'Project Sigma', status: 'Pending', date: '2025-08-01', progress: 95 },
+      { id: 19, name: 'Project Tau', status: 'Active', date: '2025-08-02', progress: 10 },
+      { id: 20, name: 'Project Upsilon', status: 'Pending', date: '2025-08-03', progress: 50 },
+      { id: 21, name: 'Project Phi', status: 'Active', date: '2025-08-04', progress: 85 },
+      { id: 22, name: 'Project Chi', status: 'Pending', date: '2025-08-05', progress: 60 },
+      { id: 23, name: 'Project Psi', status: 'Active', date: '2025-08-06', progress: 45 },
+      { id: 24, name: 'Project Omega', status: 'Pending', date: '2025-08-07', progress: 30 },
     ];
     
     setRowData(fakeData);
@@ -129,11 +150,9 @@ const DataTable = () => {
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
         pagination={true}
-        paginationPageSize={5}
-        rowSelection="multiple"
-        enableRangeSelection={true}
-        suppressRowClickSelection={true}
-        groupSelectsChildren={true}
+        paginationPageSize={100}
+        rowSelection={rowSelection}
+        cellSelection={true}
         animateRows={true}
       />
     </div>

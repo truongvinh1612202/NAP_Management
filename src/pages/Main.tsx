@@ -22,14 +22,14 @@ const Main = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto p-8">
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-gray-600">Welcome to NAP Management System</p>
-        </div>
+        </div> */}
 
         {/* Data Table Area */}
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="border-b pb-4 mb-4 flex justify-between items-center">
+          {/* <div className="border-b pb-4 mb-4 flex justify-between items-center">
             <div>
               <h2 className="text-xl font-semibold text-gray-700">Projects Overview</h2>
               <p className="text-gray-500 text-sm">Manage and monitor your projects</p>
@@ -50,10 +50,10 @@ const Main = () => {
                 Export
               </button>
             </div>
-          </div>
+          </div> */}
           
           {/* AG Grid Enterprise Table */}
-          <div className="h-96">
+          <div className="h-[70vh]">
             <DataTable />
           </div>
         </div>
