@@ -35,13 +35,7 @@ const QuanLyTieuNam = () => {
       width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => {
-        if (params.value === null || params.value === undefined) return '-';
-        return new Intl.NumberFormat('vi-VN', {
-          style: 'currency',
-          currency: 'VND'
-        }).format(params.value);
-      },
+      cellRenderer: (params: any) => formatCurrencyVND(params.value),
       cellStyle: { textAlign: 'right' }
     },
     {
