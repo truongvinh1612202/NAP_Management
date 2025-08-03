@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
+import { IElectronAPI, IpcRequest } from 'electron/api'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -22,6 +23,14 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // You can expose other APTs you need here.
   // ...
 })
+
+const api: IElectronAPI = {
+    node: () => process.versions.node,
+    chrome: () => process.versions.chrome,
+    electron: () => process.versions.electron,
+    trpc: (req: IpcRequest) => ipcRenderer.invoke('trpc', req),
+};
+contextBridge.exposeInMainWorld('appApi', api)
 
 // --------- Preload scripts loading ---------
 function domReady(condition: DocumentReadyState[] = ['complete', 'interactive']) {

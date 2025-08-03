@@ -21,11 +21,16 @@
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
+    "@trpc/client": "11.0.0-rc.421",
+    "@trpc/server": "11.0.0-rc.421",
     "ag-grid-enterprise": "^34.0.0",
     "ag-grid-react": "^34.0.0",
     "electron-log": "^5.4.2",
     "electron-updater": "^6.3.9",
-    "react-router-dom": "^7.7.0"
+    "fix-esm": "^1.0.1",
+    "react-router-dom": "^7.7.0",
+    "superjson": "^2.2.1",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
