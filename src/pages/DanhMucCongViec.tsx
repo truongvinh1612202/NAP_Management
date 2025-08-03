@@ -1,9 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useTRPC } from '../utils/trpc';
+import { trpc } from '../utils/trpc';
 
 const DanhMucCongViec = () => {
-  const trpc = useTRPC();
   const { data: congViecList, isLoading, error } = useQuery(
     trpc.danhMucCongViec.queryOptions()
   );
