@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { update } from './update'
-import { IpcRequest } from 'electron/api'
+import { IpcRequest } from '../api'
 import { ipcRequestHandler } from './ipcRequestHandler'
-import { appRouter } from 'electron/router'
+import { appRouter } from '../router'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

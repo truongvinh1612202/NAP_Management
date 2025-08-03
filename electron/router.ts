@@ -6,13 +6,13 @@ import * as z from 'zod';
 // https://github.com/blitz-js/superjson/issues/268
 // https://www.npmjs.com/package/fix-esm
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
-const fixESM = require("fix-esm");
-import type SuperJSON from "superjson";
+// const fixESM = require("fix-esm");
+import SuperJSON from "superjson";
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
-const superjson: SuperJSON = fixESM.require("superjson");
+// const superjson: SuperJSON = fixESM.require("superjson");
 
 const t = initTRPC.create({
-  transformer: superjson
+  transformer: SuperJSON
 });
 
 export const appRouter = t.router({

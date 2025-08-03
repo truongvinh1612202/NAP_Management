@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
+    "@prisma/engines": "^6.13.0",
     "@trpc/client": "11.0.0-rc.421",
     "@trpc/server": "11.0.0-rc.421",
     "ag-grid-enterprise": "^34.0.0",

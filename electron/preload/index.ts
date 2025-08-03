@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
-import { IElectronAPI, IpcRequest } from 'electron/api'
+import { IElectronAPI, IpcRequest } from '../api'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {

@@ -1,5 +1,5 @@
 import log from "electron-log";
-import { PrismaClient } from "../generated/client";
+import { PrismaClient } from "../generated/client/index.js";
 import {dbUrl, mePath, qePath} from "./constants";
 import path from "path";
 import {fork} from "child_process";
