@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
@@ -6,56 +6,81 @@ import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
-
-type ChiPhiData = {
-  id: number;
-  tenKhachHang: string;
-  congViecId: number;
-  tenCongViec: string;
-  chiPhi: number;
-  khId: string;
-}
+import type { ChiPhiCongViec } from '../../generated/client';
 
 const ChiPhiCongViec = () => {
   const { data: chiPhiList, isLoading, error } = useQuery(
     trpc.chiPhiCongViec.queryOptions()
   );
 
-  const data = formatRawData(chiPhiList as ChiPhiData[]);
-
-  // Generate column definitions dynamically based on data
-  const columnDefs: ColDef[] = useMemo(() => {
-    if (!data || data.length === 0) {
-      return [];
-    }
-
-    const firstRow = data[0];
-    return Object.keys(firstRow).map((key) => ({
-      field: key,
-      headerName: key,
+  // Column definitions map directly to Prisma fields
+  const columnDefs: ColDef[] = useMemo(() => [
+    {
+      field: 'id',
+      headerName: 'ID',
+      width: 80,
       sortable: true,
-      filter: true,
-      resizable: true,
+      filter: 'agNumberColumnFilter',
+    },
+    {
+      field: 'tenKhachHang',
+      headerName: 'Khách Hàng',
+      flex: 1,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'congViecId',
+      headerName: 'Mã Công Việc',
+      width: 120,
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'tenCongViec',
+      headerName: 'Tên Công Việc',
+      flex: 2,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'chiPhi',
+      headerName: 'Chi Phí (VNĐ)',
+      width: 150,
+      sortable: true,
+      filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
-        const value = params.value;
-        if (value === null || value === undefined) {
-          return '-';
-        }
-        return String(value);
+        if (params.value === null || params.value === undefined) return '-';
+        return new Intl.NumberFormat('vi-VN', {
+          style: 'currency',
+          currency: 'VND'
+        }).format(params.value);
       }
-    }));
-  }, [chiPhiList]);
+    },
+    {
+      field: 'khId',
+      headerName: 'Mã KH',
+      width: 100,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    }
+  ], []);
 
   const defaultColDef = useMemo(() => ({
-    flex: 1,
-    minWidth: 100,
     resizable: true,
+    sortable: true,
+    filter: true,
   }), []);
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
     mode: 'multiRow' as const,
   }), []);
 
+  // Early return for loading state
   if (isLoading) {
     return (
       <div className="p-6">
@@ -70,6 +95,7 @@ const ChiPhiCongViec = () => {
     );
   }
 
+  // Early return for error state
   if (error) {
     return (
       <div className="p-6">
@@ -96,15 +122,15 @@ const ChiPhiCongViec = () => {
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách chi phí ({data?.length || 0})
+            Danh sách chi phí ({chiPhiList?.length || 0})
           </h2>
         </div>
 
-        {data && data.length > 0 ? (
+        {chiPhiList && chiPhiList.length > 0 ? (
           <div className="p-4">
             <div className="ag-theme-alpine w-full h-[60vh]">
               <AgGridReact
-                rowData={data}
+                rowData={chiPhiList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 pagination={true}
@@ -127,16 +153,5 @@ const ChiPhiCongViec = () => {
     </div>
   );
 };
-
-function formatRawData(rawData: ChiPhiData[]) {
-  return rawData.map(item => ({
-    'ID': item.id,
-    'Khách Hàng': item.tenKhachHang,
-    'Công Việc ID': item.congViecId,
-    'Tên Công Việc': item.tenCongViec,
-    'Chi Phí': item.chiPhi,
-    'Khách Hàng ID': item.khId,
-  }));
-}
 
 export default ChiPhiCongViec;

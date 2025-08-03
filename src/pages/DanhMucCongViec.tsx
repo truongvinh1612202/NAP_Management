@@ -1,25 +1,82 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import 'ag-grid-enterprise';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
+import type { DanhMucCongViec } from '../../generated/client';
 
 const DanhMucCongViec = () => {
   const { data: congViecList, isLoading, error } = useQuery(
     trpc.danhMucCongViec.queryOptions()
   );
 
+  // Column definitions map directly to Prisma fields
+  const columnDefs: ColDef[] = useMemo(() => [
+    {
+      field: 'id',
+      headerName: 'ID',
+      width: 80,
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+    },
+    {
+      field: 'ten',
+      headerName: 'Tên Công Việc',
+      flex: 2,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'moTa',
+      headerName: 'Mô Tả',
+      flex: 3,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+  ], []);
+
+  const defaultColDef = useMemo(() => ({
+    resizable: true,
+    sortable: true,
+    filter: true,
+  }), []);
+
+  const rowSelection: RowSelectionOptions = useMemo(() => ({
+    mode: 'multiRow' as const,
+  }), []);
+
+  // Early return for loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Đang tải danh sách công việc...</div>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Danh Mục Công Việc</h1>
+          <p className="text-gray-600 mt-2">Quản lý danh mục công việc</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Đang tải danh sách công việc...</div>
+        </div>
       </div>
     );
   }
 
+  // Early return for error state
   if (error) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-red-500 text-lg">
-          Lỗi khi tải dữ liệu: {error.message}
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Danh Mục Công Việc</h1>
+          <p className="text-gray-600 mt-2">Quản lý danh mục công việc</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-red-500 text-lg">
+            Lỗi khi tải dữ liệu: {error.message}
+          </div>
         </div>
       </div>
     );
@@ -40,38 +97,21 @@ const DanhMucCongViec = () => {
         </div>
 
         {congViecList && congViecList.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {Object.keys(congViecList[0]).map((key) => (
-                    <th
-                      key={key}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {key}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {congViecList.map((congViec: any, index: number) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    {Object.values(congViec).map((value, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                      >
-                        {value !== null && value !== undefined 
-                          ? String(value) 
-                          : '-'
-                        }
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-4">
+            <div className="ag-theme-alpine w-full h-[60vh]">
+              <AgGridReact
+                rowData={congViecList}
+                columnDefs={columnDefs}
+                defaultColDef={defaultColDef}
+                pagination={true}
+                paginationPageSize={50}
+                rowSelection={rowSelection}
+                cellSelection={true}
+                animateRows={true}
+                suppressMenuHide={true}
+                allowContextMenuWithControlKey={true}
+              />
+            </div>
           </div>
         ) : (
           <div className="px-6 py-8 text-center">

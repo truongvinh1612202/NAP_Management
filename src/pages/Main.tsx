@@ -6,6 +6,10 @@ import ChiPhiCongViec from './ChiPhiCongViec';
 import DanhMucCongViec from './DanhMucCongViec';
 import DanhMucKhachHang from './DanhMucKhachHang';
 import DanhMucNhanVien from './DanhMucNhanVien';
+import PhieuChi from './PhieuChi';
+import PhieuThu from './PhieuThu';
+import NghiemThuCongViec from './NghiemThuCongViec';
+import QuanLyTieuNam from './QuanLyTieuNam';
 
 const Main = () => {
   const navigate = useNavigate();
@@ -35,6 +39,14 @@ const Main = () => {
         return <DanhMucCongViec />;
       case 'chiphi':
         return <ChiPhiCongViec />;
+      case 'phieuchi':
+        return <PhieuChi />;
+      case 'phieuthu':
+        return <PhieuThu />;
+      case 'nghiemthucongviec':
+        return <NghiemThuCongViec />;
+      case 'ds_qltnam':
+        return <QuanLyTieuNam />;
       case 'dashboard':
       default:
         return (

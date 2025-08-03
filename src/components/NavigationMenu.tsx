@@ -14,12 +14,6 @@ interface NavigationMenuProps {
 const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
   const [menuItems, setMenuItems] = useState<NavigationItem[]>([
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: '📊',
-      active: true
-    },
-    {
       id: 'khachhang',
       label: 'Khách Hàng',
       icon: '👥',
@@ -44,11 +38,29 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       active: false
     },
     {
-      id: 'reports',
-      label: 'Reports',
-      icon: '📈',
+      id: 'phieuchi',
+      label: 'Phiếu Chi',
+      icon: '🧾',
       active: false
-    }
+    },
+    {
+      id: 'phieuthu',
+      label: 'Phiếu Thu',
+      icon: '💵',
+      active: false
+    },
+    {
+      id: 'nghiemthucongviec',
+      label: 'Nghiệm Thu',
+      icon: '✅',
+      active: false
+    },
+    {
+      id: 'ds_qltnam',
+      label: 'QL Tiêu Năm',
+      icon: '📅',
+      active: false
+    },
   ]);
 
   const handleMenuItemClick = (id: string) => {

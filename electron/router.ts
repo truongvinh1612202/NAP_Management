@@ -33,6 +33,26 @@ export const appRouter = t.router({
       return prisma.chiPhiCongViec.findMany();
     }
   ),
+  phieuChi: t.procedure
+    .query(() => {
+      return prisma.phieuChi.findMany();
+    }
+  ),
+  phieuThu: t.procedure
+    .query(() => {
+      return prisma.phieuThu.findMany();
+    }
+  ),
+  nghiemThuCongViec: t.procedure
+    .query(() => {
+      return prisma.nghiemThuCongViec.findMany();
+    }
+  ),
+  quanLyPhiDichVu: t.procedure
+    .query(() => {
+      return prisma.quanLyPhiDichVu.findMany();
+    }
+  ),
 });
 
 export type AppRouter = typeof appRouter;
