@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { update } from './update'
+import { IpcRequest } from '../api'
+import { ipcRequestHandler } from './ipcRequestHandler'
+import { appRouter } from '../router'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -103,6 +106,18 @@ app.on('activate', () => {
   } else {
     createWindow()
   }
+})
+
+// Handle IPC requests from the Renderer process
+ipcMain.handle('trpc', (event, req: IpcRequest) => {
+  return ipcRequestHandler({
+    endpoint: "/trpc",
+    req,
+    router: appRouter,
+    createContext: async () => {
+      return {};
+    }
+  });
 })
 
 // New window example arg: new windows url

@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavigationMenu from '../components/NavigationMenu';
 import DataTable from '../components/DataTable';
+import ChiPhiCongViec from './ChiPhiCongViec';
+import DanhMucCongViec from './DanhMucCongViec';
+import DanhMucKhachHang from './DanhMucKhachHang';
+import DanhMucNhanVien from './DanhMucNhanVien';
+import PhieuChi from './PhieuChi';
+import PhieuThu from './PhieuThu';
+import NghiemThuCongViec from './NghiemThuCongViec';
+import QuanLyTieuNam from './QuanLyTieuNam';
 
 const Main = () => {
   const navigate = useNavigate();
@@ -15,48 +23,50 @@ const Main = () => {
     }
   }, [navigate]);
 
+  // Handle navigation menu item clicks
+  const handleMenuItemClick = (itemId: string) => {
+    setActiveView(itemId);
+  };
+
+  // Render content based on active view
+  const renderContent = () => {
+    switch (activeView) {
+      case 'khachhang':
+        return <DanhMucKhachHang />;
+      case 'nhanvien':
+        return <DanhMucNhanVien />;
+      case 'congviec':
+        return <DanhMucCongViec />;
+      case 'chiphi':
+        return <ChiPhiCongViec />;
+      case 'phieuchi':
+        return <PhieuChi />;
+      case 'phieuthu':
+        return <PhieuThu />;
+      case 'nghiemthucongviec':
+        return <NghiemThuCongViec />;
+      case 'ds_qltnam':
+        return <QuanLyTieuNam />;
+      case 'dashboard':
+      default:
+        return (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="h-[70vh]">
+              <DataTable />
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-100 w-[100vw]">
       {/* Left Navigation Menu */}
-      <NavigationMenu />
+      <NavigationMenu onItemClick={handleMenuItemClick} />
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto p-8">
-        {/* <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-600">Welcome to NAP Management System</p>
-        </div> */}
-
-        {/* Data Table Area */}
-        <div className="bg-white rounded-lg shadow p-6">
-          {/* <div className="border-b pb-4 mb-4 flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-700">Projects Overview</h2>
-              <p className="text-gray-500 text-sm">Manage and monitor your projects</p>
-            </div>
-            <div className="flex space-x-2">
-              <button 
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-                tabIndex={0}
-                aria-label="Add New Project"
-              >
-                Add Project
-              </button>
-              <button 
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                tabIndex={0}
-                aria-label="Export Data"
-              >
-                Export
-              </button>
-            </div>
-          </div> */}
-          
-          {/* AG Grid Enterprise Table */}
-          <div className="h-[70vh]">
-            <DataTable />
-          </div>
-        </div>
+        {renderContent()}
       </div>
     </div>
   );
