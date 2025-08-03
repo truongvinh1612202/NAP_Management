@@ -7,6 +7,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { ChiPhiCongViec } from '../../generated/client';
+import { formatCurrencyVND } from '@/utils/helper';
 
 const ChiPhiCongViec = () => {
   const { data: chiPhiList, isLoading, error } = useQuery(

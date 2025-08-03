@@ -7,6 +7,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuChi } from '../../generated/client';
+import { formatCurrencyVND } from '@/utils/helper';
 
 const PhieuChi = () => {
   const { data: phieuChiList, isLoading, error } = useQuery(
@@ -79,13 +80,7 @@ const PhieuChi = () => {
       width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => {
-        if (params.value === null || params.value === undefined) return '-';
-        return new Intl.NumberFormat('vi-VN', {
-          style: 'currency',
-          currency: 'VND'
-        }).format(params.value);
-      }
+      cellRenderer: (params: any) => formatCurrencyVND(params.value),
     },
     {
       field: 'thuQuy',
