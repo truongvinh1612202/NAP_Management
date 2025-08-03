@@ -54,10 +54,7 @@ const ChiPhiCongViec = () => {
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
         if (params.value === null || params.value === undefined) return '-';
-        return new Intl.NumberFormat('vi-VN', {
-          style: 'currency',
-          currency: 'VND'
-        }).format(params.value);
+        return formatCurrencyVND(params.value);
       }
     },
     {
