@@ -6,4 +6,7 @@ interface Window {
     ipcRenderer: import('electron').IpcRenderer
   };
   ipcRenderer: import('electron').IpcRenderer;
+  appApi: {
+    trpc: (req: import('../electron/api').IpcRequest) => Promise<import('../electron/api').IpcResponse>;
+  };
 }

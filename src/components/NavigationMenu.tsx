@@ -7,7 +7,11 @@ interface NavigationItem {
   active: boolean;
 }
 
-const NavigationMenu = () => {
+interface NavigationMenuProps {
+  onItemClick?: (itemId: string) => void;
+}
+
+const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
   const [menuItems, setMenuItems] = useState<NavigationItem[]>([
     {
       id: 'dashboard',
@@ -16,15 +20,27 @@ const NavigationMenu = () => {
       active: true
     },
     {
-      id: 'users',
-      label: 'Users',
+      id: 'khachhang',
+      label: 'Khách Hàng',
       icon: '👥',
       active: false
     },
     {
-      id: 'settings',
-      label: 'Settings',
-      icon: '⚙️',
+      id: 'nhanvien',
+      label: 'Nhân Viên',
+      icon: '👨‍💼',
+      active: false
+    },
+    {
+      id: 'congviec',
+      label: 'Công Việc',
+      icon: '📋',
+      active: false
+    },
+    {
+      id: 'chiphi',
+      label: 'Chi Phí',
+      icon: '💰',
       active: false
     },
     {
@@ -42,7 +58,10 @@ const NavigationMenu = () => {
         active: item.id === id
       }))
     );
-    // In a real app, you might navigate to a different route or load different content
+    // Call the parent's callback if provided
+    if (onItemClick) {
+      onItemClick(id);
+    }
   };
 
   return (
