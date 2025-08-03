@@ -2,6 +2,10 @@ datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
 
 model ChiPhiCongViec {
   id           Int     @id(map: "PK__chiphico__3214EC07DCBA1C02") @map("Id")

@@ -20,6 +20,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@prisma/client": "^6.13.0",
     "ag-grid-enterprise": "^34.0.0",
     "ag-grid-react": "^34.0.0",
     "electron-updater": "^6.3.9",
