@@ -7,7 +7,7 @@ import { update } from './update'
 import { IpcRequest } from '../api'
 import { ipcRequestHandler } from './ipcRequestHandler'
 import { appRouter } from '../router'
-
+import 'dotenv/config';
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

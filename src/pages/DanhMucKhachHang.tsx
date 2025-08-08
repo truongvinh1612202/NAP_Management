@@ -8,6 +8,8 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { useState } from 'react';
+import KhachHangDetailModal from '../components/KhachHangDetailModal';
 
 // Status Badge Component
 const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
@@ -42,20 +44,41 @@ const DanhMucKhachHang = () => {
   const { data: khachHangList, isLoading, error } = useQuery(
     trpc.danhMucKhachHang.queryOptions()
   );
-
+  const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(() => [
     {
+      headerName: 'Chi tiết',
+      field: 'actions',
+      cellRenderer: (params: any) => (
+        <button
+          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
+          tabIndex={0}
+          aria-label={`Xem chi tiết khách hàng ${params.data.tenKhachHang}`}
+          onClick={() => setSelectedRow(params.data)}
+        >
+          Chi tiết
+        </button>
+      ),
+      suppressMenu: true,
+      sortable: false,
+      filter: false,
+      minWidth: 100,
+      maxWidth: 120,
+      pinned: 'right',
+    },
+    {
       field: 'id',
       headerName: 'ID',
-      width: 80,
+      //width: 70,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'tenKhachHang',
       headerName: 'Tên Khách Hàng',
-      flex: 2,
+      //flex: 2,
+      //minWidth: 300,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -63,7 +86,7 @@ const DanhMucKhachHang = () => {
     {
       field: 'maSoThue',
       headerName: 'Mã Số Thuế',
-      width: 150,
+      //width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -71,7 +94,8 @@ const DanhMucKhachHang = () => {
     {
       field: 'diaChi',
       headerName: 'Địa Chỉ',
-      flex: 2,
+      //flex: 2,
+      //width: 200,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -79,42 +103,47 @@ const DanhMucKhachHang = () => {
     {
       field: 'dienThoai',
       headerName: 'Điện Thoại',
-      width: 140,
+      //width: 140,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'email',
-      headerName: 'Email',
-      width: 200,
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'phiDichVu',
-      headerName: 'Phí Dịch Vụ (VNĐ)',
-      width: 150,
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => {
-        if (params.value === null || params.value === undefined) return '-';
-        return formatCurrencyVND(params.value);
-      }
-    },
-    {
-      field: 'trangThai',
-      headerName: 'Trạng Thái',
-      width: 120,
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      cellRenderer: (params: any) => <StatusBadge value={params.value} />
     },
     {
       field: 'nganhKD',
-      headerName: 'Ngành KD',
-      width: 150,
+      headerName: 'Ngành Kinh Doanh',
+      //width: 200,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'cqtQuanLy',
+      headerName: 'CQT Quản Lý',
+      //width: 150,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'nhanVienDVKH',
+      headerName: 'Nhân Viên DVKH',
+      //width: 120,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'nhanVienLapSo',
+      headerName: 'Nhân Viên Lập Sổ',
+      //width: 150,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'nhanVienNSL',
+      headerName: 'Nhân Viên NSL',
+      //width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -125,6 +154,12 @@ const DanhMucKhachHang = () => {
     resizable: true,
     sortable: true,
     filter: true,
+  }), []);
+
+  const autoSizeStrategy = useMemo(() => ({
+    type: "fitCellContents" as const ,
+    defaultMaxWidth: 500,
+    defaultMinWidth: 80,
   }), []);
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
@@ -179,7 +214,7 @@ const DanhMucKhachHang = () => {
 
         {khachHangList && khachHangList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-full h-[60vh]">
+            <div className="ag-theme-alpine w-auto h-[60vh]" tabIndex={0} aria-label="Bảng khách hàng">
               <AgGridReact
                 rowData={khachHangList}
                 columnDefs={columnDefs}
@@ -191,8 +226,13 @@ const DanhMucKhachHang = () => {
                 animateRows={true}
                 suppressMenuHide={true}
                 allowContextMenuWithControlKey={true}
+                autoSizeStrategy={autoSizeStrategy}
               />
             </div>
+            <KhachHangDetailModal
+              khachHang={selectedRow}
+              onClose={() => setSelectedRow(null)}
+            />
           </div>
         ) : (
           <div className="px-6 py-8 text-center">
