@@ -1,46 +1,109 @@
-import React from 'react';
-import type { DanhMucKhachHang } from '../../generated/client';
+import React, { useRef, useEffect } from 'react';
+import { formatCurrencyVND } from '@/utils/helper';
 
-interface KhachHangDetailModalProps {
-  khachHang: DanhMucKhachHang | null;
+interface DetailModalProps {
+  data: Record<string, any> | null;
+  title?: string;
   onClose: () => void;
 }
 
-const KhachHangDetailModal: React.FC<KhachHangDetailModalProps> = ({ khachHang, onClose }) => {
-  if (!khachHang) return null;
+// Map field keys to Vietnamese labels
+const FIELD_LABELS: Record<string, string> = {
+  tenKhachHang: 'Tên Khách Hàng',
+  maSoThue: 'Mã Số Thuế',
+  diaChi: 'Địa chỉ',
+  phiDichVu: 'Phí Dịch Vụ',
+  kyKhaiThue: 'Kỳ Khai Thuế',
+  kyNhanCT: 'Kỳ Nhận CT',
+  dienThoai: 'Điện thoại',
+  email: 'Email',
+  nganhKD: 'Ngành Kinh Doanh',
+  cqtQuanLy: 'CQT Quản Lý',
+  trangThai: 'Trạng Thái',
+  giamDoc: 'Giám Đốc',
+  nhanVienDVKH: 'Nhân Viên DVKH',
+  nhanVienLapSo: 'Nhân Viên Lập Sổ',
+  trangThaiHoatDong: 'Trạng Thái Hoạt Động',
+  nhanVienDVKHId: 'ID Nhân Viên DVKH',
+  nhanVienLapSoId: 'ID Nhân Viên Lập Sổ',
+  nhanVienNSLId: 'ID Nhân Viên NSL',
+  nhanVienNSL: 'Nhân Viên NSL',
+  id: 'ID',
+  // Add more fields as needed
+};
+
+const currencyFields = ['phiDichVu'];
+
+const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", onClose }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLButtonElement>(null);
+  const lastFocusableRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    // Focus the first button when modal opens
+    firstFocusableRef.current?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+      // Focus trap
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableEls = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstEl = focusableEls[0];
+        const lastEl = focusableEls[focusableEls.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === firstEl) {
+            e.preventDefault();
+            lastEl.focus();
+          }
+        } else {
+          if (document.activeElement === lastEl) {
+            e.preventDefault();
+            firstEl.focus();
+          }
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  if (!data) return null;
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">Thông tin khách hàng</h3>
+    <div
+      className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+      ref={modalRef}
+      tabIndex={-1}
+      aria-modal="true"
+      role="dialog"
+    >
+      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h3 className="text-xl font-bold mb-4">{title}</h3>
         <div className="space-y-2">
-          <div><span className="font-semibold">ID:</span> {khachHang.id}</div>
-          <div><span className="font-semibold">Tên khách hàng:</span> {khachHang.tenKhachHang}</div>
-          <div><span className="font-semibold">Mã số thuế:</span> {khachHang.maSoThue}</div>
-          <div><span className="font-semibold">Địa chỉ:</span> {khachHang.diaChi}</div>
-          <div><span className="font-semibold">Phí dịch vụ:</span> {khachHang.phiDichVu}</div>
-          <div><span className="font-semibold">Kỳ khai thuế:</span> {khachHang.kyKhaiThue}</div>
-          <div><span className="font-semibold">Kỳ nhận CT:</span> {khachHang.kyNhanCT}</div>
-          <div><span className="font-semibold">Điện thoại:</span> {khachHang.dienThoai}</div>
-          <div><span className="font-semibold">Email:</span> {khachHang.email}</div>
-          <div><span className="font-semibold">Ngành kinh doanh:</span> {khachHang.nganhKD}</div>
-          <div><span className="font-semibold">CQT quản lý:</span> {khachHang.cqtQuanLy}</div>
-          <div><span className="font-semibold">Trạng thái:</span> {khachHang.trangThai}</div>
-          <div><span className="font-semibold">Giám đốc:</span> {khachHang.giamDoc}</div>
-          <div><span className="font-semibold">Nhân viên DVKH:</span> {khachHang.nhanVienDVKH}</div>
-          <div><span className="font-semibold">Nhân viên lập sổ:</span> {khachHang.nhanVienLapSo}</div>
-          <div><span className="font-semibold">Trạng thái hoạt động:</span> {khachHang.trangThaiHoatDong}</div>
-          <div><span className="font-semibold">Nhân viên DVKH ID:</span> {khachHang.nhanVienDVKHId}</div>
-          <div><span className="font-semibold">Nhân viên lập sổ ID:</span> {khachHang.nhanVienLapSoId}</div>
-          <div><span className="font-semibold">Nhân viên NSL ID:</span> {khachHang.nhanVienNSLId}</div>
-          <div><span className="font-semibold">Nhân viên NSL:</span> {khachHang.nhanVienNSL}</div>
-          {/* You can add more related data here if needed, e.g. phieuThu count */}
+          {Object.entries(data).map(([key, value], idx, arr) => (
+            <div key={key}>
+              <span className="font-semibold">
+                {FIELD_LABELS[key] || key}:
+              </span> {currencyFields.includes(key) ? formatCurrencyVND(value) : String(value)}
+            </div>
+          ))}
         </div>
         <button
           className="mt-6 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           onClick={onClose}
           tabIndex={0}
-          aria-label="Đóng chi tiết khách hàng"
+          aria-label="Đóng chi tiết"
+          ref={firstFocusableRef}
         >
           Đóng
         </button>
@@ -49,4 +112,4 @@ const KhachHangDetailModal: React.FC<KhachHangDetailModalProps> = ({ khachHang, 
   );
 };
 
-export default KhachHangDetailModal;
+export default DetailModal;

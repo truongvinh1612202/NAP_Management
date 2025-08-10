@@ -9,7 +9,7 @@ import { trpc } from '../utils/trpc';
 import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
 import { useState } from 'react';
-import KhachHangDetailModal from '../components/KhachHangDetailModal';
+import DetailModal from '../components/KhachHangDetailModal';
 
 // Status Badge Component
 const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
@@ -70,15 +70,12 @@ const DanhMucKhachHang = () => {
     {
       field: 'id',
       headerName: 'ID',
-      //width: 70,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'tenKhachHang',
       headerName: 'Tên Khách Hàng',
-      //flex: 2,
-      //minWidth: 300,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -86,7 +83,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'maSoThue',
       headerName: 'Mã Số Thuế',
-      //width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -94,8 +90,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'diaChi',
       headerName: 'Địa Chỉ',
-      //flex: 2,
-      //width: 200,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -103,7 +97,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'dienThoai',
       headerName: 'Điện Thoại',
-      //width: 140,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -111,7 +104,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'nganhKD',
       headerName: 'Ngành Kinh Doanh',
-      //width: 200,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -119,7 +111,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'cqtQuanLy',
       headerName: 'CQT Quản Lý',
-      //width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -127,7 +118,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'nhanVienDVKH',
       headerName: 'Nhân Viên DVKH',
-      //width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -135,7 +125,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'nhanVienLapSo',
       headerName: 'Nhân Viên Lập Sổ',
-      //width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -143,7 +132,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'nhanVienNSL',
       headerName: 'Nhân Viên NSL',
-      //width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -229,8 +217,9 @@ const DanhMucKhachHang = () => {
                 autoSizeStrategy={autoSizeStrategy}
               />
             </div>
-            <KhachHangDetailModal
-              khachHang={selectedRow}
+            <DetailModal
+              data={selectedRow}
+              title="Thông tin khách hàng"
               onClose={() => setSelectedRow(null)}
             />
           </div>
