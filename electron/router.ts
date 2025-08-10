@@ -20,13 +20,72 @@ export const appRouter = t.router({
     .query(() => {
       return prisma.danhMucKhachHang.findMany();
     }),
+  khachHangById: t.procedure
+    .input(z.object({
+      id: z.number()
+    }))
+    .query(({ input }) => {
+      return prisma.danhMucKhachHang.findUnique({
+        where: {
+          id: input.id
+        }
+      });
+    }),
+  khachHangByNhanVien: t.procedure
+    .input(z.object({
+      nhanVienId: z.number(),
+      nhanVienType: z.enum(['DVKH', 'LAPSO', 'NSL'])
+    }))
+    .query(({ input }) => {
+      if (input.nhanVienType === 'DVKH') {
+        return prisma.danhMucKhachHang.findMany({
+          where: {
+            nhanVienDVKHId: input.nhanVienId
+          }
+        });
+      } else if (input.nhanVienType === 'LAPSO') {
+        return prisma.danhMucKhachHang.findMany({
+          where: {
+            nhanVienLapSoId: input.nhanVienId
+          }
+        });
+      } else if (input.nhanVienType === 'NSL') {
+        return prisma.danhMucKhachHang.findMany({
+          where: {
+            nhanVienNSLId: input.nhanVienId
+          }
+        });
+      }
+    }),
   danhMucNhanVien: t.procedure
     .query(() => {
       return prisma.danhMucNhanVien.findMany();
     }),
+  nhanVienById: t.procedure
+    .input(z.object({
+      id: z.number()
+    }))
+    .query(({ input }) => {
+      return prisma.danhMucNhanVien.findUnique({
+        where: {
+          id: input.id
+        }
+      });
+    }),
   danhMucCongViec: t.procedure
     .query(() => {
       return prisma.danhMucCongViec.findMany();
+    }),
+  congViecById: t.procedure
+    .input(z.object({
+      id: z.number()
+    }))
+    .query(({ input }) => {
+      return prisma.danhMucCongViec.findUnique({
+        where: {
+          id: input.id
+        }
+      });
     }),
   chiPhiCongViec: t.procedure
     .query(() => {
@@ -43,6 +102,17 @@ export const appRouter = t.router({
       return prisma.phieuThu.findMany();
     }
   ),
+  phieuThuByKhachHang: t.procedure
+    .input(z.object({ 
+      khachHangId: z.number() 
+    }))
+    .query(({ input }) => {
+      return prisma.phieuThu.findMany({
+        where: {
+          khachHangId: input.khachHangId
+        }
+      });
+    }),
   nghiemThuCongViec: t.procedure
     .query(() => {
       return prisma.nghiemThuCongViec.findMany();
