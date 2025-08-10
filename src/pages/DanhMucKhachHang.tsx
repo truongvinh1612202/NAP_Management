@@ -8,54 +8,67 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-
-// Status Badge Component
-const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
-  if (!value) return <>-</>;
-  
-  let className = '';
-  switch(value) {
-    case 'Hoạt động':
-    case 'Active':
-      className = 'bg-green-100 text-green-800';
-      break;
-    case 'Tạm dừng':
-    case 'Pending':
-      className = 'bg-yellow-100 text-yellow-800';
-      break;
-    case 'Không hoạt động':
-    case 'Inactive':
-      className = 'bg-red-100 text-red-800';
-      break;
-    default:
-      className = 'bg-gray-100 text-gray-800';
-  }
-  
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>
-      {value}
-    </span>
-  );
-};
+import { useState } from 'react';
+import DetailModal from '../components/DetailModal';
 
 const DanhMucKhachHang = () => {
   const { data: khachHangList, isLoading, error } = useQuery(
     trpc.danhMucKhachHang.queryOptions()
   );
-
+  const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(() => [
     {
+      headerName: 'Chi tiết',
+      field: 'details',
+      cellRenderer: (params: any) => (
+        <div className="flex items-center justify-center h-full w-full">
+          <button
+            className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+            tabIndex={0}
+            aria-label={`${params.data.tenKhachHang}`}
+            onClick={() => setSelectedRow(params.data)}
+          >
+            Chi tiết
+          </button>
+        </div>
+      ),
+      suppressMenu: true,
+      sortable: false,
+      filter: false,
+      maxWidth: 120,
+      pinned: 'right',
+    },
+    {
+      headerName: 'Phí dịch vụ',
+      field: 'actions',
+      cellRenderer: (params: any) => (
+        <div className="flex items-center justify-center h-full w-full">
+          <button
+            className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+            tabIndex={0}
+            aria-label={`${params.data.tenKhachHang}`}
+            onClick={() => setSelectedRow(params.data)}
+          >
+            Phí dịch vụ
+          </button>
+        </div>
+      ),
+      suppressMenu: true,
+      sortable: false,
+      filter: false,
+      maxWidth: 120,
+      pinned: 'right',
+    },
+    {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'tenKhachHang',
       headerName: 'Tên Khách Hàng',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -63,7 +76,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'maSoThue',
       headerName: 'Mã Số Thuế',
-      width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -71,7 +83,6 @@ const DanhMucKhachHang = () => {
     {
       field: 'diaChi',
       headerName: 'Địa Chỉ',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -79,42 +90,41 @@ const DanhMucKhachHang = () => {
     {
       field: 'dienThoai',
       headerName: 'Điện Thoại',
-      width: 140,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'email',
-      headerName: 'Email',
-      width: 200,
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'phiDichVu',
-      headerName: 'Phí Dịch Vụ (VNĐ)',
-      width: 150,
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => {
-        if (params.value === null || params.value === undefined) return '-';
-        return formatCurrencyVND(params.value);
-      }
-    },
-    {
-      field: 'trangThai',
-      headerName: 'Trạng Thái',
-      width: 120,
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      cellRenderer: (params: any) => <StatusBadge value={params.value} />
     },
     {
       field: 'nganhKD',
-      headerName: 'Ngành KD',
-      width: 150,
+      headerName: 'Ngành Kinh Doanh',
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'cqtQuanLy',
+      headerName: 'CQT Quản Lý',
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'nhanVienDVKH',
+      headerName: 'Nhân Viên DVKH',
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'nhanVienLapSo',
+      headerName: 'Nhân Viên Lập Sổ',
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      cellRenderer: (params: any) => params.value || '-'
+    },
+    {
+      field: 'nhanVienNSL',
+      headerName: 'Nhân Viên NSL',
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -125,6 +135,12 @@ const DanhMucKhachHang = () => {
     resizable: true,
     sortable: true,
     filter: true,
+  }), []);
+
+  const autoSizeStrategy = useMemo(() => ({
+    type: "fitCellContents" as const ,
+    defaultMaxWidth: 500,
+    defaultMinWidth: 30,
   }), []);
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
@@ -182,7 +198,7 @@ const DanhMucKhachHang = () => {
 
         {khachHangList && khachHangList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-full h-[60vh]">
+            <div className="ag-theme-alpine w-auto h-[60vh]" tabIndex={0} aria-label="Bảng khách hàng">
               <AgGridReact
                 rowData={khachHangList}
                 columnDefs={columnDefs}
@@ -196,8 +212,14 @@ const DanhMucKhachHang = () => {
                 rowHeight={40}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
+                autoSizeStrategy={autoSizeStrategy}
               />
             </div>
+            <DetailModal
+              data={selectedRow}
+              title="Thông tin khách hàng"
+              onClose={() => setSelectedRow(null)}
+            />
           </div>
         ) : (
           <div className="px-6 py-8 text-center">

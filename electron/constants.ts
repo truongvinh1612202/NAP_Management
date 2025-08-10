@@ -1,6 +1,6 @@
 import path from "path";
 import {app} from "electron";
-
+import 'dotenv/config';
 export const isDev = process.env.NODE_ENV === "development";
 
 export const dbUrl = process.env.DATABASE_URL || '';
