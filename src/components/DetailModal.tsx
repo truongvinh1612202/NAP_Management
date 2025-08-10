@@ -3,9 +3,10 @@ import React, { useRef, useEffect } from 'react';
 import { formatCurrencyVND } from '@/utils/helper';
 
 interface DetailModalProps {
-  data: Record<string, any> | null;
+  data: Record<string, any> | null | undefined;
   title?: string;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 // Map field keys to Vietnamese labels
@@ -30,7 +31,15 @@ const FIELD_LABELS: Record<string, string> = {
   nhanVienNSLId: 'ID Nhân Viên NSL',
   nhanVienNSL: 'Nhân Viên NSL',
   id: 'ID',
-  // Add more fields as needed
+  // nhanvien
+  maSoNhanVien: 'Mã Số Nhân Viên',
+  tenNhanVien: 'Tên Nhân Viên',
+  namSinh: 'Năm Sinh',
+  thuongTru: 'Thường Trú',
+  userDangNhap: 'User Đăng Nhập',
+  // congviec
+  ten: 'Tên',
+  moTa: 'Mô Tả',
 };
 
 const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
@@ -60,7 +69,7 @@ const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
 const currencyFields = ['phiDichVu'];
 const statusFields = ['trangThai', 'trangThaiHoatDong'];
 
-const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", onClose }) => {
+const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", onClose, isLoading = false }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
   const lastFocusableRef = useRef<HTMLButtonElement>(null);
@@ -96,13 +105,19 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  if (!data) return null;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
+
+  // The modal should show when there's a selection (indicated by the parent component rendering it)
+  // We don't need to check data here since the parent controls when to render this component
+  console.log("DetailModal rendered - data:", data, "isLoading:", isLoading);
+
+  // Don't render anything if explicitly told not to (this shouldn't happen with current setup)
+  // if (data === null && !isLoading) return null;
 
   return (
     <div
@@ -115,19 +130,55 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
     >
       <div className="bg-white rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="text-xl font-bold mb-4">{title}</h3>
-        <div className="space-y-2">
-          {Object.entries(data).map(([key, value]) => (
-            <div key={key}>
-              <span className="font-semibold">{FIELD_LABELS[key] || key}:</span>{' '}
-              {statusFields.includes(key)
-                ? <StatusBadge value={value} />
-                : currencyFields.includes(key)
-                  ? formatCurrencyVND(value)
-                  : String(value)
-              }
+        
+        {isLoading ? (
+          // Show loading state
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
+            <div className="text-gray-600 text-lg mb-2">
+              Đang tải dữ liệu...
             </div>
-          ))}
-        </div>
+            <p className="text-gray-500">
+              Vui lòng chờ trong giây lát
+            </p>
+          </div>
+        ) : data === undefined || data === null ? (
+          // Show error message when data is undefined (query failed) or null (no record found)
+          <div className="text-center py-8">
+            <div className="text-red-500 text-lg mb-2">
+              ⚠️ Không tìm thấy dữ liệu
+            </div>
+            <p className="text-gray-600 mb-4">
+              ID tham chiếu không hợp lệ hoặc bản ghi không tồn tại trong hệ thống.
+            </p>
+          </div>
+        ) : data && Object.keys(data).length > 0 ? (
+          // Show data when available and not empty
+          <div className="space-y-2">
+            {Object.entries(data).map(([key, value]) => (
+              <div key={key}>
+                <span className="font-semibold">{FIELD_LABELS[key] || key}:</span>{' '}
+                {statusFields.includes(key)
+                  ? <StatusBadge value={value} />
+                  : currencyFields.includes(key)
+                    ? formatCurrencyVND(value)
+                    : String(value)
+                }
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Fallback for empty data object
+          <div className="text-center py-8">
+            <div className="text-red-500 text-lg mb-2">
+              ⚠️ Không tìm thấy dữ liệu
+            </div>
+            <p className="text-gray-600">
+              Bản ghi tồn tại nhưng không có thông tin chi tiết.
+            </p>
+          </div>
+        )}
+        
         <button
           className="mt-6 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           onClick={onClose}
