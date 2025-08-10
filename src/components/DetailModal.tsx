@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+
 import { formatCurrencyVND } from '@/utils/helper';
 
 interface DetailModalProps {
@@ -32,7 +33,32 @@ const FIELD_LABELS: Record<string, string> = {
   // Add more fields as needed
 };
 
+const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
+  if (!value) return <>-</>;
+  let className = '';
+  switch (value) {
+    case 'Đang hoạt động':
+    case 'Đang cung cấp dịch vụ':
+      className = 'bg-green-100 text-green-800';
+      break;
+    case 'Ngưng cung cấp dịch vụ':
+    case 'Pending':
+      className = 'bg-yellow-100 text-yellow-800';
+      break;
+    case 'Không hoạt động':
+    case 'Inactive':
+      className = 'bg-red-100 text-red-800';
+      break;
+    default:
+      className = 'bg-gray-100 text-gray-800';
+  }
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>{value}</span>
+  );
+};
+
 const currencyFields = ['phiDichVu'];
+const statusFields = ['trangThai', 'trangThaiHoatDong'];
 
 const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -90,11 +116,15 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
       <div className="bg-white rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 className="text-xl font-bold mb-4">{title}</h3>
         <div className="space-y-2">
-          {Object.entries(data).map(([key, value], idx, arr) => (
+          {Object.entries(data).map(([key, value]) => (
             <div key={key}>
-              <span className="font-semibold">
-                {FIELD_LABELS[key] || key}:
-              </span> {currencyFields.includes(key) ? formatCurrencyVND(value) : String(value)}
+              <span className="font-semibold">{FIELD_LABELS[key] || key}:</span>{' '}
+              {statusFields.includes(key)
+                ? <StatusBadge value={value} />
+                : currencyFields.includes(key)
+                  ? formatCurrencyVND(value)
+                  : String(value)
+              }
             </div>
           ))}
         </div>

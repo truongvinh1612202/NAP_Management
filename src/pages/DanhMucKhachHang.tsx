@@ -9,36 +9,7 @@ import { trpc } from '../utils/trpc';
 import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
 import { useState } from 'react';
-import DetailModal from '../components/KhachHangDetailModal';
-
-// Status Badge Component
-const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
-  if (!value) return <>-</>;
-  
-  let className = '';
-  switch(value) {
-    case 'Hoạt động':
-    case 'Active':
-      className = 'bg-green-100 text-green-800';
-      break;
-    case 'Tạm dừng':
-    case 'Pending':
-      className = 'bg-yellow-100 text-yellow-800';
-      break;
-    case 'Không hoạt động':
-    case 'Inactive':
-      className = 'bg-red-100 text-red-800';
-      break;
-    default:
-      className = 'bg-gray-100 text-gray-800';
-  }
-  
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>
-      {value}
-    </span>
-  );
-};
+import DetailModal from '../components/DetailModal';
 
 const DanhMucKhachHang = () => {
   const { data: khachHangList, isLoading, error } = useQuery(
@@ -49,21 +20,43 @@ const DanhMucKhachHang = () => {
   const columnDefs: ColDef[] = useMemo(() => [
     {
       headerName: 'Chi tiết',
-      field: 'actions',
+      field: 'details',
       cellRenderer: (params: any) => (
-        <button
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
-          tabIndex={0}
-          aria-label={`Xem chi tiết khách hàng ${params.data.tenKhachHang}`}
-          onClick={() => setSelectedRow(params.data)}
-        >
-          Chi tiết
-        </button>
+        <div className="flex items-center justify-center h-full w-full">
+          <button
+            className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+            tabIndex={0}
+            aria-label={`${params.data.tenKhachHang}`}
+            onClick={() => setSelectedRow(params.data)}
+          >
+            Chi tiết
+          </button>
+        </div>
       ),
       suppressMenu: true,
       sortable: false,
       filter: false,
-      minWidth: 100,
+      maxWidth: 120,
+      pinned: 'right',
+    },
+    {
+      headerName: 'Phí dịch vụ',
+      field: 'actions',
+      cellRenderer: (params: any) => (
+        <div className="flex items-center justify-center h-full w-full">
+          <button
+            className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+            tabIndex={0}
+            aria-label={`${params.data.tenKhachHang}`}
+            onClick={() => setSelectedRow(params.data)}
+          >
+            Phí dịch vụ
+          </button>
+        </div>
+      ),
+      suppressMenu: true,
+      sortable: false,
+      filter: false,
       maxWidth: 120,
       pinned: 'right',
     },
@@ -147,7 +140,7 @@ const DanhMucKhachHang = () => {
   const autoSizeStrategy = useMemo(() => ({
     type: "fitCellContents" as const ,
     defaultMaxWidth: 500,
-    defaultMinWidth: 80,
+    defaultMinWidth: 30,
   }), []);
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
