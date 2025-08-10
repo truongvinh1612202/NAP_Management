@@ -77,9 +77,9 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
   };
 
   return (
-    <nav className="h-full bg-[#3A2E7D] text-[#9FA4B4] w-64 min-w-64 flex-shrink-0 relative">
-      <div className="p-5 border-b border-[#6C63FF] bg-[#6C63FF] bg-opacity-10">
-        <h1 className="text-xl font-bold text-[#6C63FF]">Quản Lý Dữ Liệu NAP</h1>
+    <nav className="h-full bg-white text-gray-800 w-64 min-w-64 flex-shrink-0 relative border-r border-gray-200">
+      <div className="p-5 border-b border-gray-200 bg-gray-50">
+        <h1 className="text-xl font-bold text-gray-700">Quản Lý Dữ Liệu NAP</h1>
       </div>
       <div className="py-4">
         <div>
@@ -87,7 +87,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
             <button
               key={item.id}
               onClick={() => handleMenuItemClick(item.id)}
-              className={`flex items-center w-full px-5 py-3 transition-colors rounded-lg mb-2 ${item.active ? 'bg-[#6C63FF] text-white' : 'hover:bg-[#E6E1FA] hover:text-[#3A2E7D]'} `}
+              className={`flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium ${item.active ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100 hover:text-gray-900 text-gray-700'} border-none rounded-none`}
               tabIndex={0}
               aria-label={item.label}
               style={{ outline: 'none', border: 'none' }}
@@ -98,9 +98,9 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           ))}
         </div>
       </div>
-      <div className="absolute bottom-0 w-64 p-5 border-t border-[#6C63FF] bg-[#6C63FF] bg-opacity-10">
+      <div className="absolute left-0 bottom-0 w-64 border-t border-gray-200 bg-gray-50 pb-5">
         <button
-          className="flex items-center w-full text-left px-4 py-2 transition-colors hover:bg-[#E6E1FA] hover:text-[#3A2E7D] rounded-md max-w-[236px]"
+          className="flex items-center w-full text-left px-4 py-2 transition-colors hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none"
           tabIndex={0}
           aria-label="Logout"
           onClick={() => {
