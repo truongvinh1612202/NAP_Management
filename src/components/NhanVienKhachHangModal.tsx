@@ -84,7 +84,6 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
       headerName: 'ID',
       sortable: true,
       filter: 'agNumberColumnFilter',
-      maxWidth: 80,
     },
     {
       field: 'tenKhachHang',
@@ -107,7 +106,6 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
       headerName: 'Điện Thoại',
       sortable: true,
       filter: 'agTextColumnFilter',
-      maxWidth: 130,
       cellRenderer: (params: any) => params.value || '-'
     },
     {
@@ -123,7 +121,6 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
       headerName: 'Trạng Thái',
       sortable: true,
       filter: 'agTextColumnFilter',
-      maxWidth: 120,
       cellRenderer: (params: any) => {
         if (!params.value) return '-';
         let className = '';
@@ -157,6 +154,12 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
     sortable: true,
     filter: true,
   }), []);
+  const autoSizeStrategy = useMemo(() => ({
+    type: "fitCellContents" as const,
+    defaultMaxWidth: 500,
+    defaultMinWidth: 30,
+  }), []);
+
 
   if (!isOpen) return null;
 
@@ -228,6 +231,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
               <div className="ag-theme-alpine w-full h-[calc(100%-3rem)]">
                 <AgGridReact
                   rowData={currentData}
+                  cellSelection={true}
                   columnDefs={columnDefs}
                   defaultColDef={defaultColDef}
                   pagination={true}
@@ -238,6 +242,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
                   rowHeight={40}
                   headerHeight={45}
                   allowContextMenuWithControlKey={true}
+                  autoSizeStrategy={autoSizeStrategy}
                 />
               </div>
             </div>
