@@ -177,9 +177,8 @@ const PhieuThu = () => {
               minWidth: 100,
             }}
             rowSelection={rowSelection}
-            enableRangeSelection={true}
-            enableFillHandle={true}
-            enableCellTextSelection={true}
+            cellSelection={true}
+            // enableCellTextSelection={true}
             ensureDomOrder={true}
             animateRows={true}
             rowHeight={40}

@@ -76,6 +76,9 @@ const ChiPhiCongViec = () => {
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
     mode: 'multiRow' as const,
+    checkboxes: false,
+    headerCheckbox: false,
+    enableClickSelection: true,
   }), []);
 
   // Early return for loading state
@@ -135,6 +138,8 @@ const ChiPhiCongViec = () => {
                 paginationPageSize={50}
                 rowSelection={rowSelection}
                 cellSelection={true}
+                rowHeight={40}
+                headerHeight={45}
                 animateRows={true}
                 suppressMenuHide={true}
                 allowContextMenuWithControlKey={true}

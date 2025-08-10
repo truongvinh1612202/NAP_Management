@@ -100,6 +100,9 @@ const PhieuChi = () => {
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
     mode: 'multiRow' as const,
+    checkboxes: false,
+    headerCheckbox: false,
+    enableClickSelection: true,
   }), []);
 
   // Early return for loading state
@@ -161,6 +164,8 @@ const PhieuChi = () => {
                 cellSelection={true}
                 animateRows={true}
                 suppressMenuHide={true}
+                rowHeight={40}
+                headerHeight={45}
                 allowContextMenuWithControlKey={true}
               />
             </div>
