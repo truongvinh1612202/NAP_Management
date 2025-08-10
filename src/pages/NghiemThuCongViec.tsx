@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
@@ -8,11 +8,33 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { NghiemThuCongViec } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import DetailModal from '../components/DetailModal';
 
 const NghiemThuCongViec = () => {
   const { data: nghiemThuList, isLoading, error } = useQuery(
     trpc.nghiemThuCongViec.queryOptions()
   );
+
+  // State for modals
+  const [selectedKhachHang, setSelectedKhachHang] = useState<any>(null);
+  const [selectedNhanVien, setSelectedNhanVien] = useState<any>(null);
+  const [selectedCongViec, setSelectedCongViec] = useState<any>(null);
+
+  // Queries for entity details
+  const { data: khachHangDetail, isLoading: isLoadingKhachHang } = useQuery({
+    ...trpc.khachHangById.queryOptions({ id: selectedKhachHang?.id || 0 }),
+    enabled: !!selectedKhachHang?.id
+  });
+
+  const { data: nhanVienDetail, isLoading: isLoadingNhanVien } = useQuery({
+    ...trpc.nhanVienById.queryOptions({ id: selectedNhanVien?.id || 0 }),
+    enabled: !!selectedNhanVien?.id
+  });
+
+  const { data: congViecDetail, isLoading: isLoadingCongViec } = useQuery({
+    ...trpc.congViecById.queryOptions({ id: selectedCongViec?.id || 0 }),
+    enabled: !!selectedCongViec?.id
+  });
 
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(() => [
@@ -91,7 +113,19 @@ const NghiemThuCongViec = () => {
       width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => params.value || '-'
+      cellRenderer: (params: any) => {
+        if (!params.value) return '-';
+        return (
+          <button
+            className="text-blue-600 hover:text-blue-800 underline cursor-pointer bg-transparent border-none p-0"
+            onClick={() => setSelectedKhachHang({ id: params.value })}
+            tabIndex={0}
+            aria-label={`Xem chi tiết khách hàng ID ${params.value}`}
+          >
+            {params.value}
+          </button>
+        );
+      }
     },
     {
       field: 'nhanVienId',
@@ -99,7 +133,19 @@ const NghiemThuCongViec = () => {
       width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => params.value || '-'
+      cellRenderer: (params: any) => {
+        if (!params.value) return '-';
+        return (
+          <button
+            className="text-blue-600 hover:text-blue-800 underline cursor-pointer bg-transparent border-none p-0"
+            onClick={() => setSelectedNhanVien({ id: params.value })}
+            tabIndex={0}
+            aria-label={`Xem chi tiết nhân viên ID ${params.value}`}
+          >
+            {params.value}
+          </button>
+        );
+      }
     },
     {
       field: 'congViecId',
@@ -107,7 +153,19 @@ const NghiemThuCongViec = () => {
       width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
-      cellRenderer: (params: any) => params.value || '-'
+      cellRenderer: (params: any) => {
+        if (!params.value) return '-';
+        return (
+          <button
+            className="text-blue-600 hover:text-blue-800 underline cursor-pointer bg-transparent border-none p-0"
+            onClick={() => setSelectedCongViec({ id: params.value })}
+            tabIndex={0}
+            aria-label={`Xem chi tiết công việc ID ${params.value}`}
+          >
+            {params.value}
+          </button>
+        );
+      }
     }
   ], []);
 
@@ -170,6 +228,33 @@ const NghiemThuCongViec = () => {
           />
         </div>
       </div>
+
+      {/* Detail Modals */}
+      { selectedKhachHang && (
+      <DetailModal
+        data={khachHangDetail}
+        title="Chi tiết Khách Hàng"
+        onClose={() => setSelectedKhachHang(null)}
+        isLoading={isLoadingKhachHang}
+      />
+      )}
+      { selectedNhanVien && (
+      <DetailModal
+        data={nhanVienDetail}
+        title="Chi tiết Nhân Viên"
+        onClose={() => setSelectedNhanVien(null)}
+        isLoading={isLoadingNhanVien}
+      />
+      )}
+
+      { selectedCongViec && (
+      <DetailModal
+        data={congViecDetail}
+        title="Chi tiết Công Việc"
+        onClose={() => setSelectedCongViec(null)}
+        isLoading={isLoadingCongViec}
+      />
+      )}
     </div>
   );
 };

@@ -217,11 +217,13 @@ const DanhMucKhachHang = () => {
                 autoSizeStrategy={autoSizeStrategy}
               />
             </div>
-            <DetailModal
-              data={selectedRow}
-              title="Thông tin khách hàng"
-              onClose={() => setSelectedRow(null)}
-            />
+            { selectedRow && (
+              <DetailModal
+                data={selectedRow}
+                title="Thông tin khách hàng"
+                onClose={() => setSelectedRow(null)}
+              />
+            )}
             <PhieuThuModal
               khachHang={selectedKhachHangForPhieuThu}
               isOpen={!!selectedKhachHangForPhieuThu}
