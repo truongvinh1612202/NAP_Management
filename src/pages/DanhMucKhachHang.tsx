@@ -10,12 +10,14 @@ import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
 import { useState } from 'react';
 import DetailModal from '../components/DetailModal';
+import PhieuThuModal from '../components/PhieuThuModal';
 
 const DanhMucKhachHang = () => {
   const { data: khachHangList, isLoading, error } = useQuery(
     trpc.danhMucKhachHang.queryOptions()
   );
   const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
+  const [selectedKhachHangForPhieuThu, setSelectedKhachHangForPhieuThu] = useState<DanhMucKhachHang | null>(null);
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(() => [
     {
@@ -45,12 +47,12 @@ const DanhMucKhachHang = () => {
       cellRenderer: (params: any) => (
         <div className="flex items-center justify-center h-full w-full">
           <button
-            className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+            className="w-full h-5 px-0 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none flex items-center justify-center"
             tabIndex={0}
-            aria-label={`${params.data.tenKhachHang}`}
-            onClick={() => setSelectedRow(params.data)}
+            aria-label={`Xem phiếu thu của ${params.data.tenKhachHang}`}
+            onClick={() => setSelectedKhachHangForPhieuThu(params.data)}
           >
-            Phí dịch vụ
+            Phiếu Thu
           </button>
         </div>
       ),
@@ -219,6 +221,11 @@ const DanhMucKhachHang = () => {
               data={selectedRow}
               title="Thông tin khách hàng"
               onClose={() => setSelectedRow(null)}
+            />
+            <PhieuThuModal
+              khachHang={selectedKhachHangForPhieuThu}
+              isOpen={!!selectedKhachHangForPhieuThu}
+              onClose={() => setSelectedKhachHangForPhieuThu(null)}
             />
           </div>
         ) : (
