@@ -7,6 +7,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien, DanhMucKhachHang } from '../../generated/client';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 interface NhanVienKhachHangModalProps {
   nhanVien: DanhMucNhanVien | null;
@@ -233,6 +234,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
                   paginationPageSize={20}
                   animateRows={true}
                   suppressMenuHide={true}
+                  localeText={AG_GRID_LOCALE_VN}
                   rowHeight={40}
                   headerHeight={45}
                   allowContextMenuWithControlKey={true}

@@ -7,6 +7,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucCongViec } from '../../generated/client';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const DanhMucCongViec = () => {
   const { data: congViecList, isLoading, error } = useQuery(
@@ -109,6 +110,7 @@ const DanhMucCongViec = () => {
                 pagination={true}
                 paginationPageSize={50}
                 // rowSelection={rowSelection}
+                localeText={AG_GRID_LOCALE_VN}
                 cellSelection={true}
                 animateRows={true}
                 suppressMenuHide={true}

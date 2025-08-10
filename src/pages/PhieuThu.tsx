@@ -8,6 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const PhieuThu = () => {
   const { data: phieuThuList, isLoading, error } = useQuery(
@@ -178,6 +179,7 @@ const PhieuThu = () => {
             }}
             // rowSelection={rowSelection}
             cellSelection={true}
+            localeText={AG_GRID_LOCALE_VN}
             // enableCellTextSelection={true}
             ensureDomOrder={true}
             animateRows={true}

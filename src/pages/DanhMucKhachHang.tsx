@@ -11,6 +11,7 @@ import { formatCurrencyVND } from '@/utils/helper';
 import { useState } from 'react';
 import DetailModal from '../components/DetailModal';
 import PhieuThuModal from '../components/PhieuThuModal';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const DanhMucKhachHang = () => {
   const { data: khachHangList, isLoading, error } = useQuery(
@@ -208,6 +209,7 @@ const DanhMucKhachHang = () => {
                 pagination={true}
                 paginationPageSize={50}
                 // rowSelection={rowSelection}
+                localeText={AG_GRID_LOCALE_VN}
                 cellSelection={true}
                 animateRows={true}
                 suppressMenuHide={true}

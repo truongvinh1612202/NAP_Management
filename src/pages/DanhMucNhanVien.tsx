@@ -8,6 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien } from '../../generated/client';
 import NhanVienKhachHangModal from '../components/NhanVienKhachHangModal';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const DanhMucNhanVien = () => {
   const { data: nhanVienList, isLoading, error } = useQuery(
@@ -172,6 +173,7 @@ const DanhMucNhanVien = () => {
                 animateRows={true}
                 suppressMenuHide={true}
                 rowHeight={40}
+                localeText={AG_GRID_LOCALE_VN}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
               />

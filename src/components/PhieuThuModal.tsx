@@ -8,6 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu, DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 interface PhieuThuModalProps {
   khachHang: DanhMucKhachHang | null;
@@ -262,6 +263,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
                 animateRows={true}
                 suppressMenuHide={true}
                 rowHeight={40}
+                localeText={AG_GRID_LOCALE_VN}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
               />

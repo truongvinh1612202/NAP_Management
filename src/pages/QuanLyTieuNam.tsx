@@ -8,6 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { QuanLyPhiDichVu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const QuanLyTieuNam = () => {
   const { data: quanLyPhiDichVuList, isLoading, error } = useQuery(
@@ -110,6 +111,7 @@ const QuanLyTieuNam = () => {
             }}
             rowSelection={rowSelection}
             cellSelection={true}
+            localeText={AG_GRID_LOCALE_VN}
             // enableCellTextSelection={true}
             ensureDomOrder={true}
             animateRows={true}
