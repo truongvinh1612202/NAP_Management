@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
@@ -7,14 +7,39 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien } from '../../generated/client';
+import NhanVienKhachHangModal from '../components/NhanVienKhachHangModal';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const DanhMucNhanVien = () => {
   const { data: nhanVienList, isLoading, error } = useQuery(
     trpc.danhMucNhanVien.queryOptions()
   );
 
+  const [selectedNhanVienForKhachHang, setSelectedNhanVienForKhachHang] = useState<DanhMucNhanVien | null>(null);
+
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(() => [
+    {
+      headerName: 'Chi tiết NV',
+      field: 'actions',
+      cellRenderer: (params: any) => (
+        <div className="flex items-center justify-center h-full w-full">
+          <button
+            className="w-full h-5 px-0 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none flex items-center justify-center"
+            tabIndex={0}
+            aria-label={`Xem khách hàng phụ trách của ${params.data.tenNhanVien}`}
+            onClick={() => setSelectedNhanVienForKhachHang(params.data)}
+          >
+            Khách Hàng
+          </button>
+        </div>
+      ),
+      suppressMenu: true,
+      sortable: false,
+      filter: false,
+      maxWidth: 120,
+      pinned: 'right',
+    },
     {
       field: 'id',
       headerName: 'ID',
@@ -148,10 +173,16 @@ const DanhMucNhanVien = () => {
                 animateRows={true}
                 suppressMenuHide={true}
                 rowHeight={40}
+                localeText={AG_GRID_LOCALE_VN}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
               />
             </div>
+            <NhanVienKhachHangModal
+              nhanVien={selectedNhanVienForKhachHang}
+              isOpen={!!selectedNhanVienForKhachHang}
+              onClose={() => setSelectedNhanVienForKhachHang(null)}
+            />
           </div>
         ) : (
           <div className="px-6 py-8 text-center">

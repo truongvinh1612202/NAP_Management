@@ -8,6 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuChi } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const PhieuChi = () => {
   const { data: phieuChiList, isLoading, error } = useQuery(
@@ -161,6 +162,7 @@ const PhieuChi = () => {
                 pagination={true}
                 paginationPageSize={50}
                 // rowSelection={rowSelection}
+                localeText={AG_GRID_LOCALE_VN}
                 cellSelection={true}
                 animateRows={true}
                 suppressMenuHide={true}

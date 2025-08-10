@@ -9,6 +9,7 @@ import { trpc } from '../utils/trpc';
 import type { NghiemThuCongViec } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
 import DetailModal from '../components/DetailModal';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const NghiemThuCongViec = () => {
   const { data: nghiemThuList, isLoading, error } = useQuery(
@@ -219,6 +220,7 @@ const NghiemThuCongViec = () => {
             }}
             // rowSelection={rowSelection}
             cellSelection={true}
+            localeText={AG_GRID_LOCALE_VN}
             // enableCellTextSelection={true}
             ensureDomOrder={true}
             animateRows={true}

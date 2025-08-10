@@ -8,6 +8,8 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu, DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { AUTO_SIZE_STRATEGY } from '@/utils/gridConfig';
 
 interface PhieuThuModalProps {
   khachHang: DanhMucKhachHang | null;
@@ -85,18 +87,17 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
       headerName: 'ID',
       sortable: true,
       filter: 'agNumberColumnFilter',
-      maxWidth: 80,
     },
     {
       field: 'ngayThu',
       headerName: 'Năm',
-      sortable: true,
       filter: 'agNumberColumnFilter',
+      suppressFilter: true,
       cellRenderer: (params: any) => {
         if (!params.value) return '-';
         return new Date(params.value).getFullYear();
       },
-      maxWidth: 80,
+      // maxWidth: 100,
     },
     {
       field: 'ngayThu',
@@ -107,7 +108,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
         if (!params.value) return '-';
         return new Date(params.value).toLocaleDateString('vi-VN');
       },
-      maxWidth: 120,
+      // maxWidth: 120,
     },
     {
       field: 'noiDung',
@@ -123,7 +124,6 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value || 0),
-      maxWidth: 150,
       cellStyle: { textAlign: 'right' },
     },
     {
@@ -132,7 +132,6 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-',
-      maxWidth: 100,
     },
     {
       field: 'tenNhanVien',
@@ -140,7 +139,6 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-',
-      maxWidth: 150,
     },
     {
       field: 'thuQuy',
@@ -148,7 +146,6 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-',
-      maxWidth: 120,
     }
   ], []);
 
@@ -156,6 +153,12 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
     resizable: true,
     sortable: true,
     filter: true,
+  }), []);
+
+  const autoSizeStrategy = useMemo(() => ({
+    type: "fitCellContents" as const,
+    defaultMaxWidth: 500,
+    defaultMinWidth: 30,
   }), []);
 
   if (!isOpen) return null;
@@ -260,10 +263,12 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
                 pagination={true}
                 paginationPageSize={20}
                 animateRows={true}
-                suppressMenuHide={true}
+                cellSelection={true}
                 rowHeight={40}
+                localeText={AG_GRID_LOCALE_VN}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
+                autoSizeStrategy={autoSizeStrategy}
               />
             </div>
           ) : (

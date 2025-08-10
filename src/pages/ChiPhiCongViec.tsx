@@ -8,6 +8,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { ChiPhiCongViec } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
+import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
 const ChiPhiCongViec = () => {
   const { data: chiPhiList, isLoading, error } = useQuery(
@@ -137,6 +138,7 @@ const ChiPhiCongViec = () => {
                 pagination={true}
                 paginationPageSize={50}
                 // rowSelection={rowSelection}
+                localeText={AG_GRID_LOCALE_VN}
                 cellSelection={true}
                 rowHeight={40}
                 headerHeight={45}
