@@ -136,7 +136,7 @@ const ChiPhiCongViec = () => {
                 defaultColDef={defaultColDef}
                 pagination={true}
                 paginationPageSize={50}
-                rowSelection={rowSelection}
+                // rowSelection={rowSelection}
                 cellSelection={true}
                 rowHeight={40}
                 headerHeight={45}
