@@ -176,7 +176,7 @@ const PhieuThu = () => {
               filter: true,
               minWidth: 100,
             }}
-            rowSelection={rowSelection}
+            // rowSelection={rowSelection}
             cellSelection={true}
             // enableCellTextSelection={true}
             ensureDomOrder={true}

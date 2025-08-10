@@ -160,7 +160,7 @@ const PhieuChi = () => {
                 defaultColDef={defaultColDef}
                 pagination={true}
                 paginationPageSize={50}
-                rowSelection={rowSelection}
+                // rowSelection={rowSelection}
                 cellSelection={true}
                 animateRows={true}
                 suppressMenuHide={true}
