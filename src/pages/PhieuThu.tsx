@@ -4,7 +4,6 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -136,6 +135,12 @@ const PhieuThu = () => {
     enableClickSelection: true,
   }), []);
 
+  const autoSizeStrategy = useMemo(() => ({
+      type: "fitCellContents" as const,
+      defaultMaxWidth: 500,
+      defaultMinWidth: 30,
+    }), []);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -164,7 +169,7 @@ const PhieuThu = () => {
       </div>
       
       <div className="flex-1 p-6">
-        <div className="ag-theme-alpine w-full h-full">
+        <div className="w-full h-full">
           <AgGridReact
             rowData={phieuThuList || []}
             columnDefs={columnDefs}
@@ -180,7 +185,7 @@ const PhieuThu = () => {
             // rowSelection={rowSelection}
             cellSelection={true}
             localeText={AG_GRID_LOCALE_VN}
-            // enableCellTextSelection={true}
+            autoSizeStrategy={autoSizeStrategy}
             ensureDomOrder={true}
             animateRows={true}
             rowHeight={40}

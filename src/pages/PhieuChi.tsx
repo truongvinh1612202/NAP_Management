@@ -4,7 +4,6 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuChi } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -106,6 +105,12 @@ const PhieuChi = () => {
     enableClickSelection: true,
   }), []);
 
+  const autoSizeStrategy = useMemo(() => ({
+    type: "fitCellContents" as const,
+    defaultMaxWidth: 500,
+    defaultMinWidth: 30,
+  }), []);
+
   // Early return for loading state
   if (isLoading) {
     return (
@@ -154,7 +159,7 @@ const PhieuChi = () => {
 
         {phieuChiList && phieuChiList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-full h-[60vh]">
+            <div className="w-full h-[60vh]">
               <AgGridReact
                 rowData={phieuChiList}
                 columnDefs={columnDefs}
@@ -169,6 +174,7 @@ const PhieuChi = () => {
                 rowHeight={40}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
+                autoSizeStrategy={autoSizeStrategy}
               />
             </div>
           </div>

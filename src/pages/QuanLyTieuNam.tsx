@@ -4,7 +4,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+// import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { QuanLyPhiDichVu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -96,7 +96,7 @@ const QuanLyTieuNam = () => {
       </div>
       
       <div className="flex-1 p-6">
-        <div className="ag-theme-alpine w-full h-full">
+        <div className="w-full h-full">
           <AgGridReact
             rowData={quanLyPhiDichVuList || []}
             columnDefs={columnDefs}

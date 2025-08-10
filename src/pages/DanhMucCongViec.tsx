@@ -4,7 +4,6 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucCongViec } from '../../generated/client';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
@@ -102,7 +101,7 @@ const DanhMucCongViec = () => {
 
         {congViecList && congViecList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-full h-[60vh]">
+            <div className="w-full h-[60vh]">
               <AgGridReact
                 rowData={congViecList}
                 columnDefs={columnDefs}

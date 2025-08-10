@@ -4,7 +4,6 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { NghiemThuCongViec } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -42,14 +41,12 @@ const NghiemThuCongViec = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'noiDung',
       headerName: 'Nội Dung',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -57,7 +54,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'khachHang',
       headerName: 'Khách Hàng',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -65,7 +61,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'nhanVien',
       headerName: 'Nhân Viên',
-      width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -73,7 +68,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'congViec',
       headerName: 'Công Việc',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -81,7 +75,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'ngay',
       headerName: 'Ngày',
-      width: 120,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -92,7 +85,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'soTien',
       headerName: 'Số Tiền (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -103,7 +95,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'kyDuLieu',
       headerName: 'Kỳ Dữ Liệu',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -111,7 +102,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'khachHangId',
       headerName: 'ID Khách Hàng',
-      width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -131,7 +121,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'nhanVienId',
       headerName: 'ID Nhân Viên',
-      width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -151,7 +140,6 @@ const NghiemThuCongViec = () => {
     {
       field: 'congViecId',
       headerName: 'ID Công Việc',
-      width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -176,6 +164,12 @@ const NghiemThuCongViec = () => {
     headerCheckbox: false,
     enableClickSelection: true,
   }), []);
+
+  const autoSizeStrategy = useMemo(() => ({
+      type: "fitCellContents" as const,
+      defaultMaxWidth: 500,
+      defaultMinWidth: 300,
+    }), []);
 
   if (isLoading) {
     return (
@@ -205,7 +199,7 @@ const NghiemThuCongViec = () => {
       </div>
       
       <div className="flex-1 p-6">
-        <div className="ag-theme-alpine w-full h-full">
+        <div className="w-full h-full">
           <AgGridReact
             rowData={nghiemThuList || []}
             columnDefs={columnDefs}
@@ -216,12 +210,16 @@ const NghiemThuCongViec = () => {
               resizable: true,
               sortable: true,
               filter: true,
-              minWidth: 100,
             }}
             // rowSelection={rowSelection}
             cellSelection={true}
             localeText={AG_GRID_LOCALE_VN}
             // enableCellTextSelection={true}
+            autoSizeStrategy={{
+              type: "fitCellContents",
+              defaultMaxWidth: 500,
+              defaultMinWidth: 50,
+            }}
             ensureDomOrder={true}
             animateRows={true}
             rowHeight={40}

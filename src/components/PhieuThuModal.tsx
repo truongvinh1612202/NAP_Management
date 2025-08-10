@@ -4,12 +4,11 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu, DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
-import { AUTO_SIZE_STRATEGY } from '@/utils/gridConfig';
+
 
 interface PhieuThuModalProps {
   khachHang: DanhMucKhachHang | null;
@@ -255,7 +254,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
               </div>
             </div>
           ) : filteredPhieuThu.length > 0 ? (
-            <div className="ag-theme-alpine w-full h-full">
+            <div className="w-full h-full">
               <AgGridReact
                 rowData={filteredPhieuThu}
                 columnDefs={columnDefs}

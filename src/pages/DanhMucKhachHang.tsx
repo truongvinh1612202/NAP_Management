@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef, colorSchemeDarkBlue, colorSchemeLightWarm, RowSelectionOptions, themeAlpine, themeBalham, themeQuartz } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -201,7 +200,7 @@ const DanhMucKhachHang = () => {
 
         {khachHangList && khachHangList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-auto h-[60vh]" tabIndex={0} aria-label="Bảng khách hàng">
+            <div className="w-auto h-[60vh]" tabIndex={0} aria-label="Bảng khách hàng">
               <AgGridReact
                 rowData={khachHangList}
                 columnDefs={columnDefs}

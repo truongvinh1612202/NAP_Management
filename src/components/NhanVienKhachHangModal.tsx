@@ -4,7 +4,6 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien, DanhMucKhachHang } from '../../generated/client';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
@@ -228,7 +227,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
                   {RESPONSIBILITY_LABELS[selectedResponsibility]} - {currentData.length} khách hàng
                 </h3>
               </div>
-              <div className="ag-theme-alpine w-full h-[calc(100%-3rem)]">
+              <div className="w-full h-[calc(100%-3rem)]">
                 <AgGridReact
                   rowData={currentData}
                   cellSelection={true}
