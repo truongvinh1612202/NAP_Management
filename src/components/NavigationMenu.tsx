@@ -17,7 +17,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       id: 'khachhang',
       label: 'Khách Hàng',
       icon: '👥',
-      active: false
+      active: true,
     },
     {
       id: 'nhanvien',

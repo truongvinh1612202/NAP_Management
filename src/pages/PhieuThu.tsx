@@ -19,14 +19,12 @@ const PhieuThu = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'soCT',
       headerName: 'Số CT',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -34,7 +32,6 @@ const PhieuThu = () => {
     {
       field: 'ngayThu',
       headerName: 'Ngày Thu',
-      width: 120,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -45,7 +42,6 @@ const PhieuThu = () => {
     {
       field: 'noiDung',
       headerName: 'Nội Dung',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -53,7 +49,6 @@ const PhieuThu = () => {
     {
       field: 'tenKhachHang',
       headerName: 'Khách Hàng',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -61,7 +56,6 @@ const PhieuThu = () => {
     {
       field: 'tenNhanVien',
       headerName: 'Nhân Viên',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -69,7 +63,6 @@ const PhieuThu = () => {
     {
       field: 'nhomThu',
       headerName: 'Nhóm Thu',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -77,7 +70,6 @@ const PhieuThu = () => {
     {
       field: 'soTien',
       headerName: 'Số Tiền (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value)
@@ -85,7 +77,6 @@ const PhieuThu = () => {
     {
       field: 'tienMat',
       headerName: 'Tiền Mặt (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -99,7 +90,6 @@ const PhieuThu = () => {
     {
       field: 'chuyenKhoan',
       headerName: 'Chuyển Khoản (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -113,7 +103,6 @@ const PhieuThu = () => {
     {
       field: 'taiKhoan',
       headerName: 'Tài Khoản',
-      width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -121,7 +110,6 @@ const PhieuThu = () => {
     {
       field: 'ghiChu',
       headerName: 'Ghi Chú',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -169,13 +157,13 @@ const PhieuThu = () => {
       </div>
       
       <div className="flex-1 p-6">
-        <div className="w-full h-full ag-theme-alpine">
+        <div className="w-full h-full">
           <AgGridReact
             rowData={phieuThuList || []}
             columnDefs={columnDefs}
             pagination={true}
             paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
+            paginationPageSizeSelector={[20, 50, 100]}
             defaultColDef={{
               resizable: true,
               sortable: true,

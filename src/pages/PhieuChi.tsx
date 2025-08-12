@@ -19,14 +19,12 @@ const PhieuChi = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'soCT',
       headerName: 'Số CT',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -34,7 +32,6 @@ const PhieuChi = () => {
     {
       field: 'ngayChi',
       headerName: 'Ngày Chi',
-      width: 120,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -45,7 +42,6 @@ const PhieuChi = () => {
     {
       field: 'noiDung',
       headerName: 'Nội Dung',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -53,7 +49,6 @@ const PhieuChi = () => {
     {
       field: 'tenKhachHang',
       headerName: 'Khách Hàng',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -61,7 +56,6 @@ const PhieuChi = () => {
     {
       field: 'tenNhanVien',
       headerName: 'Nhân Viên',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -69,7 +63,6 @@ const PhieuChi = () => {
     {
       field: 'nhomChi',
       headerName: 'Nhóm Chi',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -77,7 +70,6 @@ const PhieuChi = () => {
     {
       field: 'soTien',
       headerName: 'Số Tiền (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value),
@@ -85,7 +77,6 @@ const PhieuChi = () => {
     {
       field: 'thuQuy',
       headerName: 'Thu Quỹ',
-      width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -96,13 +87,6 @@ const PhieuChi = () => {
     resizable: true,
     sortable: true,
     filter: true,
-  }), []);
-
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow' as const,
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
   }), []);
 
   const autoSizeStrategy = useMemo(() => ({
@@ -159,7 +143,7 @@ const PhieuChi = () => {
 
         {phieuChiList && phieuChiList.length > 0 ? (
           <div className="p-4">
-            <div className="w-full h-[60vh] ag-theme-alpine">
+            <div className="w-full h-[60vh]">
               <AgGridReact
                 rowData={phieuChiList}
                 columnDefs={columnDefs}

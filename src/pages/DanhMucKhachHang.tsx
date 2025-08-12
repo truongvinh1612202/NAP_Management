@@ -11,6 +11,7 @@ import { useState } from 'react';
 import DetailModal from '../components/DetailModal';
 import PhieuThuModal from '../components/PhieuThuModal';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '../utils/gridConfig';
 
 const DanhMucKhachHang = () => {
   const { data: khachHangList, isLoading, error } = useQuery(
@@ -133,17 +134,10 @@ const DanhMucKhachHang = () => {
     }
   ], []);
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
 
-  const autoSizeStrategy = useMemo(() => ({
-    type: "fitCellContents" as const ,
-    defaultMaxWidth: 500,
-    defaultMinWidth: 30,
-  }), []);
+  // Use shared grid config
+  const defaultColDef = DEFAULT_COL_DEF;
+  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
     mode: 'multiRow' as const,
@@ -205,17 +199,8 @@ const DanhMucKhachHang = () => {
                 rowData={khachHangList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={50}
-                // rowSelection={rowSelection}
-                localeText={AG_GRID_LOCALE_VN}
-                cellSelection={true}
-                animateRows={true}
-                suppressMenuHide={true}
-                rowHeight={40}
-                headerHeight={45}
-                allowContextMenuWithControlKey={true}
                 autoSizeStrategy={autoSizeStrategy}
+                {...DEFAULT_GRID_OPTIONS}
               />
             </div>
             { selectedRow && (

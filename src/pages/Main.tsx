@@ -13,7 +13,7 @@ import QuanLyTieuNam from './QuanLyTieuNam';
 
 const Main = () => {
   const navigate = useNavigate();
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState('khachhang');
 
   // Check if user is authenticated
   useEffect(() => {
@@ -49,13 +49,8 @@ const Main = () => {
         return <QuanLyTieuNam />;
       case 'dashboard':
       default:
-        return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="h-[70vh]">
-              <DataTable />
-            </div>
-          </div>
-        );
+        return null;
+        
     }
   };
 

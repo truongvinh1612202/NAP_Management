@@ -128,8 +128,8 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
       aria-modal="true"
       role="dialog"
     >
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{title}</h3>
+      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h3 className="text-xl font-bold mb-4 text-gray-900">{title}</h3>
         
         {isLoading ? (
           // Show loading state
@@ -156,7 +156,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
           // Show data when available and not empty
           <div className="space-y-2">
             {Object.entries(data).map(([key, value]) => (
-              <div key={key} className="text-gray-800 dark:text-gray-100">
+              <div key={key} className="text-gray-800">
                 <span className="font-semibold">{FIELD_LABELS[key] || key}:</span>{' '}
                 {statusFields.includes(key)
                   ? <StatusBadge value={value} />

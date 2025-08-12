@@ -18,7 +18,7 @@ export const DEFAULT_GRID_OPTIONS: Partial<GridOptions> = {
   // Pagination
   pagination: true,
   paginationPageSize: 50,
-  paginationPageSizeSelector: [10, 20, 50, 100],
+  paginationPageSizeSelector: [20, 50, 100],
   
   // Selection
   cellSelection: true,

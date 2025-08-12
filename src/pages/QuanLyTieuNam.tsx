@@ -71,7 +71,7 @@ const QuanLyTieuNam = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Đang tải dữ liệu quản lý phí dịch vụ...</div>
+        <div className="text-lg">Đang tải dữ liệu quản lý tiêu năm...</div>
       </div>
     );
   }
@@ -89,9 +89,9 @@ const QuanLyTieuNam = () => {
   return (
     <div className="w-full h-full flex flex-col">
       <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Quản Lý Phí Dịch Vụ</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Quản Lý Tiêu Năm</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Quản lý phí dịch vụ khách hàng ({quanLyPhiDichVuList?.length || 0} bản ghi)
+          Quản lý tiêu năm ({quanLyPhiDichVuList?.length || 0} bản ghi)
         </p>
       </div>
       
@@ -102,7 +102,7 @@ const QuanLyTieuNam = () => {
             columnDefs={columnDefs}
             pagination={true}
             paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
+            paginationPageSizeSelector={[20, 50, 100]}
             defaultColDef={{
               resizable: true,
               sortable: true,

@@ -105,12 +105,11 @@ const DanhMucNhanVien = () => {
     filter: true,
   }), []);
 
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow' as const,
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
+  const autoSizeStrategy = useMemo(() => ({
+      type: "fitCellContents" as const ,
+      defaultMaxWidth: 500,
+      defaultMinWidth: 30,
+    }), []);
 
   // Early return for loading state
   if (isLoading) {
@@ -175,6 +174,7 @@ const DanhMucNhanVien = () => {
                 localeText={AG_GRID_LOCALE_VN}
                 headerHeight={45}
                 allowContextMenuWithControlKey={true}
+                autoSizeStrategy={autoSizeStrategy}
               />
             </div>
             <NhanVienKhachHangModal

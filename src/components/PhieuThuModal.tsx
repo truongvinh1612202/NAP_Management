@@ -197,7 +197,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
                 id="month-select"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700"
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                   <option key={month} value={month}>
@@ -205,7 +205,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({ khachHang, isOpen, onClos
                   </option>
                 ))}
               </select>
-            </div>
+            </div>tsc
 
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">
