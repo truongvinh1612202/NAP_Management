@@ -1,9 +1,40 @@
 import path from "path";
 import {app} from "electron";
-import 'dotenv/config';
+import fs from "fs";
+
 export const isDev = process.env.NODE_ENV === "development";
 
-export const dbUrl = process.env.DATABASE_URL || '';
+// In development, try to load .env file
+if (isDev) {
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      // Read and parse .env file manually to avoid require() issues
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const envLines = envContent.split('\n');
+      
+      for (const line of envLines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+          const [key, ...valueParts] = trimmedLine.split('=');
+          if (key && valueParts.length > 0) {
+            const value = valueParts.join('=').trim();
+            if (!process.env[key.trim()]) {
+              process.env[key.trim()] = value;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Could not load .env file:', error);
+  }
+}
+
+// For packaged apps, we'll use the environment variable or fallback
+// In production, set DATABASE_URL via system environment variables
+export const dbUrl = process.env.DATABASE_URL || 
+  'sqlserver://localhost:1433;database=MyDatabase;user=SA;password=MyStrongPass123;encrypt=DANGER_PLAINTEXT';
 
 // Hacky, but putting this here because otherwise at query time the Prisma client
 // gives an error "Environment variable not found: DATABASE_URL" despite us passing

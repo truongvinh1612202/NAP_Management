@@ -1,9 +1,9 @@
 {
-  "name": "electron-vite-react",
+  "name": "nap-management",
   "version": "2.2.0",
   "main": "dist-electron/main/index.js",
-  "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "description": "NAP Management - Vietnamese Business Management System",
+  "author": "NAP Team",
   "license": "MIT",
   "private": true,
   "debug": {
@@ -14,7 +14,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "build": "npx prisma generate && tsc && vite build && node scripts/copy-prisma-engines.js && electron-builder",
     "preview": "vite preview",
     "pretest": "vite build --mode=test",
     "test": "vitest run"
