@@ -160,7 +160,7 @@ const DanhMucNhanVien = () => {
 
         {nhanVienList && nhanVienList.length > 0 ? (
           <div className="p-4">
-            <div className="w-full h-[60vh]">
+            <div className="w-full h-[60vh] ag-theme-alpine">
               <AgGridReact
                 rowData={nhanVienList}
                 columnDefs={columnDefs}

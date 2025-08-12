@@ -169,7 +169,7 @@ const PhieuThu = () => {
       </div>
       
       <div className="flex-1 p-6">
-        <div className="w-full h-full">
+        <div className="w-full h-full ag-theme-alpine">
           <AgGridReact
             rowData={phieuThuList || []}
             columnDefs={columnDefs}

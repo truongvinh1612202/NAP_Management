@@ -200,7 +200,7 @@ const DanhMucKhachHang = () => {
 
         {khachHangList && khachHangList.length > 0 ? (
           <div className="p-4">
-            <div className="w-auto h-[60vh]" tabIndex={0} aria-label="Bảng khách hàng">
+            <div className="w-auto h-[60vh] ag-theme-alpine" tabIndex={0} aria-label="Bảng khách hàng">
               <AgGridReact
                 rowData={khachHangList}
                 columnDefs={columnDefs}

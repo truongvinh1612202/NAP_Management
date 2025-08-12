@@ -159,7 +159,7 @@ const PhieuChi = () => {
 
         {phieuChiList && phieuChiList.length > 0 ? (
           <div className="p-4">
-            <div className="w-full h-[60vh]">
+            <div className="w-full h-[60vh] ag-theme-alpine">
               <AgGridReact
                 rowData={phieuChiList}
                 columnDefs={columnDefs}
