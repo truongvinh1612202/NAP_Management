@@ -1,6 +1,7 @@
 import { GridOptions } from 'ag-grid-community';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
 
+
 /**
  * Auto-sizing strategy for grids
  */
@@ -8,6 +9,14 @@ export const AUTO_SIZE_STRATEGY = {
   type: "fitCellContents" as const,
   defaultMaxWidth: 500,
   defaultMinWidth: 30,
+};
+
+/**
+ * Auto-sizing strategy to fill available width (for grids with few columns)
+ */
+export const AUTO_SIZE_STRATEGY_FILL = {
+  type: "fitGridWidth" as const,
+  defaultMinWidth: 100,
 };
 
 

@@ -1,14 +1,13 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
-// import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { QuanLyPhiDichVu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY_FILL } from '@/utils/gridConfig';
 
 const QuanLyTieuNam = () => {
   const { data: quanLyPhiDichVuList, isLoading, error } = useQuery(
@@ -27,23 +26,20 @@ const QuanLyTieuNam = () => {
     {
       field: 'khachHangId',
       headerName: 'ID Khách Hàng',
-      width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'phiDichVu',
       headerName: 'Phí Dịch Vụ (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value),
-      cellStyle: { textAlign: 'right' }
+      cellStyle: { textAlign: 'left' }
     },
     {
       field: 'ngayHieuLuc',
       headerName: 'Ngày Hiệu Lực',
-      width: 140,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -60,13 +56,6 @@ const QuanLyTieuNam = () => {
       cellRenderer: (params: any) => params.value || '-'
     }
   ], []);
-
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow',
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
 
   if (isLoading) {
     return (
@@ -98,25 +87,11 @@ const QuanLyTieuNam = () => {
       <div className="flex-1 p-6">
         <div className="w-full h-full ag-theme-alpine">
           <AgGridReact
+            {...DEFAULT_GRID_OPTIONS}
             rowData={quanLyPhiDichVuList || []}
             columnDefs={columnDefs}
-            pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[20, 50, 100]}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-              minWidth: 100,
-            }}
-            rowSelection={rowSelection}
-            cellSelection={true}
-            localeText={AG_GRID_LOCALE_VN}
-            // enableCellTextSelection={true}
-            ensureDomOrder={true}
-            animateRows={true}
-            rowHeight={40}
-            headerHeight={45}
+            defaultColDef={DEFAULT_COL_DEF}
+            autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
             overlayNoRowsTemplate='<span style="padding: 10px; border: 2px solid #444;">Không có dữ liệu phí dịch vụ</span>'
           />
         </div>

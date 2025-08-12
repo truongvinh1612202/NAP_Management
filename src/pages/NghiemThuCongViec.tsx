@@ -9,6 +9,7 @@ import type { NghiemThuCongViec } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
 import DetailModal from '../components/DetailModal';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '../utils/gridConfig';
 
 const NghiemThuCongViec = () => {
   const { data: nghiemThuList, isLoading, error } = useQuery(
@@ -165,11 +166,9 @@ const NghiemThuCongViec = () => {
     enableClickSelection: true,
   }), []);
 
-  const autoSizeStrategy = useMemo(() => ({
-      type: "fitCellContents" as const,
-      defaultMaxWidth: 500,
-      defaultMinWidth: 300,
-    }), []);
+  // Use shared grid config
+  const defaultColDef = DEFAULT_COL_DEF;
+  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
 
   if (isLoading) {
     return (
@@ -203,27 +202,9 @@ const NghiemThuCongViec = () => {
           <AgGridReact
             rowData={nghiemThuList || []}
             columnDefs={columnDefs}
-            pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-            }}
-            // rowSelection={rowSelection}
-            cellSelection={true}
-            localeText={AG_GRID_LOCALE_VN}
-            // enableCellTextSelection={true}
-            autoSizeStrategy={{
-              type: "fitCellContents",
-              defaultMaxWidth: 500,
-              defaultMinWidth: 50,
-            }}
-            ensureDomOrder={true}
-            animateRows={true}
-            rowHeight={40}
-            headerHeight={45}
+            defaultColDef={defaultColDef}
+            autoSizeStrategy={autoSizeStrategy}
+            {...DEFAULT_GRID_OPTIONS}
             overlayNoRowsTemplate='<span style="padding: 10px; border: 2px solid #444;">Không có dữ liệu nghiệm thu công việc</span>'
           />
         </div>

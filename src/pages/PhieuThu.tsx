@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '@/utils/gridConfig';
 
 const PhieuThu = () => {
   const { data: phieuThuList, isLoading, error } = useQuery(
@@ -116,19 +116,6 @@ const PhieuThu = () => {
     }
   ], []);
 
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow',
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
-
-  const autoSizeStrategy = useMemo(() => ({
-      type: "fitCellContents" as const,
-      defaultMaxWidth: 500,
-      defaultMinWidth: 30,
-    }), []);
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -159,25 +146,11 @@ const PhieuThu = () => {
       <div className="flex-1 p-6">
         <div className="w-full h-full">
           <AgGridReact
+            {...DEFAULT_GRID_OPTIONS}
             rowData={phieuThuList || []}
             columnDefs={columnDefs}
-            pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[20, 50, 100]}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-              minWidth: 100,
-            }}
-            // rowSelection={rowSelection}
-            cellSelection={true}
-            localeText={AG_GRID_LOCALE_VN}
-            autoSizeStrategy={autoSizeStrategy}
-            ensureDomOrder={true}
-            animateRows={true}
-            rowHeight={40}
-            headerHeight={45}
+            defaultColDef={DEFAULT_COL_DEF}
+            autoSizeStrategy={AUTO_SIZE_STRATEGY}
             overlayNoRowsTemplate='<span style="padding: 10px; border: 2px solid #444;">Không có dữ liệu phiếu thu</span>'
           />
         </div>

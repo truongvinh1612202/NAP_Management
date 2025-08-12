@@ -8,6 +8,7 @@ import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien } from '../../generated/client';
 import NhanVienKhachHangModal from '../components/NhanVienKhachHangModal';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '../utils/gridConfig';
 
 const DanhMucNhanVien = () => {
   const { data: nhanVienList, isLoading, error } = useQuery(
@@ -99,17 +100,9 @@ const DanhMucNhanVien = () => {
     }
   ], []);
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
-
-  const autoSizeStrategy = useMemo(() => ({
-      type: "fitCellContents" as const ,
-      defaultMaxWidth: 500,
-      defaultMinWidth: 30,
-    }), []);
+  // Use shared grid config
+  const defaultColDef = DEFAULT_COL_DEF;
+  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
 
   // Early return for loading state
   if (isLoading) {
@@ -164,17 +157,7 @@ const DanhMucNhanVien = () => {
                 rowData={nhanVienList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={50}
-                // rowSelection={rowSelection}
-                cellSelection={true}
-                animateRows={true}
-                suppressMenuHide={true}
-                rowHeight={40}
-                localeText={AG_GRID_LOCALE_VN}
-                headerHeight={45}
-                allowContextMenuWithControlKey={true}
-                autoSizeStrategy={autoSizeStrategy}
+                {...DEFAULT_GRID_OPTIONS}
               />
             </div>
             <NhanVienKhachHangModal

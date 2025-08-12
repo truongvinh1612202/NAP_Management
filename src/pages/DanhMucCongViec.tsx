@@ -7,6 +7,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucCongViec } from '../../generated/client';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY_FILL } from '../utils/gridConfig';
 
 const DanhMucCongViec = () => {
   const { data: congViecList, isLoading, error } = useQuery(
@@ -18,33 +19,30 @@ const DanhMucCongViec = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
+      width: 100,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'ten',
       headerName: 'Tên Công Việc',
-      flex: 2,
       sortable: true,
+      flex: 3,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
     },
     {
       field: 'moTa',
       headerName: 'Mô Tả',
-      flex: 3,
       sortable: true,
+      flex: 3,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
     },
   ], []);
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
+  // Use shared grid config
+  const defaultColDef = DEFAULT_COL_DEF;
 
   const rowSelection: RowSelectionOptions = useMemo(() => ({
     mode: 'multiRow' as const,
@@ -101,21 +99,13 @@ const DanhMucCongViec = () => {
 
         {congViecList && congViecList.length > 0 ? (
           <div className="p-4">
-            <div className="w-full h-[60vh] ag-theme-alpine">
+            <div className="w-full h-[60vh]">
               <AgGridReact
+                {...DEFAULT_GRID_OPTIONS}
                 rowData={congViecList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={50}
-                // rowSelection={rowSelection}
-                localeText={AG_GRID_LOCALE_VN}
-                cellSelection={true}
-                animateRows={true}
-                suppressMenuHide={true}
-                rowHeight={40}
-                headerHeight={45}
-                allowContextMenuWithControlKey={true}
+                autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
               />
             </div>
           </div>

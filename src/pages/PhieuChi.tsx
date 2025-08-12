@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
 import 'ag-grid-community/styles/ag-grid.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuChi } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '@/utils/gridConfig';
 
 const PhieuChi = () => {
   const { data: phieuChiList, isLoading, error } = useQuery(
@@ -83,18 +83,6 @@ const PhieuChi = () => {
     }
   ], []);
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
-
-  const autoSizeStrategy = useMemo(() => ({
-    type: "fitCellContents" as const,
-    defaultMaxWidth: 500,
-    defaultMinWidth: 30,
-  }), []);
-
   // Early return for loading state
   if (isLoading) {
     return (
@@ -145,20 +133,11 @@ const PhieuChi = () => {
           <div className="p-4">
             <div className="w-full h-[60vh]">
               <AgGridReact
+                {...DEFAULT_GRID_OPTIONS}
                 rowData={phieuChiList}
                 columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={50}
-                // rowSelection={rowSelection}
-                localeText={AG_GRID_LOCALE_VN}
-                cellSelection={true}
-                animateRows={true}
-                suppressMenuHide={true}
-                rowHeight={40}
-                headerHeight={45}
-                allowContextMenuWithControlKey={true}
-                autoSizeStrategy={autoSizeStrategy}
+                defaultColDef={DEFAULT_COL_DEF}
+                autoSizeStrategy={AUTO_SIZE_STRATEGY}
               />
             </div>
           </div>
