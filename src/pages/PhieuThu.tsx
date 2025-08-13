@@ -134,27 +134,39 @@ const PhieuThu = () => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Phiếu Thu</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Quản lý phiếu thu tiền ({phieuThuList?.length || 0} phiếu)
-        </p>
-      </div>
-      
-      <div className="flex-1 p-6">
-        <div className="w-full h-full">
-          <AgGridReact
-            {...DEFAULT_GRID_OPTIONS}
-            rowData={phieuThuList || []}
-            columnDefs={columnDefs}
-            defaultColDef={DEFAULT_COL_DEF}
-            autoSizeStrategy={AUTO_SIZE_STRATEGY}
-            overlayNoRowsTemplate='<span style="padding: 10px; border: 2px solid #444;">Không có dữ liệu phiếu thu</span>'
-          />
+    <div className="p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Phiếu Thu</h1>
+            <p className="text-gray-600 mt-2">Quản lý phiếu thu tiền</p>
+          </div>
+    
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Danh sách phiếu thu ({phieuThuList?.length || 0})
+              </h2>
+            </div>
+
+            {phieuThuList && phieuThuList.length > 0 ? (
+              <div className="p-4">
+                <div className="w-full h-[60vh]">
+                  <AgGridReact
+                    {...DEFAULT_GRID_OPTIONS}
+                    rowData={phieuThuList}
+                    columnDefs={columnDefs}
+                    defaultColDef={DEFAULT_COL_DEF}
+                    autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-8 text-center">
+                <div className="text-gray-500 text-lg">Không có dữ liệu phiếu thu</div>
+                <p className="text-gray-400 mt-2">Chưa có phiếu thu nào được ghi nhận</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
   );
 };
 

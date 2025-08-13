@@ -168,7 +168,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              Khách Hàng Phụ Trách - {nhanVien?.tenNhanVien}
+              Nhân Viên Phụ Trách - {nhanVien?.tenNhanVien}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
               Mã NV: {nhanVien?.maSoNhanVien}
