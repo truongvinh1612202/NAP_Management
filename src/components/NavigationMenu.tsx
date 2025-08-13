@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 interface NavigationItem {
   id: string;
@@ -14,60 +14,60 @@ interface NavigationMenuProps {
 const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
   const [menuItems, setMenuItems] = useState<NavigationItem[]>([
     {
-      id: 'khachhang',
-      label: 'Khách Hàng',
-      icon: '👥',
-      active: false
+      id: "khachhang",
+      label: "Khách Hàng",
+      icon: "👥",
+      active: false,
     },
     {
-      id: 'nhanvien',
-      label: 'Nhân Viên',
-      icon: '👨‍💼',
-      active: false
+      id: "nhanvien",
+      label: "Nhân Viên",
+      icon: "👨‍💼",
+      active: false,
     },
     {
-      id: 'congviec',
-      label: 'Công Việc',
-      icon: '📋',
-      active: false
+      id: "congviec",
+      label: "Công Việc",
+      icon: "📋",
+      active: false,
     },
     {
-      id: 'chiphi',
-      label: 'Chi Phí',
-      icon: '💰',
-      active: false
+      id: "chiphi",
+      label: "Chi Phí",
+      icon: "💰",
+      active: false,
     },
     {
-      id: 'phieuchi',
-      label: 'Phiếu Chi',
-      icon: '🧾',
-      active: false
+      id: "phieuchi",
+      label: "Phiếu Chi",
+      icon: "🧾",
+      active: false,
     },
     {
-      id: 'phieuthu',
-      label: 'Phiếu Thu',
-      icon: '💵',
-      active: false
+      id: "phieuthu",
+      label: "Phiếu Thu",
+      icon: "💵",
+      active: false,
     },
     {
-      id: 'nghiemthucongviec',
-      label: 'Nghiệm Thu',
-      icon: '✅',
-      active: false
+      id: "nghiemthucongviec",
+      label: "Nghiệm Thu",
+      icon: "✅",
+      active: false,
     },
     {
-      id: 'ds_qltnam',
-      label: 'QL Tiêu Năm',
-      icon: '📅',
-      active: false
+      id: "ds_qltnam",
+      label: "QL Tiêu Năm",
+      icon: "📅",
+      active: false,
     },
   ]);
 
   const handleMenuItemClick = (id: string) => {
-    setMenuItems(prevItems =>
-      prevItems.map(item => ({
+    setMenuItems((prevItems) =>
+      prevItems.map((item) => ({
         ...item,
-        active: item.id === id
+        active: item.id === id,
       }))
     );
     // Call the parent's callback if provided
@@ -83,11 +83,13 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       </div>
       <div className="py-4">
         <ul>
-          {menuItems.map(item => (
+          {menuItems.map((item) => (
             <li key={item.id}>
               <button
                 onClick={() => handleMenuItemClick(item.id)}
-                className={`flex items-center w-full px-5 py-3 transition-colors hover:bg-gray-700 ${item.active ? 'bg-gray-700' : ''}`}
+                className={`flex items-center w-full px-5 py-3 transition-colors hover:bg-gray-700 ${
+                  item.active ? "bg-gray-700" : ""
+                }`}
                 tabIndex={0}
                 aria-label={item.label}
               >
@@ -101,13 +103,28 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       <div className="absolute bottom-0 w-64 p-5 border-t border-gray-700">
         <button
           className="flex items-center w-full text-left px-4 py-2 
+          transition-colors hover:bg-gray-700 rounded-md mb-2
+          max-w-[236px]"
+          tabIndex={0}
+          aria-label="Database Settings"
+          onClick={() => {
+            if (onItemClick) {
+              onItemClick("database-config");
+            }
+          }}
+        >
+          <span className="mr-3">⚙️</span>
+          <span>Cài Đặt DB</span>
+        </button>
+        <button
+          className="flex items-center w-full text-left px-4 py-2 
           transition-colors hover:bg-gray-700 rounded-md
           max-w-[236px]"
           tabIndex={0}
           aria-label="Logout"
           onClick={() => {
-            sessionStorage.removeItem('isAuthenticated');
-            window.location.href = '/';
+            sessionStorage.removeItem("isAuthenticated");
+            window.location.href = "/";
           }}
         >
           <span className="mr-3">🚪</span>

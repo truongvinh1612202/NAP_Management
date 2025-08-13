@@ -14,7 +14,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx prisma generate && tsc && vite build && node scripts/copy-prisma-engines.js && electron-builder",
+    "build": "npx prisma generate && tsc && vite build && node scripts/copy-prisma-engines.js && node scripts/install-mac-engines.js && electron-builder",
     "preview": "vite preview",
     "pretest": "vite build --mode=test",
     "test": "vitest run"
@@ -22,7 +22,7 @@
   "dependencies": {
     "@ag-grid-community/locale": "^34.1.1",
     "@prisma/client": "^6.13.0",
-    "@prisma/engines": "^6.13.0",
+    "@prisma/engines": "^6.14.0",
     "@tanstack/react-query": "^5.84.1",
     "@trpc/client": "^11.0.0-rc.421",
     "@trpc/server": "^11.0.0-rc.421",
@@ -48,6 +48,7 @@
     "postcss-import": "^16.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "replace-in-file": "^7.2.0",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.4.2",
     "vite": "^5.4.11",
