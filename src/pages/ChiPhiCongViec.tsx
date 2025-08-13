@@ -19,7 +19,7 @@ const ChiPhiCongViec = () => {
     {
       field: 'id',
       headerName: 'ID',
-      flex: 0.1,
+      width: 100,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
