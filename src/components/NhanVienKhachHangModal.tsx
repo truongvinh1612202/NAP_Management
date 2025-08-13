@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien, DanhMucKhachHang } from '../../generated/client';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';

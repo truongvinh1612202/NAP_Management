@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, colorSchemeDarkBlue, colorSchemeLightWarm, RowSelectionOptions, themeAlpine, themeBalham, themeQuartz } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucKhachHang } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -36,7 +35,7 @@ const DanhMucKhachHang = () => {
           </button>
         </div>
       ),
-      suppressMenu: true,
+      suppressHeaderMenuButton: true,
       sortable: false,
       filter: false,
       maxWidth: 120,
@@ -57,7 +56,7 @@ const DanhMucKhachHang = () => {
           </button>
         </div>
       ),
-      suppressMenu: true,
+      suppressHeaderMenuButton: true,
       sortable: false,
       filter: false,
       maxWidth: 120,
@@ -67,6 +66,7 @@ const DanhMucKhachHang = () => {
       field: 'id',
       headerName: 'ID',
       sortable: true,
+      width: 100,
       filter: 'agNumberColumnFilter',
     },
     {
@@ -139,13 +139,6 @@ const DanhMucKhachHang = () => {
   const defaultColDef = DEFAULT_COL_DEF;
   const autoSizeStrategy = AUTO_SIZE_STRATEGY;
 
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow' as const,
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
-
   // Early return for loading state
   if (isLoading) {
     return (
@@ -194,7 +187,7 @@ const DanhMucKhachHang = () => {
 
         {khachHangList && khachHangList.length > 0 ? (
           <div className="p-4">
-            <div className="w-auto h-[60vh] ag-theme-alpine" tabIndex={0} aria-label="Bảng khách hàng">
+            <div className="w-auto h-[60vh]" tabIndex={0} aria-label="Bảng khách hàng">
               <AgGridReact
                 rowData={khachHangList}
                 columnDefs={columnDefs}

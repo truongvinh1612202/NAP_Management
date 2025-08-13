@@ -109,7 +109,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           }}
         >
           <span className="mr-3">🚪</span>
-          <span>Logout</span>
+          <span>Đăng Xuất</span>
         </button>
       </div>
     </nav>

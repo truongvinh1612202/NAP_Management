@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
 import { trpc } from '../utils/trpc';
 import type { QuanLyPhiDichVu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
@@ -85,7 +84,7 @@ const QuanLyTieuNam = () => {
       </div>
       
       <div className="flex-1 p-6">
-        <div className="w-full h-full ag-theme-alpine">
+        <div className="w-full h-full">
           <AgGridReact
             {...DEFAULT_GRID_OPTIONS}
             rowData={quanLyPhiDichVuList || []}

@@ -165,7 +165,7 @@ export const COMMON_COLUMNS = {
         </button>
       </div>
     `,
-    suppressMenu: true,
+    suppressHeaderMenuButton: true,
     sortable: false,
     filter: false,
     maxWidth: 120,
