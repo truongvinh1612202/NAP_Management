@@ -24,15 +24,43 @@ fs.copySync(
   path.join(__dirname, "dist", "generated"),
   {
     filter: (src, dest) => {
-      // Prevent duplicate copy of query engine. It will already be in extraResources in electron-builder.yml
-      if (
-        src.match(/query_engine/) ||
-        src.match(/libquery_engine/) ||
-        src.match(/esm/)
-      ) {
-        return false;
-      }
+      // Include all files - engines will be handled separately
       return true;
     },
   }
 );
+
+// Ensure Prisma engines are copied for production build
+const enginesSource = path.join(__dirname, "node_modules", "@prisma", "engines");
+const enginesTarget = path.join(__dirname, "dist", "node_modules", "@prisma", "engines");
+
+if (fs.existsSync(enginesSource)) {
+  console.log("Copying Prisma engines to dist folder...");
+  fs.ensureDirSync(enginesTarget);
+  
+  // Copy specific engine files
+  const engineFiles = [
+    "query_engine-windows.dll.node",
+    "libquery_engine-darwin.dylib.node", 
+    "libquery_engine-darwin-arm64.dylib.node",
+    "libquery_engine-debian-openssl-1.1.x.so.node",
+    "schema-engine-windows.exe",
+    "schema-engine-darwin",
+    "schema-engine-darwin-arm64",
+    "schema-engine-debian-openssl-1.1.x"
+  ];
+  
+  engineFiles.forEach(file => {
+    const sourcePath = path.join(enginesSource, file);
+    const targetPath = path.join(enginesTarget, file);
+    
+    if (fs.existsSync(sourcePath)) {
+      fs.copySync(sourcePath, targetPath);
+      console.log(`Copied engine: ${file}`);
+    }
+  });
+  
+  console.log("Prisma engines copied successfully");
+} else {
+  console.warn("Prisma engines source not found:", enginesSource);
+}

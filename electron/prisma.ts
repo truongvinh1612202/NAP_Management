@@ -1,11 +1,35 @@
 import log from "electron-log";
 import { PrismaClient } from "../generated/client/index.js";
-import { dbUrl, mePath, qePath } from "./constants";
+import { dbUrl, mePath, qePath, isDev } from "./constants";
 import path from "path";
 import { fork } from "child_process";
+import fs from "fs";
 
 log.info("DB URL", dbUrl);
 log.info("QE Path", qePath);
+log.info("ME Path", mePath);
+log.info("Is Development", isDev);
+
+// Check if query engine exists
+if (fs.existsSync(qePath)) {
+  log.info("Query engine found at:", qePath);
+} else {
+  log.error("Query engine NOT found at:", qePath);
+  
+  // Try to find the engine in alternative locations
+  const alternatives = [
+    path.join(process.cwd(), "node_modules", "@prisma", "engines", "query_engine-windows.dll.node"),
+    path.join(__dirname, "..", "node_modules", "@prisma", "engines", "query_engine-windows.dll.node"),
+    path.join(process.resourcesPath, "node_modules", "@prisma", "engines", "query_engine-windows.dll.node")
+  ];
+  
+  for (const alt of alternatives) {
+    if (fs.existsSync(alt)) {
+      log.info("Alternative query engine found at:", alt);
+      break;
+    }
+  }
+}
 
 export const prisma = new PrismaClient({
   log: [

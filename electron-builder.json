@@ -20,12 +20,9 @@
   ],
   "extraResources": [
     {
-      "from": "node_modules/@prisma/engines/query-engine-*.exe",
-      "to": "node_modules/@prisma/engines/"
-    },
-    {
-      "from": "node_modules/@prisma/engines/libquery_engine-*.dll.node",
-      "to": "node_modules/@prisma/engines/"
+      "from": "node_modules/@prisma/engines",
+      "to": "node_modules/@prisma/engines",
+      "filter": ["query_engine-windows.dll.node", "libquery_engine-*.dylib.node", "libquery_engine-*.so.node", "schema-engine-*"]
     }
   ],
   "mac": {

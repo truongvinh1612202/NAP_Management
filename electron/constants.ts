@@ -188,7 +188,9 @@ export const platformToExecutables: any = {
       "node_modules/@prisma/engines/libquery_engine-darwin-arm64.dylib.node",
   },
 };
-const extraResourcesPath = app.getAppPath().replace("app.asar", ""); // impacted by extraResources setting in electron-builder.yml
+const extraResourcesPath = isDev 
+  ? process.cwd() 
+  : app.getAppPath().replace("app.asar", ""); // impacted by extraResources setting in electron-builder.yml
 
 function getPlatformName(): string {
   const isDarwin = process.platform === "darwin";
