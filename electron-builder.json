@@ -4,9 +4,7 @@
   "productName": "NAP Management",
   "copyright": "Copyright © 2025 NAP Team",
   "asar": true,
-  "asarUnpack": [
-    "generated/**/*"
-  ],
+  "asarUnpack": ["generated/**/*", "prisma/**/*"],
   "directories": {
     "output": "release/${version}"
   },
@@ -14,34 +12,41 @@
     "dist-electron",
     "dist",
     "generated",
-    ".env"
+    "prisma",
+    ".env",
+    "!**/node_modules/@prisma/engines/introspection-engine*",
+    "!**/node_modules/@prisma/engines/schema-engine*",
+    "!**/node_modules/@prisma/engines/prisma-fmt*"
   ],
   "extraResources": [
     {
-      "from": "node_modules/@prisma/engines",
-      "to": "node_modules/@prisma/engines"
+      "from": "node_modules/@prisma/engines/query-engine-*.exe",
+      "to": "node_modules/@prisma/engines/"
+    },
+    {
+      "from": "node_modules/@prisma/engines/libquery_engine-*.dll.node",
+      "to": "node_modules/@prisma/engines/"
     }
   ],
   "mac": {
     "icon": "build/icon.ico",
     "category": "public.app-category.business",
     "artifactName": "${productName}_${version}.${ext}",
-    "target": [
-      "dmg",
-      "zip"
-    ]
+    "target": ["dmg", "zip"]
   },
   "win": {
     "icon": "build/icon.ico",
     "target": [
       {
         "target": "nsis",
-        "arch": [
-          "x64"
-        ]
+        "arch": ["x64"]
       }
     ],
-    "artifactName": "${productName}_${version}.${ext}"
+    "artifactName": "${productName}_${version}.${ext}",
+    "asar": {
+      "smartUnpack": false
+    },
+    "asarUnpack": ["generated/**/*", "prisma/**/*"]
   },
   "nsis": {
     "oneClick": false,
