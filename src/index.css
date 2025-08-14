@@ -1,3 +1,6 @@
+/* Import AG Grid theme CSS for the new Theming API */
+@import 'ag-grid-community/styles/ag-theme-alpine.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,7 +51,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f9f9f9;
   cursor: pointer;
   transition: border-color 0.25s;
 }

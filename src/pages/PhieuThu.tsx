@@ -1,14 +1,12 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuThu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '@/utils/gridConfig';
 
 const PhieuThu = () => {
   const { data: phieuThuList, isLoading, error } = useQuery(
@@ -20,14 +18,12 @@ const PhieuThu = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'soCT',
       headerName: 'Số CT',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -35,7 +31,6 @@ const PhieuThu = () => {
     {
       field: 'ngayThu',
       headerName: 'Ngày Thu',
-      width: 120,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -46,7 +41,6 @@ const PhieuThu = () => {
     {
       field: 'noiDung',
       headerName: 'Nội Dung',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -54,7 +48,6 @@ const PhieuThu = () => {
     {
       field: 'tenKhachHang',
       headerName: 'Khách Hàng',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -62,7 +55,6 @@ const PhieuThu = () => {
     {
       field: 'tenNhanVien',
       headerName: 'Nhân Viên',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -70,7 +62,6 @@ const PhieuThu = () => {
     {
       field: 'nhomThu',
       headerName: 'Nhóm Thu',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -78,7 +69,6 @@ const PhieuThu = () => {
     {
       field: 'soTien',
       headerName: 'Số Tiền (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value)
@@ -86,7 +76,6 @@ const PhieuThu = () => {
     {
       field: 'tienMat',
       headerName: 'Tiền Mặt (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -100,7 +89,6 @@ const PhieuThu = () => {
     {
       field: 'chuyenKhoan',
       headerName: 'Chuyển Khoản (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => {
@@ -114,7 +102,6 @@ const PhieuThu = () => {
     {
       field: 'taiKhoan',
       headerName: 'Tài Khoản',
-      width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -122,19 +109,11 @@ const PhieuThu = () => {
     {
       field: 'ghiChu',
       headerName: 'Ghi Chú',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
     }
   ], []);
-
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow',
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
 
   if (isLoading) {
     return (
@@ -155,41 +134,39 @@ const PhieuThu = () => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Phiếu Thu</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Quản lý phiếu thu tiền ({phieuThuList?.length || 0} phiếu)
-        </p>
-      </div>
-      
-      <div className="flex-1 p-6">
-        <div className="ag-theme-alpine w-full h-full">
-          <AgGridReact
-            rowData={phieuThuList || []}
-            columnDefs={columnDefs}
-            pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-              minWidth: 100,
-            }}
-            // rowSelection={rowSelection}
-            cellSelection={true}
-            localeText={AG_GRID_LOCALE_VN}
-            // enableCellTextSelection={true}
-            ensureDomOrder={true}
-            animateRows={true}
-            rowHeight={40}
-            headerHeight={45}
-            overlayNoRowsTemplate='<span style="padding: 10px; border: 2px solid #444;">Không có dữ liệu phiếu thu</span>'
-          />
+    <div className="p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Phiếu Thu</h1>
+            <p className="text-gray-600 mt-2">Quản lý phiếu thu tiền</p>
+          </div>
+    
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Danh sách phiếu thu ({phieuThuList?.length || 0})
+              </h2>
+            </div>
+
+            {phieuThuList && phieuThuList.length > 0 ? (
+              <div className="p-4">
+                <div className="w-full h-[60vh]">
+                  <AgGridReact
+                    {...DEFAULT_GRID_OPTIONS}
+                    rowData={phieuThuList}
+                    columnDefs={columnDefs}
+                    defaultColDef={DEFAULT_COL_DEF}
+                    autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-8 text-center">
+                <div className="text-gray-500 text-lg">Không có dữ liệu phiếu thu</div>
+                <p className="text-gray-400 mt-2">Chưa có phiếu thu nào được ghi nhận</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
   );
 };
 

@@ -3,8 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien, DanhMucKhachHang } from '../../generated/client';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
@@ -170,7 +168,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              Khách Hàng Phụ Trách - {nhanVien?.tenNhanVien}
+              Nhân Viên Phụ Trách - {nhanVien?.tenNhanVien}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
               Mã NV: {nhanVien?.maSoNhanVien}
@@ -228,7 +226,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
                   {RESPONSIBILITY_LABELS[selectedResponsibility]} - {currentData.length} khách hàng
                 </h3>
               </div>
-              <div className="ag-theme-alpine w-full h-[calc(100%-3rem)]">
+              <div className="w-full h-[calc(100%-3rem)]">
                 <AgGridReact
                   rowData={currentData}
                   cellSelection={true}

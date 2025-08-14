@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 // Define sample data interface
