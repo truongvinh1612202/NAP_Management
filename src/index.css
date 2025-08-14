@@ -1,3 +1,6 @@
+/* Import AG Grid theme CSS for the new Theming API */
+@import 'ag-grid-community/styles/ag-theme-alpine.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

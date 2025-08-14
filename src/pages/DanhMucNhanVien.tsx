@@ -3,12 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, RowSelectionOptions } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { DanhMucNhanVien } from '../../generated/client';
 import NhanVienKhachHangModal from '../components/NhanVienKhachHangModal';
 import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '../utils/gridConfig';
 
 const DanhMucNhanVien = () => {
   const { data: nhanVienList, isLoading, error } = useQuery(
@@ -34,7 +33,7 @@ const DanhMucNhanVien = () => {
           </button>
         </div>
       ),
-      suppressMenu: true,
+      suppressHeaderMenuButton: true,
       sortable: false,
       filter: false,
       maxWidth: 120,
@@ -100,18 +99,9 @@ const DanhMucNhanVien = () => {
     }
   ], []);
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
-
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow' as const,
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
+  // Use shared grid config
+  const defaultColDef = DEFAULT_COL_DEF;
+  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
 
   // Early return for loading state
   if (isLoading) {
@@ -161,21 +151,12 @@ const DanhMucNhanVien = () => {
 
         {nhanVienList && nhanVienList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-full h-[60vh]">
+            <div className="w-full h-[60vh]">
               <AgGridReact
                 rowData={nhanVienList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={50}
-                // rowSelection={rowSelection}
-                cellSelection={true}
-                animateRows={true}
-                suppressMenuHide={true}
-                rowHeight={40}
-                localeText={AG_GRID_LOCALE_VN}
-                headerHeight={45}
-                allowContextMenuWithControlKey={true}
+                {...DEFAULT_GRID_OPTIONS}
               />
             </div>
             <NhanVienKhachHangModal

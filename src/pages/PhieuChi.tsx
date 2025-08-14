@@ -1,14 +1,12 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { PhieuChi } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY } from '@/utils/gridConfig';
 
 const PhieuChi = () => {
   const { data: phieuChiList, isLoading, error } = useQuery(
@@ -20,14 +18,12 @@ const PhieuChi = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'soCT',
       headerName: 'Số CT',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -35,7 +31,6 @@ const PhieuChi = () => {
     {
       field: 'ngayChi',
       headerName: 'Ngày Chi',
-      width: 120,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -46,7 +41,6 @@ const PhieuChi = () => {
     {
       field: 'noiDung',
       headerName: 'Nội Dung',
-      flex: 2,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -54,7 +48,6 @@ const PhieuChi = () => {
     {
       field: 'tenKhachHang',
       headerName: 'Khách Hàng',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -62,7 +55,6 @@ const PhieuChi = () => {
     {
       field: 'tenNhanVien',
       headerName: 'Nhân Viên',
-      flex: 1,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -70,7 +62,6 @@ const PhieuChi = () => {
     {
       field: 'nhomChi',
       headerName: 'Nhóm Chi',
-      width: 120,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
@@ -78,7 +69,6 @@ const PhieuChi = () => {
     {
       field: 'soTien',
       headerName: 'Số Tiền (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value),
@@ -86,25 +76,11 @@ const PhieuChi = () => {
     {
       field: 'thuQuy',
       headerName: 'Thu Quỹ',
-      width: 150,
       sortable: true,
       filter: 'agTextColumnFilter',
       cellRenderer: (params: any) => params.value || '-'
     }
   ], []);
-
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
-
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow' as const,
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
 
   // Early return for loading state
   if (isLoading) {
@@ -154,21 +130,13 @@ const PhieuChi = () => {
 
         {phieuChiList && phieuChiList.length > 0 ? (
           <div className="p-4">
-            <div className="ag-theme-alpine w-full h-[60vh]">
+            <div className="w-full h-[60vh]">
               <AgGridReact
+                {...DEFAULT_GRID_OPTIONS}
                 rowData={phieuChiList}
                 columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                pagination={true}
-                paginationPageSize={50}
-                // rowSelection={rowSelection}
-                localeText={AG_GRID_LOCALE_VN}
-                cellSelection={true}
-                animateRows={true}
-                suppressMenuHide={true}
-                rowHeight={40}
-                headerHeight={45}
-                allowContextMenuWithControlKey={true}
+                defaultColDef={DEFAULT_COL_DEF}
+                autoSizeStrategy={AUTO_SIZE_STRATEGY}
               />
             </div>
           </div>

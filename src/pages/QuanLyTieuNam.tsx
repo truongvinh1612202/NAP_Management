@@ -1,14 +1,12 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, RowSelectionOptions } from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import 'ag-grid-enterprise';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { trpc } from '../utils/trpc';
 import type { QuanLyPhiDichVu } from '../../generated/client';
 import { formatCurrencyVND } from '@/utils/helper';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF, AUTO_SIZE_STRATEGY_FILL } from '@/utils/gridConfig';
 
 const QuanLyTieuNam = () => {
   const { data: quanLyPhiDichVuList, isLoading, error } = useQuery(
@@ -20,30 +18,27 @@ const QuanLyTieuNam = () => {
     {
       field: 'id',
       headerName: 'ID',
-      width: 80,
+      width: 100,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'khachHangId',
       headerName: 'ID Khách Hàng',
-      width: 120,
       sortable: true,
       filter: 'agNumberColumnFilter',
     },
     {
       field: 'phiDichVu',
       headerName: 'Phí Dịch Vụ (VNĐ)',
-      width: 150,
       sortable: true,
       filter: 'agNumberColumnFilter',
       cellRenderer: (params: any) => formatCurrencyVND(params.value),
-      cellStyle: { textAlign: 'right' }
+      cellStyle: { textAlign: 'left' }
     },
     {
       field: 'ngayHieuLuc',
       headerName: 'Ngày Hiệu Lực',
-      width: 140,
       sortable: true,
       filter: 'agDateColumnFilter',
       cellRenderer: (params: any) => {
@@ -61,17 +56,10 @@ const QuanLyTieuNam = () => {
     }
   ], []);
 
-  const rowSelection: RowSelectionOptions = useMemo(() => ({
-    mode: 'multiRow',
-    checkboxes: false,
-    headerCheckbox: false,
-    enableClickSelection: true,
-  }), []);
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Đang tải dữ liệu quản lý phí dịch vụ...</div>
+        <div className="text-lg">Đang tải dữ liệu quản lý tiêu năm...</div>
       </div>
     );
   }
@@ -87,41 +75,39 @@ const QuanLyTieuNam = () => {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Quản Lý Phí Dịch Vụ</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Quản lý phí dịch vụ khách hàng ({quanLyPhiDichVuList?.length || 0} bản ghi)
-        </p>
-      </div>
-      
-      <div className="flex-1 p-6">
-        <div className="ag-theme-alpine w-full h-full">
-          <AgGridReact
-            rowData={quanLyPhiDichVuList || []}
-            columnDefs={columnDefs}
-            pagination={true}
-            paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
-            defaultColDef={{
-              resizable: true,
-              sortable: true,
-              filter: true,
-              minWidth: 100,
-            }}
-            rowSelection={rowSelection}
-            cellSelection={true}
-            localeText={AG_GRID_LOCALE_VN}
-            // enableCellTextSelection={true}
-            ensureDomOrder={true}
-            animateRows={true}
-            rowHeight={40}
-            headerHeight={45}
-            overlayNoRowsTemplate='<span style="padding: 10px; border: 2px solid #444;">Không có dữ liệu phí dịch vụ</span>'
-          />
+    <div className="p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Quản Lý Tiêu Năm</h1>
+            <p className="text-gray-600 mt-2">Quản lý tiêu năm</p>
+          </div>
+    
+          <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Danh sách tiêu năm ({quanLyPhiDichVuList?.length || 0})
+              </h2>
+            </div>
+
+            {quanLyPhiDichVuList && quanLyPhiDichVuList.length > 0 ? (
+              <div className="p-4">
+                <div className="w-full h-[60vh]">
+                  <AgGridReact
+                    {...DEFAULT_GRID_OPTIONS}
+                    rowData={quanLyPhiDichVuList}
+                    columnDefs={columnDefs}
+                    defaultColDef={DEFAULT_COL_DEF}
+                    autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 py-8 text-center">
+                <div className="text-gray-500 text-lg">Không có dữ liệu tiêu năm</div>
+                <p className="text-gray-400 mt-2">Chưa có dữ liệu tiêu năm nào được ghi nhận</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
   );
 };
 

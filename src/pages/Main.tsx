@@ -62,13 +62,7 @@ const Main = () => {
         return <QuanLyTieuNam />;
       case "dashboard":
       default:
-        return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="h-[70vh]">
-              <DataTable />
-            </div>
-          </div>
-        );
+        return null;
     }
   };
 

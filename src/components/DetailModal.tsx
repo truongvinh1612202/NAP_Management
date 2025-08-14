@@ -121,7 +121,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-30 dark:bg-black dark:bg-opacity-60 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
       ref={modalRef}
       tabIndex={-1}
@@ -129,7 +129,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
       role="dialog"
     >
       <div className="bg-white rounded-lg shadow-lg p-6 min-w-[350px] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="text-xl font-bold mb-4">{title}</h3>
+        <h3 className="text-xl font-bold mb-4 text-gray-900">{title}</h3>
         
         {isLoading ? (
           // Show loading state
@@ -156,7 +156,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
           // Show data when available and not empty
           <div className="space-y-2">
             {Object.entries(data).map(([key, value]) => (
-              <div key={key}>
+              <div key={key} className="text-gray-800">
                 <span className="font-semibold">{FIELD_LABELS[key] || key}:</span>{' '}
                 {statusFields.includes(key)
                   ? <StatusBadge value={value} />
@@ -180,7 +180,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ data, title = "Chi tiết", o
         )}
         
         <button
-          className="mt-6 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          className="mt-6 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none"
           onClick={onClose}
           tabIndex={0}
           aria-label="Đóng chi tiết"
