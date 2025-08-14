@@ -65,17 +65,21 @@ export function DatabaseConfigModal({
       console.log("Connection test result:", result);
 
       if (result && result.success) {
-        setTestResult("✅ Connection successful!");
+        setTestResult("✅ Kết nối thành công!");
       } else if (result && result.success === false) {
-        setError(`❌ Connection failed: ${result.error || "Unknown error"}`);
+        setError(
+          `❌ Kết nối thất bại: ${result.error || "Lỗi không xác định"}`
+        );
       } else {
-        setError("❌ Connection test failed: Invalid response from server");
+        setError(
+          "❌ Kiểm tra kết nối thất bại: Phản hồi không hợp lệ từ máy chủ"
+        );
       }
     } catch (error) {
       console.error("Connection test error:", error);
       setError(
-        `❌ Connection test failed: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `❌ Kiểm tra kết nối thất bại: ${
+          error instanceof Error ? error.message : "Lỗi không xác định"
         }`
       );
     } finally {
@@ -85,7 +89,7 @@ export function DatabaseConfigModal({
 
   const handleSave = async () => {
     if (!config.password) {
-      setError("Password is required");
+      setError("Vui lòng kiểm tra mật khẩu");
       return;
     }
 

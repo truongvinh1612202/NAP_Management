@@ -102,11 +102,11 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           ))}
         </div>
       </div>
-      <div className="absolute bottom-0 w-64 p-5 border-t border-gray-700">
+      <div className="py-4">
         <button
-          className="flex items-center w-full text-left px-4 py-2 
-          transition-colors hover:bg-gray-700 rounded-md mb-2
-          max-w-[236px]"
+          className="flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium
+            hover:bg-gray-100 hover:text-gray-900 text-gray-700
+            border-none rounded-none"
           tabIndex={0}
           aria-label="Database Settings"
           onClick={() => {
@@ -116,10 +116,12 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           }}
         >
           <span className="mr-3">⚙️</span>
-          <span>Cài Đặt DB</span>
+          <span>Cài Đặt Database</span>
         </button>
         <button
-          className="flex items-center w-full text-left px-4 py-2 transition-colors hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none"
+          className="flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium
+            hover:bg-gray-100 hover:text-gray-900 text-gray-700
+            border-none rounded-none"
           tabIndex={0}
           aria-label="Logout"
           onClick={() => {
