@@ -1,56 +1,68 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import NavigationMenu from '../components/NavigationMenu';
-import DataTable from '../components/DataTable';
-import ChiPhiCongViec from './ChiPhiCongViec';
-import DanhMucCongViec from './DanhMucCongViec';
-import DanhMucKhachHang from './DanhMucKhachHang';
-import DanhMucNhanVien from './DanhMucNhanVien';
-import PhieuChi from './PhieuChi';
-import PhieuThu from './PhieuThu';
-import NghiemThuCongViec from './NghiemThuCongViec';
-import QuanLyTieuNam from './QuanLyTieuNam';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import NavigationMenu from "../components/NavigationMenu";
+import DataTable from "../components/DataTable";
+import { DatabaseConfigModal } from "../components/DatabaseConfigModal";
+import ChiPhiCongViec from "./ChiPhiCongViec";
+import DanhMucCongViec from "./DanhMucCongViec";
+import DanhMucKhachHang from "./DanhMucKhachHang";
+import DanhMucNhanVien from "./DanhMucNhanVien";
+import PhieuChi from "./PhieuChi";
+import PhieuThu from "./PhieuThu";
+import NghiemThuCongViec from "./NghiemThuCongViec";
+import QuanLyTieuNam from "./QuanLyTieuNam";
+import type { DatabaseConfig } from "../../electron/api";
 
 const Main = () => {
   const navigate = useNavigate();
-  const [activeView, setActiveView] = useState('khachhang');
+  const [activeView, setActiveView] = useState("dashboard");
+  const [isDatabaseConfigOpen, setIsDatabaseConfigOpen] = useState(false);
 
   // Check if user is authenticated
   useEffect(() => {
-    const isAuthenticated = sessionStorage.getItem('isAuthenticated');
+    const isAuthenticated = sessionStorage.getItem("isAuthenticated");
     if (!isAuthenticated) {
-      navigate('/');
+      navigate("/");
     }
   }, [navigate]);
 
   // Handle navigation menu item clicks
   const handleMenuItemClick = (itemId: string) => {
-    setActiveView(itemId);
+    if (itemId === "database-config") {
+      setIsDatabaseConfigOpen(true);
+    } else {
+      setActiveView(itemId);
+    }
+  };
+
+  // Handle database configuration save
+  const handleDatabaseConfigSave = (config: DatabaseConfig) => {
+    console.log("Database configuration saved:", config);
+    // The app will restart automatically after saving
   };
 
   // Render content based on active view
   const renderContent = () => {
     switch (activeView) {
-      case 'khachhang':
+      case "khachhang":
         return <DanhMucKhachHang />;
-      case 'nhanvien':
+      case "nhanvien":
         return <DanhMucNhanVien />;
-      case 'congviec':
+      case "congviec":
         return <DanhMucCongViec />;
-      case 'chiphi':
+      case "chiphi":
         return <ChiPhiCongViec />;
-      case 'phieuchi':
+      case "phieuchi":
         return <PhieuChi />;
-      case 'phieuthu':
+      case "phieuthu":
         return <PhieuThu />;
-      case 'nghiemthucongviec':
+      case "nghiemthucongviec":
         return <NghiemThuCongViec />;
-      case 'ds_qltnam':
+      case "ds_qltnam":
         return <QuanLyTieuNam />;
-      case 'dashboard':
+      case "dashboard":
       default:
         return null;
-        
     }
   };
 
@@ -60,9 +72,14 @@ const Main = () => {
       <NavigationMenu onItemClick={handleMenuItemClick} />
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto p-8">
-        {renderContent()}
-      </div>
+      <div className="flex-1 overflow-auto p-8">{renderContent()}</div>
+
+      {/* Database Configuration Modal */}
+      <DatabaseConfigModal
+        isOpen={isDatabaseConfigOpen}
+        onClose={() => setIsDatabaseConfigOpen(false)}
+        onSave={handleDatabaseConfigSave}
+      />
     </div>
   );
 };

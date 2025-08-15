@@ -1,37 +1,58 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.napteam.napmanagement",
+  "productName": "NAP Management",
+  "copyright": "Copyright © 2025 NAP Team",
   "asar": true,
+  "asarUnpack": ["generated/**/*", "prisma/**/*"],
   "directories": {
     "output": "release/${version}"
   },
   "files": [
     "dist-electron",
-    "dist"
+    "dist",
+    "generated",
+    "prisma",
+    ".env",
+    "!**/node_modules/@prisma/engines/introspection-engine*",
+    "!**/node_modules/@prisma/engines/schema-engine*",
+    "!**/node_modules/@prisma/engines/prisma-fmt*"
+  ],
+  "extraResources": [
+    {
+      "from": "node_modules/@prisma/engines",
+      "to": "node_modules/@prisma/engines",
+      "filter": ["query_engine-windows.dll.node", "libquery_engine-*.dylib.node", "libquery_engine-*.so.node", "schema-engine-*"]
+    }
   ],
   "mac": {
+    "icon": "build/icon.ico",
+    "category": "public.app-category.business",
     "artifactName": "${productName}_${version}.${ext}",
-    "target": [
-      "dmg",
-      "zip"
-    ]
+    "target": ["dmg", "zip"]
   },
   "win": {
+    "icon": "build/icon.ico",
     "target": [
       {
         "target": "nsis",
-        "arch": [
-          "x64"
-        ]
+        "arch": ["x64"]
       }
     ],
-    "artifactName": "${productName}_${version}.${ext}"
+    "artifactName": "${productName}_${version}.${ext}",
+    "asar": {
+      "smartUnpack": false
+    },
+    "asarUnpack": ["generated/**/*", "prisma/**/*"]
   },
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "NAP Management"
   },
   "publish": {
     "provider": "generic",

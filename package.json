@@ -1,9 +1,9 @@
 {
-  "name": "electron-vite-react",
+  "name": "nap-management",
   "version": "2.2.0",
   "main": "dist-electron/main/index.js",
-  "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "description": "NAP Management - Vietnamese Business Management System",
+  "author": "NAP Team",
   "license": "MIT",
   "private": true,
   "debug": {
@@ -14,7 +14,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "build": "npx prisma generate && tsc && vite build && node scripts/copy-prisma-engines.js && node scripts/install-mac-engines.js && electron-builder",
+    "build-win": "vite build && prisma generate && tsc && node scripts/copy-prisma-engines.js && node scripts/install-mac-engines.js && electron-builder",
     "preview": "vite preview",
     "pretest": "vite build --mode=test",
     "test": "vitest run"
@@ -22,7 +23,7 @@
   "dependencies": {
     "@ag-grid-community/locale": "^34.1.1",
     "@prisma/client": "^6.13.0",
-    "@prisma/engines": "^6.13.0",
+    "@prisma/engines": "^6.14.0",
     "@tanstack/react-query": "^5.84.1",
     "@trpc/client": "^11.0.0-rc.421",
     "@trpc/server": "^11.0.0-rc.421",
@@ -32,6 +33,7 @@
     "electron-log": "^5.4.2",
     "electron-updater": "^6.3.9",
     "fix-esm": "^1.0.1",
+    "prisma": "^6.14.0",
     "react-router-dom": "^7.7.0",
     "superjson": "^2.2.2",
     "zod": "^3.23.8"
@@ -48,6 +50,7 @@
     "postcss-import": "^16.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "replace-in-file": "^7.2.0",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.4.2",
     "vite": "^5.4.11",
