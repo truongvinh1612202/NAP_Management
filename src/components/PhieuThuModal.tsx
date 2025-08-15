@@ -281,7 +281,9 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         <div className="flex-1 p-4 overflow-hidden">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
-              <div className="text-lg">Đang tải dữ liệu phiếu thu...</div>
+              <div className="text-lg text-gray-600">
+                Đang tải dữ liệu phiếu thu...
+              </div>
             </div>
           ) : error ? (
             <div className="flex justify-center items-center h-full">

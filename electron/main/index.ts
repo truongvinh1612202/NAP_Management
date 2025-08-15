@@ -8,7 +8,7 @@ import { IpcRequest, DatabaseConfig } from "../api";
 import { ipcRequestHandler } from "./ipcRequestHandler";
 import { appRouter } from "../router";
 import { loadDatabaseConfig, saveDatabaseConfig } from "../constants";
-import { testDatabaseConnection } from "../prisma";
+import { testDatabaseConnection, applyDatabaseConfig } from "../prisma";
 import "dotenv/config";
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,6 +52,7 @@ async function createWindow() {
   win = new BrowserWindow({
     title: "NAP Management",
     icon: path.join(__dirname, "../../build/icon.ico"),
+    // Start the application maximized
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -75,6 +76,13 @@ async function createWindow() {
   // Test actively push message to the Electron-Renderer
   win.webContents.on("did-finish-load", () => {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
+    // Ensure the window is maximized after the renderer finishes loading
+    // (covers cases where devtools or other actions might have changed state)
+    try {
+      if (win && !win.isMaximized()) win.maximize();
+    } catch (e) {
+      console.warn("Failed to maximize window:", e);
+    }
   });
 
   // Make all links open with the browser, not with the application
@@ -137,10 +145,37 @@ ipcMain.handle(
   "save-database-config",
   async (event, config: DatabaseConfig) => {
     try {
+      // Save the config to file
       saveDatabaseConfig(config);
+
+      // Build connection string for the new config in sqlserver:// format
+      const {
+        server,
+        port,
+        database,
+        username,
+        password,
+        encrypt,
+        trustServerCertificate,
+      } = config;
+
+      let connectionString = `sqlserver://${server}:${port};database=${database};user=${username};password=${password}`;
+
+      if (encrypt) {
+        connectionString += ";encrypt=true";
+        if (trustServerCertificate) {
+          connectionString += ";trustServerCertificate=true";
+        }
+      } else {
+        connectionString += ";encrypt=DANGER_PLAINTEXT";
+      }
+
+      // Apply the new database configuration
+      await applyDatabaseConfig(connectionString);
+
       return { success: true };
     } catch (error) {
-      console.error("Failed to save database config:", error);
+      console.error("Failed to save and apply database config:", error);
       throw error;
     }
   }
