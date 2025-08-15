@@ -50,6 +50,7 @@ function getConfigFilePath(): string {
 function loadDatabaseConfig(): DatabaseConfig | null {
   try {
     const configPath = getConfigFilePath();
+    console.log("Database config path:", configPath); // Log the config path
     if (fs.existsSync(configPath)) {
       const configContent = fs.readFileSync(configPath, "utf8");
       return JSON.parse(configContent);

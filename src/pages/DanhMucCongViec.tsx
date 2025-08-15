@@ -73,7 +73,9 @@ const DanhMucCongViec = () => {
           <p className="text-gray-600 mt-2">Quản lý danh mục công việc</p>
         </div>
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Đang tải danh sách công việc...</div>
+          <div className="text-lg text-gray-600">
+            Đang tải danh sách công việc...
+          </div>
         </div>
       </div>
     );

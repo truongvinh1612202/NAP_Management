@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { AgGridReact } from 'ag-grid-react';
-import { ColDef } from 'ag-grid-community';
-import 'ag-grid-enterprise';
-import { trpc } from '../utils/trpc';
-import type { DanhMucNhanVien, DanhMucKhachHang } from '../../generated/client';
-import { AG_GRID_LOCALE_VN } from '@ag-grid-community/locale';
+import React, { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "ag-grid-enterprise";
+import { trpc } from "../utils/trpc";
+import type { DanhMucNhanVien, DanhMucKhachHang } from "../../generated/client";
+import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 
 interface NhanVienKhachHangModalProps {
   nhanVien: DanhMucNhanVien | null;
@@ -13,151 +13,177 @@ interface NhanVienKhachHangModalProps {
   onClose: () => void;
 }
 
-type ResponsibilityType = 'DVKH' | 'LAPSO' | 'NSL';
+type ResponsibilityType = "DVKH" | "LAPSO" | "NSL";
 
 const RESPONSIBILITY_LABELS: Record<ResponsibilityType, string> = {
-  DVKH: 'Dịch Vụ Khách Hàng',
-  LAPSO: 'Lập Sổ',
-  NSL: 'Nghiệp Sự Luật'
+  DVKH: "Dịch Vụ Khách Hàng",
+  LAPSO: "Lập Sổ",
+  NSL: "Nghiệp Sự Luật",
 };
 
-const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVien, isOpen, onClose }) => {
-  const [selectedResponsibility, setSelectedResponsibility] = useState<ResponsibilityType>('DVKH');
+const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
+  nhanVien,
+  isOpen,
+  onClose,
+}) => {
+  const [selectedResponsibility, setSelectedResponsibility] =
+    useState<ResponsibilityType>("DVKH");
 
   // Fetch customers for each responsibility type
   const { data: khachHangDVKH, isLoading: isLoadingDVKH } = useQuery({
-    ...trpc.khachHangByNhanVien.queryOptions({ 
+    ...trpc.khachHangByNhanVien.queryOptions({
       nhanVienId: nhanVien?.id || 0,
-      nhanVienType: 'DVKH'
+      nhanVienType: "DVKH",
     }),
-    enabled: !!nhanVien?.id && isOpen
+    enabled: !!nhanVien?.id && isOpen,
   });
 
   const { data: khachHangLAPSO, isLoading: isLoadingLAPSO } = useQuery({
-    ...trpc.khachHangByNhanVien.queryOptions({ 
+    ...trpc.khachHangByNhanVien.queryOptions({
       nhanVienId: nhanVien?.id || 0,
-      nhanVienType: 'LAPSO'
+      nhanVienType: "LAPSO",
     }),
-    enabled: !!nhanVien?.id && isOpen
+    enabled: !!nhanVien?.id && isOpen,
   });
 
   const { data: khachHangNSL, isLoading: isLoadingNSL } = useQuery({
-    ...trpc.khachHangByNhanVien.queryOptions({ 
+    ...trpc.khachHangByNhanVien.queryOptions({
       nhanVienId: nhanVien?.id || 0,
-      nhanVienType: 'NSL'
+      nhanVienType: "NSL",
     }),
-    enabled: !!nhanVien?.id && isOpen
+    enabled: !!nhanVien?.id && isOpen,
   });
 
   // Get current data based on selected responsibility
   const currentData = useMemo(() => {
     switch (selectedResponsibility) {
-      case 'DVKH': return khachHangDVKH || [];
-      case 'LAPSO': return khachHangLAPSO || [];
-      case 'NSL': return khachHangNSL || [];
-      default: return [];
+      case "DVKH":
+        return khachHangDVKH || [];
+      case "LAPSO":
+        return khachHangLAPSO || [];
+      case "NSL":
+        return khachHangNSL || [];
+      default:
+        return [];
     }
   }, [selectedResponsibility, khachHangDVKH, khachHangLAPSO, khachHangNSL]);
 
   // Get current loading state
   const isLoading = useMemo(() => {
     switch (selectedResponsibility) {
-      case 'DVKH': return isLoadingDVKH;
-      case 'LAPSO': return isLoadingLAPSO;
-      case 'NSL': return isLoadingNSL;
-      default: return false;
+      case "DVKH":
+        return isLoadingDVKH;
+      case "LAPSO":
+        return isLoadingLAPSO;
+      case "NSL":
+        return isLoadingNSL;
+      default:
+        return false;
     }
   }, [selectedResponsibility, isLoadingDVKH, isLoadingLAPSO, isLoadingNSL]);
 
   // Get counts for each responsibility type
-  const counts = useMemo(() => ({
-    DVKH: khachHangDVKH?.length || 0,
-    LAPSO: khachHangLAPSO?.length || 0,
-    NSL: khachHangNSL?.length || 0
-  }), [khachHangDVKH, khachHangLAPSO, khachHangNSL]);
+  const counts = useMemo(
+    () => ({
+      DVKH: khachHangDVKH?.length || 0,
+      LAPSO: khachHangLAPSO?.length || 0,
+      NSL: khachHangNSL?.length || 0,
+    }),
+    [khachHangDVKH, khachHangLAPSO, khachHangNSL]
+  );
 
-  const columnDefs: ColDef[] = useMemo(() => [
-    {
-      field: 'id',
-      headerName: 'ID',
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-    },
-    {
-      field: 'tenKhachHang',
-      headerName: 'Tên Khách Hàng',
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      flex: 2,
-      cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'maSoThue',
-      headerName: 'Mã Số Thuế',
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      flex: 1,
-      cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'dienThoai',
-      headerName: 'Điện Thoại',
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'nganhKD',
-      headerName: 'Ngành KD',
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      flex: 1,
-      cellRenderer: (params: any) => params.value || '-'
-    },
-    {
-      field: 'trangThai',
-      headerName: 'Trạng Thái',
-      sortable: true,
-      filter: 'agTextColumnFilter',
-      cellRenderer: (params: any) => {
-        if (!params.value) return '-';
-        let className = '';
-        switch (params.value) {
-          case 'Đang hoạt động':
-          case 'Đang cung cấp dịch vụ':
-            className = 'bg-green-100 text-green-800';
-            break;
-          case 'Ngưng cung cấp dịch vụ':
-          case 'Pending':
-            className = 'bg-yellow-100 text-yellow-800';
-            break;
-          case 'Không hoạt động':
-          case 'Inactive':
-            className = 'bg-red-100 text-red-800';
-            break;
-          default:
-            className = 'bg-gray-100 text-gray-800';
-        }
-        return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>
-            {params.value}
-          </span>
-        );
-      }
-    }
-  ], []);
+  const columnDefs: ColDef[] = useMemo(
+    () => [
+      {
+        field: "id",
+        headerName: "ID",
+        sortable: true,
+        filter: "agNumberColumnFilter",
+      },
+      {
+        field: "tenKhachHang",
+        headerName: "Tên Khách Hàng",
+        sortable: true,
+        filter: "agTextColumnFilter",
+        flex: 2,
+        cellRenderer: (params: any) => params.value || "-",
+      },
+      {
+        field: "maSoThue",
+        headerName: "Mã Số Thuế",
+        sortable: true,
+        filter: "agTextColumnFilter",
+        flex: 1,
+        cellRenderer: (params: any) => params.value || "-",
+      },
+      {
+        field: "dienThoai",
+        headerName: "Điện Thoại",
+        sortable: true,
+        filter: "agTextColumnFilter",
+        cellRenderer: (params: any) => params.value || "-",
+      },
+      {
+        field: "nganhKD",
+        headerName: "Ngành KD",
+        sortable: true,
+        filter: "agTextColumnFilter",
+        flex: 1,
+        cellRenderer: (params: any) => params.value || "-",
+      },
+      {
+        field: "trangThai",
+        headerName: "Trạng Thái",
+        sortable: true,
+        filter: "agTextColumnFilter",
+        cellRenderer: (params: any) => {
+          if (!params.value) return "-";
+          let className = "";
+          switch (params.value) {
+            case "Đang hoạt động":
+            case "Đang cung cấp dịch vụ":
+              className = "bg-green-100 text-green-800";
+              break;
+            case "Ngưng cung cấp dịch vụ":
+            case "Pending":
+              className = "bg-yellow-100 text-yellow-800";
+              break;
+            case "Không hoạt động":
+            case "Inactive":
+              className = "bg-red-100 text-red-800";
+              break;
+            default:
+              className = "bg-gray-100 text-gray-800";
+          }
+          return (
+            <span
+              className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}
+            >
+              {params.value}
+            </span>
+          );
+        },
+      },
+    ],
+    []
+  );
 
-  const defaultColDef = useMemo(() => ({
-    resizable: true,
-    sortable: true,
-    filter: true,
-  }), []);
-  const autoSizeStrategy = useMemo(() => ({
-    type: "fitCellContents" as const,
-    defaultMaxWidth: 500,
-    defaultMinWidth: 30,
-  }), []);
-
+  const defaultColDef = useMemo(
+    () => ({
+      resizable: true,
+      sortable: true,
+      filter: true,
+    }),
+    []
+  );
+  const autoSizeStrategy = useMemo(
+    () => ({
+      type: "fitCellContents" as const,
+      defaultMaxWidth: 500,
+      defaultMinWidth: 30,
+    }),
+    []
+  );
 
   if (!isOpen) return null;
 
@@ -179,8 +205,18 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Đóng modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -188,25 +224,29 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
         {/* Responsibility Type Selector */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-sm font-medium text-gray-700">Loại trách nhiệm:</span>
-            
-            {(Object.keys(RESPONSIBILITY_LABELS) as ResponsibilityType[]).map(type => {
-              const isSelected = type === selectedResponsibility;
-              const count = counts[type];
-              return (
-                <button
-                  key={type}
-                  onClick={() => setSelectedResponsibility(type)}
-                  className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-                    isSelected 
-                      ? 'bg-blue-500 text-white border-blue-500' 
-                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {RESPONSIBILITY_LABELS[type]} ({count})
-                </button>
-              );
-            })}
+            <span className="text-sm font-medium text-gray-700">
+              Loại trách nhiệm:
+            </span>
+
+            {(Object.keys(RESPONSIBILITY_LABELS) as ResponsibilityType[]).map(
+              (type) => {
+                const isSelected = type === selectedResponsibility;
+                const count = counts[type];
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedResponsibility(type)}
+                    className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                      isSelected
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {RESPONSIBILITY_LABELS[type]} ({count})
+                  </button>
+                );
+              }
+            )}
           </div>
         </div>
 
@@ -216,14 +256,17 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
             <div className="flex justify-center items-center h-full">
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-                <div className="text-lg">Đang tải danh sách khách hàng...</div>
+                <div className="text-lg text-gray-600">
+                  Đang tải danh sách khách hàng...
+                </div>
               </div>
             </div>
           ) : currentData.length > 0 ? (
             <div className="w-full h-full">
               <div className="mb-4">
                 <h3 className="text-lg font-medium text-gray-800">
-                  {RESPONSIBILITY_LABELS[selectedResponsibility]} - {currentData.length} khách hàng
+                  {RESPONSIBILITY_LABELS[selectedResponsibility]} -{" "}
+                  {currentData.length} khách hàng
                 </h3>
               </div>
               <div className="w-full h-[calc(100%-3rem)]">
@@ -248,10 +291,12 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({ nhanVie
             <div className="flex justify-center items-center h-full">
               <div className="text-center">
                 <div className="text-gray-500 text-lg mb-2">
-                  Không có khách hàng trong {RESPONSIBILITY_LABELS[selectedResponsibility]}
+                  Không có khách hàng trong{" "}
+                  {RESPONSIBILITY_LABELS[selectedResponsibility]}
                 </div>
                 <p className="text-gray-400">
-                  Nhân viên này chưa được phân công khách hàng nào cho loại trách nhiệm này
+                  Nhân viên này chưa được phân công khách hàng nào cho loại
+                  trách nhiệm này
                 </p>
               </div>
             </div>

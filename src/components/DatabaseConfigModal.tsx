@@ -120,25 +120,27 @@ export function DatabaseConfigModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h2 className="text-xl font-bold mb-4">Database Configuration</h2>
+        <h2 className="text-xl font-bold mb-4 text-gray-900">
+          Cấu hình Database
+        </h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Server
+              Máy chủ
             </label>
             <input
               type="text"
               value={config.server}
               onChange={(e) => handleInputChange("server", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
               placeholder="localhost or server IP"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Port
+              Cổng
             </label>
             <input
               type="number"
@@ -146,46 +148,46 @@ export function DatabaseConfigModal({
               onChange={(e) =>
                 handleInputChange("port", parseInt(e.target.value) || 1433)
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
               placeholder="1433"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Database Name
+              Tên Cơ Sở Dữ Liệu
             </label>
             <input
               type="text"
               value={config.database}
               onChange={(e) => handleInputChange("database", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
               placeholder="NAP_Management"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Username
+              Tên Đăng Nhập
             </label>
             <input
               type="text"
               value={config.username}
               onChange={(e) => handleInputChange("username", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
               placeholder="SA"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              Mật Khẩu
             </label>
             <input
               type="password"
               value={config.password}
               onChange={(e) => handleInputChange("password", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
               placeholder="Enter password"
             />
           </div>
@@ -196,9 +198,9 @@ export function DatabaseConfigModal({
                 type="checkbox"
                 checked={config.encrypt}
                 onChange={(e) => handleInputChange("encrypt", e.target.checked)}
-                className="mr-2"
+                className="mr-2 appearance-none border-2 border-solid border-gray-400 rounded-sm w-4 h-4 bg-white shadow-none outline-none focus:ring-0"
               />
-              <span className="text-sm text-gray-700">Encrypt connection</span>
+              <span className="text-sm text-gray-700">Mã hóa kết nối</span>
             </label>
 
             {config.encrypt && (
@@ -212,11 +214,9 @@ export function DatabaseConfigModal({
                       e.target.checked
                     )
                   }
-                  className="mr-2"
+                  className="mr-2 appearance-none border-2 border-solid border-gray-400 rounded-sm w-4 h-4 bg-white shadow-none outline-none focus:ring-0"
                 />
-                <span className="text-sm text-gray-700">
-                  Trust server certificate
-                </span>
+                <span className="text-sm text-gray-700">Kiểm tra kết nối</span>
               </label>
             )}
           </div>
@@ -239,7 +239,7 @@ export function DatabaseConfigModal({
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Testing..." : "Test Connection"}
+              {isLoading ? "Testing..." : "Kiểm tra Kết Nối"}
             </button>
           </div>
 
@@ -248,26 +248,22 @@ export function DatabaseConfigModal({
               onClick={onClose}
               className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
             >
-              Cancel
+              Hủy
             </button>
             <button
               onClick={handleSave}
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Saving..." : "Save Configuration"}
+              {isLoading ? "..." : "Lưu cấu hình"}
             </button>
           </div>
         </div>
 
         <div className="mt-4 text-xs text-gray-500">
           <p>
-            <strong>Note:</strong> The new database configuration will be
-            applied immediately without restarting the application.
-          </p>
-          <p className="mt-1">
-            <strong>Config file location:</strong> User
-            Data/database-config.json
+            <strong>Lưu ý:</strong> Cấu hình cơ sở dữ liệu mới sẽ được áp dụng
+            mà không cần khởi động lại ứng dụng
           </p>
         </div>
       </div>
