@@ -52,6 +52,9 @@ async function createWindow() {
   win = new BrowserWindow({
     title: "NAP Management",
     icon: path.join(__dirname, "../../build/icon.ico"),
+    // Start the application in full screen mode
+    fullscreen: true,
+    fullscreenable: true,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -75,6 +78,13 @@ async function createWindow() {
   // Test actively push message to the Electron-Renderer
   win.webContents.on("did-finish-load", () => {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
+    // Ensure the window is in full screen after the renderer finishes loading
+    // (covers cases where devtools or other actions might have changed state)
+    try {
+      win?.setFullScreen(true);
+    } catch (e) {
+      console.warn("Failed to set full screen:", e);
+    }
   });
 
   // Make all links open with the browser, not with the application
