@@ -67,9 +67,15 @@ const QuanLyTieuNam = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-gray-600">
-          Đang tải dữ liệu quản lý tiêu năm...
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Quản Lý Tiêu Năm</h1>
+          <p className="text-gray-600 mt-2">Quản lý tiêu năm</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-gray-600">
+            Đang tải danh sách tiêu năm...
+          </div>
         </div>
       </div>
     );
@@ -77,9 +83,15 @@ const QuanLyTieuNam = () => {
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg text-red-600">
-          Lỗi khi tải dữ liệu: {error.message}
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Quản Lý Tiêu Năm</h1>
+          <p className="text-gray-600 mt-2">Quản lý tiêu năm</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-red-500 text-lg">
+            Lỗi khi tải dữ liệu: {error.message}
+          </div>
         </div>
       </div>
     );
