@@ -15,14 +15,33 @@ if (fs.existsSync(qePath)) {
   log.info("Query engine found at:", qePath);
 } else {
   log.error("Query engine NOT found at:", qePath);
-  
+
   // Try to find the engine in alternative locations
   const alternatives = [
-    path.join(process.cwd(), "node_modules", "@prisma", "engines", "query_engine-windows.dll.node"),
-    path.join(__dirname, "..", "node_modules", "@prisma", "engines", "query_engine-windows.dll.node"),
-    path.join(process.resourcesPath, "node_modules", "@prisma", "engines", "query_engine-windows.dll.node")
+    path.join(
+      process.cwd(),
+      "node_modules",
+      "@prisma",
+      "engines",
+      "query_engine-windows.dll.node"
+    ),
+    path.join(
+      __dirname,
+      "..",
+      "node_modules",
+      "@prisma",
+      "engines",
+      "query_engine-windows.dll.node"
+    ),
+    path.join(
+      process.resourcesPath,
+      "node_modules",
+      "@prisma",
+      "engines",
+      "query_engine-windows.dll.node"
+    ),
   ];
-  
+
   for (const alt of alternatives) {
     if (fs.existsSync(alt)) {
       log.info("Alternative query engine found at:", alt);
@@ -31,7 +50,7 @@ if (fs.existsSync(qePath)) {
   }
 }
 
-export const prisma = new PrismaClient({
+export let prisma = new PrismaClient({
   log: [
     "info",
     "warn",
@@ -54,6 +73,39 @@ export const prisma = new PrismaClient({
     },
   },
 });
+
+// Function to apply new database configuration
+export async function applyDatabaseConfig(
+  connectionString: string
+): Promise<void> {
+  try {
+    // Disconnect the current client
+    await prisma.$disconnect();
+
+    // Create new client with the new connection string
+    prisma = new PrismaClient({
+      log: ["info", "warn", "error"],
+      datasources: {
+        db: {
+          url: connectionString,
+        },
+      },
+      // @ts-expect-error internal prop
+      __internal: {
+        engine: {
+          binaryPath: qePath,
+        },
+      },
+    });
+
+    // Connect to the new database
+    await prisma.$connect();
+    log.info("Successfully applied new database configuration");
+  } catch (error) {
+    log.error("Failed to apply new database configuration:", error);
+    throw error;
+  }
+}
 
 // Function to test database connection with custom connection string
 export async function testDatabaseConnection(

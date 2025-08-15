@@ -8,7 +8,7 @@ import { IpcRequest, DatabaseConfig } from "../api";
 import { ipcRequestHandler } from "./ipcRequestHandler";
 import { appRouter } from "../router";
 import { loadDatabaseConfig, saveDatabaseConfig } from "../constants";
-import { testDatabaseConnection } from "../prisma";
+import { testDatabaseConnection, applyDatabaseConfig } from "../prisma";
 import "dotenv/config";
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -137,10 +137,37 @@ ipcMain.handle(
   "save-database-config",
   async (event, config: DatabaseConfig) => {
     try {
+      // Save the config to file
       saveDatabaseConfig(config);
+
+      // Build connection string for the new config in sqlserver:// format
+      const {
+        server,
+        port,
+        database,
+        username,
+        password,
+        encrypt,
+        trustServerCertificate,
+      } = config;
+
+      let connectionString = `sqlserver://${server}:${port};database=${database};user=${username};password=${password}`;
+
+      if (encrypt) {
+        connectionString += ";encrypt=true";
+        if (trustServerCertificate) {
+          connectionString += ";trustServerCertificate=true";
+        }
+      } else {
+        connectionString += ";encrypt=DANGER_PLAINTEXT";
+      }
+
+      // Apply the new database configuration
+      await applyDatabaseConfig(connectionString);
+
       return { success: true };
     } catch (error) {
-      console.error("Failed to save database config:", error);
+      console.error("Failed to save and apply database config:", error);
       throw error;
     }
   }

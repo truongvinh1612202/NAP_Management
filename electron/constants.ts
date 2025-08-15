@@ -125,10 +125,10 @@ function getDatabaseUrl(): string {
   // 3. Default configuration (lowest priority)
 
   // Check environment variable first
-  if (process.env.DATABASE_URL) {
-    console.log("Using DATABASE_URL from environment variable");
-    return process.env.DATABASE_URL;
-  }
+  // if (process.env.DATABASE_URL) {
+  //   console.log("Using DATABASE_URL from environment variable");
+  //   return process.env.DATABASE_URL;
+  // }
 
   // Check config file
   const savedConfig = loadDatabaseConfig();
@@ -188,8 +188,8 @@ export const platformToExecutables: any = {
       "node_modules/@prisma/engines/libquery_engine-darwin-arm64.dylib.node",
   },
 };
-const extraResourcesPath = isDev 
-  ? process.cwd() 
+const extraResourcesPath = isDev
+  ? process.cwd()
   : app.getAppPath().replace("app.asar", ""); // impacted by extraResources setting in electron-builder.yml
 
 function getPlatformName(): string {

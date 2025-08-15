@@ -95,11 +95,15 @@ export function DatabaseConfigModal({
 
     setIsLoading(true);
     setError(null);
+    setTestResult(null);
 
     try {
       await window.appApi.saveDatabaseConfig(config);
-      onSave(config);
-      onClose();
+      setTestResult("✅ Cấu hình đã được lưu và áp dụng thành công!");
+      setTimeout(() => {
+        onSave(config);
+        onClose();
+      }, 1500); // Close modal after showing success message
     } catch (error) {
       setError(
         `Failed to save configuration: ${
@@ -251,15 +255,15 @@ export function DatabaseConfigModal({
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Saving..." : "Save & Restart"}
+              {isLoading ? "Saving..." : "Save Configuration"}
             </button>
           </div>
         </div>
 
         <div className="mt-4 text-xs text-gray-500">
           <p>
-            <strong>Note:</strong> After saving, the application will restart to
-            apply the new database configuration.
+            <strong>Note:</strong> The new database configuration will be
+            applied immediately without restarting the application.
           </p>
           <p className="mt-1">
             <strong>Config file location:</strong> User
