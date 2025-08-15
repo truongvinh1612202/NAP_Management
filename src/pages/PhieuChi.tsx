@@ -11,6 +11,7 @@ import {
   DEFAULT_COL_DEF,
   AUTO_SIZE_STRATEGY,
 } from "@/utils/gridConfig";
+import LoadingState from "@/components/LoadingState";
 
 const PhieuChi = () => {
   const {
@@ -94,17 +95,11 @@ const PhieuChi = () => {
   // Early return for loading state
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Phiếu Chi</h1>
-          <p className="text-gray-600 mt-2">Quản lý phiếu chi tiền</p>
-        </div>
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">
-            Đang tải danh sách phiếu chi...
-          </div>
-        </div>
-      </div>
+      <LoadingState
+        title="Phiếu Chi"
+        subtitle="Quản lý phiếu chi tiền"
+        message="Đang tải danh sách phiếu chi..."
+      />
     );
   }
 
