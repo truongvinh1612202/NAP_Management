@@ -52,9 +52,7 @@ async function createWindow() {
   win = new BrowserWindow({
     title: "NAP Management",
     icon: path.join(__dirname, "../../build/icon.ico"),
-    // Start the application in full screen mode
-    fullscreen: true,
-    fullscreenable: true,
+    // Start the application maximized
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -78,12 +76,12 @@ async function createWindow() {
   // Test actively push message to the Electron-Renderer
   win.webContents.on("did-finish-load", () => {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
-    // Ensure the window is in full screen after the renderer finishes loading
+    // Ensure the window is maximized after the renderer finishes loading
     // (covers cases where devtools or other actions might have changed state)
     try {
-      win?.setFullScreen(true);
+      if (win && !win.isMaximized()) win.maximize();
     } catch (e) {
-      console.warn("Failed to set full screen:", e);
+      console.warn("Failed to maximize window:", e);
     }
   });
 
