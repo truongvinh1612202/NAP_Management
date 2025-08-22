@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -11,13 +11,11 @@ import {
   themeQuartz,
 } from "ag-grid-community";
 import "ag-grid-enterprise";
-import { trpc } from "../utils/trpc";
+import { queryClient, trpc } from "../utils/trpc";
 import type { DanhMucKhachHang } from "../../generated/client";
-import { formatCurrencyVND } from "@/utils/helper";
 import { useState } from "react";
 import DetailModal from "../components/DetailModal";
 import PhieuThuModal from "../components/PhieuThuModal";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -26,6 +24,7 @@ import {
 import LoadingState from "@/components/LoadingState";
 
 const DanhMucKhachHang = () => {
+  const updateKhachhHang = useMutation(trpc.updateKhachHang.mutationOptions());
   const {
     data: khachHangList,
     isLoading,
@@ -35,6 +34,22 @@ const DanhMucKhachHang = () => {
   const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
   const [selectedKhachHangForPhieuThu, setSelectedKhachHangForPhieuThu] =
     useState<DanhMucKhachHang | null>(null);
+
+  const handleCellValueChanged = (event: any) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field;
+
+      updateKhachhHang.mutate({
+        id: data.id,
+        data: {
+          [fieldName]: newValue,
+        },
+      });
+    }
+  };
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(
     () => [
@@ -258,6 +273,7 @@ const DanhMucKhachHang = () => {
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 autoSizeStrategy={autoSizeStrategy}
+                onCellEditingStopped={handleCellValueChanged}
                 {...DEFAULT_GRID_OPTIONS}
               />
             </div>
