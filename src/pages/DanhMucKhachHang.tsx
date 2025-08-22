@@ -31,6 +31,7 @@ const DanhMucKhachHang = () => {
     isLoading,
     error,
   } = useQuery(trpc.danhMucKhachHang.queryOptions());
+  const { data: nhanVienList } = useQuery(trpc.danhMucNhanVien.queryOptions());
   const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
   const [selectedKhachHangForPhieuThu, setSelectedKhachHangForPhieuThu] =
     useState<DanhMucKhachHang | null>(null);
@@ -91,6 +92,7 @@ const DanhMucKhachHang = () => {
         headerName: "Tên Khách Hàng",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -98,6 +100,7 @@ const DanhMucKhachHang = () => {
         headerName: "Mã Số Thuế",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -105,6 +108,7 @@ const DanhMucKhachHang = () => {
         headerName: "Địa Chỉ",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -112,6 +116,7 @@ const DanhMucKhachHang = () => {
         headerName: "Điện Thoại",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -119,6 +124,7 @@ const DanhMucKhachHang = () => {
         headerName: "Ngành Kinh Doanh",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -126,6 +132,7 @@ const DanhMucKhachHang = () => {
         headerName: "CQT Quản Lý",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -133,24 +140,60 @@ const DanhMucKhachHang = () => {
         headerName: "Nhân Viên DVKH",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: any) => {
+          const id = params.data?.nhanVienDVKHId ?? params.value;
+          const nv = nhanVienList?.find((nv: any) => nv.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
         field: "nhanVienLapSo",
         headerName: "Nhân Viên Lập Sổ",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: any) => {
+          const id = params.data?.nhanVienLapSoId ?? params.value;
+          const nv = nhanVienList?.find((n: any) => n.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
         field: "nhanVienNSL",
         headerName: "Nhân Viên NSL",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: any) => {
+          const id = params.data?.nhanVienNSLId ?? params.value;
+          const nv = nhanVienList?.find((n: any) => n.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
     ],
-    []
+    [nhanVienList]
   );
 
   // Use shared grid config
