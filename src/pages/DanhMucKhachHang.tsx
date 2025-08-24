@@ -1,15 +1,7 @@
 import React, { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import {
-  ColDef,
-  colorSchemeDarkBlue,
-  colorSchemeLightWarm,
-  RowSelectionOptions,
-  themeAlpine,
-  themeBalham,
-  themeQuartz,
-} from "ag-grid-community";
+import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { queryClient, trpc } from "../utils/trpc";
 import type { DanhMucKhachHang } from "../../generated/client";
@@ -37,6 +29,7 @@ const DanhMucKhachHang = () => {
 
   const handleCellValueChanged = (event: any) => {
     const { data, colDef, newValue, oldValue } = event;
+    console.log("params.data:", JSON.stringify(event.data, null, 2));
 
     // Only update if value actually changed
     if (newValue !== oldValue) {
@@ -151,15 +144,23 @@ const DanhMucKhachHang = () => {
         cellRenderer: (params: any) => params.value || "-",
       },
       {
-        field: "nhanVienDVKH",
+        field: "nhanVienDVKHId",
         headerName: "Nhân Viên DVKH",
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => {
+        valueGetter: (params: any) => {
           const id = params.data?.nhanVienDVKHId ?? params.value;
           const nv = nhanVienList?.find((nv: any) => nv.id === id);
           return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: any) => {
+          const selectedName = params.newValue;
+          const nv = nhanVienList?.find(
+            (nv: any) => nv.tenNhanVien === selectedName
+          );
+          params.data.nhanVienDVKHId = nv?.id ?? null;
+          return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
