@@ -171,6 +171,28 @@ export const appRouter = t.router({
   chiPhiCongViec: t.procedure.query(() => {
     return prisma.chiPhiCongViec.findMany();
   }),
+  updateChiPhi: t.procedure
+    .input(
+      z.object({
+        id: z.number(),
+        data: z.object({
+          tenKhachHang: z.string().optional(),
+          congViecId: z.number().optional(),
+          tenCongViec: z.string().optional(),
+          chiPhi: z.number().nullable().optional(),
+          moTa: z.string().nullable().optional(),
+          khId: z.string().optional(),
+        }),
+      })
+    )
+    .mutation(({ input }) => {
+      return prisma.chiPhiCongViec.update({
+        where: {
+          id: input.id,
+        },
+        data: input.data,
+      });
+    }),
   phieuChi: t.procedure.query(() => {
     return prisma.phieuChi.findMany();
   }),

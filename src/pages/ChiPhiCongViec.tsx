@@ -41,7 +41,6 @@ const ChiPhiCongViec = () => {
         field: "congViecId",
         headerName: "Mã Công Việc",
         sortable: true,
-        flex: 0.5,
         filter: "agNumberColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
       },
