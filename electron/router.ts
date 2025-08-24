@@ -98,6 +98,29 @@ export const appRouter = t.router({
   danhMucNhanVien: t.procedure.query(() => {
     return prisma.danhMucNhanVien.findMany();
   }),
+  updateNhanVien: t.procedure
+    .input(
+      z.object({
+        id: z.number(),
+        data: z.object({
+          maSoNhanVien: z.string().optional(),
+          tenNhanVien: z.string().optional(),
+          namSinh: z.date().optional(),
+          dienThoai: z.string().optional(),
+          thuongTru: z.string().optional(),
+          userDangNhap: z.string().optional(),
+        }),
+      })
+    )
+    .mutation(({ input }) => {
+      return prisma.danhMucNhanVien.update({
+        where: {
+          id: input.id,
+        },
+        data: input.data,
+      });
+    }),
+
   nhanVienById: t.procedure
     .input(
       z.object({
