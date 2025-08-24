@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
@@ -9,17 +9,40 @@ import { formatCurrencyVND } from "@/utils/helper";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
-  AUTO_SIZE_STRATEGY_FILL,
+  AUTO_SIZE_STRATEGY,
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
 const ChiPhiCongViec = () => {
+  const updateChiPhi = useMutation(trpc.updateChiPhi.mutationOptions());
   const {
     data: chiPhiList,
     isLoading,
     error,
   } = useQuery(trpc.chiPhiCongViec.queryOptions());
+  const { data: khachHangList } = useQuery(
+    trpc.danhMucKhachHang.queryOptions()
+  );
 
+  const handleCellValueChanged = (event: any) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field;
+
+      try {
+        updateChiPhi.mutate({
+          id: data.id,
+          data: {
+            [fieldName]: data[fieldName],
+          },
+        });
+      } catch (err) {
+        console.error("updateChiPhi error:", err);
+      }
+    }
+  };
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(
     () => [
@@ -31,11 +54,32 @@ const ChiPhiCongViec = () => {
         filter: "agNumberColumnFilter",
       },
       {
-        field: "tenKhachHang",
-        headerName: "Khách Hàng",
+        field: "khId",
+        headerName: "Tên Khách Hàng",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        minWidth: 400,
+        valueGetter: (params: any) => {
+          const id = params.data?.khId ?? params.value;
+          const kh = khachHangList?.find((kh: any) => kh.id === Number(id));
+          return kh?.tenKhachHang ?? "-";
+        },
+        valueSetter: (params: any) => {
+          const selectedName = params.newValue;
+          const kh = khachHangList?.find(
+            (kh: any) => kh.tenKhachHang === selectedName
+          );
+          params.data.khId = kh ? String(kh.id) : null;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: khachHangList?.map((kh) => kh.tenKhachHang) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
         field: "congViecId",
@@ -60,13 +104,6 @@ const ChiPhiCongViec = () => {
           if (params.value === null || params.value === undefined) return "-";
           return formatCurrencyVND(params.value);
         },
-      },
-      {
-        field: "khId",
-        headerName: "Mã KH",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
       },
     ],
     []
@@ -126,7 +163,8 @@ const ChiPhiCongViec = () => {
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 {...DEFAULT_GRID_OPTIONS}
-                autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
+                autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                onCellValueChanged={handleCellValueChanged}
               />
             </div>
           </div>
