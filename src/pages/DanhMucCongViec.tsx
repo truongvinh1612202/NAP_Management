@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef, RowSelectionOptions } from "ag-grid-community";
 import "ag-grid-enterprise";
@@ -14,12 +14,31 @@ import {
 import LoadingState from "@/components/LoadingState";
 
 const DanhMucCongViec = () => {
+  const updateCongViec = useMutation(trpc.updateCongViec.mutationOptions());
   const {
     data: congViecList,
     isLoading,
     error,
   } = useQuery(trpc.danhMucCongViec.queryOptions());
+  const handleCellValueChanged = (event: any) => {
+    const { data, colDef, newValue, oldValue } = event;
 
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field;
+
+      try {
+        updateCongViec.mutate({
+          id: data.id,
+          data: {
+            [fieldName]: data[fieldName],
+          },
+        });
+      } catch (err) {
+        console.error("updateCongViec error:", err);
+      }
+    }
+  };
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(
     () => [
@@ -35,6 +54,7 @@ const DanhMucCongViec = () => {
         headerName: "Tên Công Việc",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -42,6 +62,7 @@ const DanhMucCongViec = () => {
         headerName: "Mô Tả",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
     ],
@@ -104,6 +125,7 @@ const DanhMucCongViec = () => {
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
+                onCellValueChanged={handleCellValueChanged}
               />
             </div>
           </div>
