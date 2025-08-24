@@ -29,18 +29,21 @@ const DanhMucKhachHang = () => {
 
   const handleCellValueChanged = (event: any) => {
     const { data, colDef, newValue, oldValue } = event;
-    console.log("params.data:", JSON.stringify(event.data, null, 2));
 
     // Only update if value actually changed
     if (newValue !== oldValue) {
       const fieldName = colDef.field;
 
-      updateKhachhHang.mutate({
-        id: data.id,
-        data: {
-          [fieldName]: newValue,
-        },
-      });
+      try {
+        updateKhachhHang.mutate({
+          id: data.id,
+          data: {
+            [fieldName]: data[fieldName],
+          },
+        });
+      } catch (err) {
+        console.error("updateKhachhHang error:", err);
+      }
     }
   };
   // Column definitions map directly to Prisma fields
@@ -159,7 +162,7 @@ const DanhMucKhachHang = () => {
           const nv = nhanVienList?.find(
             (nv: any) => nv.tenNhanVien === selectedName
           );
-          params.data.nhanVienDVKHId = nv?.id ?? null;
+          params.data.nhanVienDVKHId = nv ? Number(nv.id) : null;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
@@ -171,15 +174,23 @@ const DanhMucKhachHang = () => {
         },
       },
       {
-        field: "nhanVienLapSo",
+        field: "nhanVienLapSoId",
         headerName: "Nhân Viên Lập Sổ",
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => {
+        valueGetter: (params: any) => {
           const id = params.data?.nhanVienLapSoId ?? params.value;
-          const nv = nhanVienList?.find((n: any) => n.id === id);
+          const nv = nhanVienList?.find((nv: any) => nv.id === id);
           return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: any) => {
+          const selectedName = params.newValue;
+          const nv = nhanVienList?.find(
+            (nv: any) => nv.tenNhanVien === selectedName
+          );
+          params.data.nhanVienLapSoId = nv ? Number(nv.id) : null;
+          return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
@@ -190,15 +201,23 @@ const DanhMucKhachHang = () => {
         },
       },
       {
-        field: "nhanVienNSL",
+        field: "nhanVienNSLId",
         headerName: "Nhân Viên NSL",
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => {
+        valueGetter: (params: any) => {
           const id = params.data?.nhanVienNSLId ?? params.value;
-          const nv = nhanVienList?.find((n: any) => n.id === id);
+          const nv = nhanVienList?.find((nv: any) => nv.id === id);
           return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: any) => {
+          const selectedName = params.newValue;
+          const nv = nhanVienList?.find(
+            (nv: any) => nv.tenNhanVien === selectedName
+          );
+          params.data.nhanVienNSLId = nv ? Number(nv.id) : null;
+          return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
@@ -274,7 +293,7 @@ const DanhMucKhachHang = () => {
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 autoSizeStrategy={autoSizeStrategy}
-                onCellEditingStopped={handleCellValueChanged}
+                onCellValueChanged={handleCellValueChanged}
                 {...DEFAULT_GRID_OPTIONS}
               />
             </div>
