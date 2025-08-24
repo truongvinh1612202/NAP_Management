@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef, RowSelectionOptions } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucNhanVien } from "../../generated/client";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -20,6 +19,29 @@ const DanhMucNhanVien = () => {
     isLoading,
     error,
   } = useQuery(trpc.danhMucNhanVien.queryOptions());
+
+  // Define mutation for updating nhân viên
+  const updateNhanVien = useMutation(trpc.updateNhanVien.mutationOptions());
+
+  const handleCellValueChanged = (event: any) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field;
+
+      try {
+        updateNhanVien.mutate({
+          id: data.id,
+          data: {
+            [fieldName]: data[fieldName],
+          },
+        });
+      } catch (err) {
+        console.error("updateNhanVien error:", err);
+      }
+    }
+  };
 
   const [selectedNhanVienForKhachHang, setSelectedNhanVienForKhachHang] =
     useState<DanhMucNhanVien | null>(null);
@@ -59,12 +81,14 @@ const DanhMucNhanVien = () => {
         headerName: "Mã Số NV",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
         field: "tenNhanVien",
         headerName: "Tên Nhân Viên",
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -72,6 +96,7 @@ const DanhMucNhanVien = () => {
         headerName: "Năm Sinh",
         sortable: true,
         filter: "agDateColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => {
           if (!params.value) return "-";
           return new Date(params.value).toLocaleDateString("vi-VN");
@@ -82,6 +107,7 @@ const DanhMucNhanVien = () => {
         headerName: "Điện Thoại",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -89,6 +115,7 @@ const DanhMucNhanVien = () => {
         headerName: "Thường Trú",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
       {
@@ -96,6 +123,7 @@ const DanhMucNhanVien = () => {
         headerName: "User Đăng Nhập",
         sortable: true,
         filter: "agTextColumnFilter",
+        editable: true,
         cellRenderer: (params: any) => params.value || "-",
       },
     ],
@@ -157,6 +185,7 @@ const DanhMucNhanVien = () => {
                 rowData={nhanVienList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
+                onCellValueChanged={handleCellValueChanged}
                 {...DEFAULT_GRID_OPTIONS}
               />
             </div>
