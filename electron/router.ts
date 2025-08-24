@@ -137,6 +137,24 @@ export const appRouter = t.router({
   danhMucCongViec: t.procedure.query(() => {
     return prisma.danhMucCongViec.findMany();
   }),
+  updateCongViec: t.procedure
+    .input(
+      z.object({
+        id: z.number(),
+        data: z.object({
+          ten: z.string().optional(),
+          moTa: z.string().nullable().optional(),
+        }),
+      })
+    )
+    .mutation(({ input }) => {
+      return prisma.danhMucCongViec.update({
+        where: {
+          id: input.id,
+        },
+        data: input.data,
+      });
+    }),
   congViecById: t.procedure
     .input(
       z.object({

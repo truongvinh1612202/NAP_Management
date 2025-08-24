@@ -34,7 +34,6 @@ const DanhMucCongViec = () => {
         field: "ten",
         headerName: "Tên Công Việc",
         sortable: true,
-        flex: 3,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
       },
@@ -42,7 +41,6 @@ const DanhMucCongViec = () => {
         field: "moTa",
         headerName: "Mô Tả",
         sortable: true,
-        flex: 3,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
       },
@@ -52,16 +50,6 @@ const DanhMucCongViec = () => {
 
   // Use shared grid config
   const defaultColDef = DEFAULT_COL_DEF;
-
-  const rowSelection: RowSelectionOptions = useMemo(
-    () => ({
-      mode: "multiRow" as const,
-      checkboxes: false,
-      headerCheckbox: false,
-      enableClickSelection: true,
-    }),
-    []
-  );
 
   // Early return for loading state
   if (isLoading) {
