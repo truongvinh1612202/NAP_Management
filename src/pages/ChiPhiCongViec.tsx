@@ -24,23 +24,18 @@ const ChiPhiCongViec = () => {
     trpc.danhMucKhachHang.queryOptions()
   );
 
-  const handleCellValueChanged = (event: any) => {
+  const handleCellValueChanged = async (event: any) => {
     const { data, colDef, newValue, oldValue } = event;
 
     // Only update if value actually changed
     if (newValue !== oldValue) {
       const fieldName = colDef.field;
-
-      try {
-        updateChiPhi.mutate({
-          id: data.id,
-          data: {
-            [fieldName]: data[fieldName],
-          },
-        });
-      } catch (err) {
-        console.error("updateChiPhi error:", err);
-      }
+      await updateChiPhi.mutateAsync({
+        id: data.id,
+        data: {
+          [fieldName]: data[fieldName],
+        },
+      });
     }
   };
   // Column definitions map directly to Prisma fields
