@@ -51,14 +51,12 @@ const DanhMucNhanVien = () => {
       {
         field: "id",
         headerName: "ID",
-        width: 80,
         sortable: true,
         filter: "agNumberColumnFilter",
       },
       {
         field: "maSoNhanVien",
         headerName: "Mã Số NV",
-        width: 120,
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
@@ -66,15 +64,12 @@ const DanhMucNhanVien = () => {
       {
         field: "tenNhanVien",
         headerName: "Tên Nhân Viên",
-        flex: 2,
-        sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
       },
       {
         field: "namSinh",
         headerName: "Năm Sinh",
-        width: 120,
         sortable: true,
         filter: "agDateColumnFilter",
         cellRenderer: (params: any) => {
@@ -85,7 +80,6 @@ const DanhMucNhanVien = () => {
       {
         field: "dienThoai",
         headerName: "Điện Thoại",
-        width: 140,
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
@@ -93,7 +87,6 @@ const DanhMucNhanVien = () => {
       {
         field: "thuongTru",
         headerName: "Thường Trú",
-        flex: 2,
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
@@ -101,7 +94,6 @@ const DanhMucNhanVien = () => {
       {
         field: "userDangNhap",
         headerName: "User Đăng Nhập",
-        width: 150,
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
