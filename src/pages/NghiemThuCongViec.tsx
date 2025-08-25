@@ -31,7 +31,7 @@ interface ValueGetterParams {
 
 interface ValueSetterParams {
   data: NghiemThuCongViec;
-  newValue: string;
+  newValue: { value: string; text: string };
 }
 
 interface CellRendererParams {
@@ -176,11 +176,8 @@ const NghiemThuCongViec = () => {
           return kh?.tenKhachHang ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const kh = khachHangList?.find(
-            (kh: DanhMucKhachHang) => kh.tenKhachHang === selectedName
-          );
-          params.data.khachHangId = kh ? Number(kh.id) : null;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.khachHangId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellRenderer: (params: CellRendererParams) => {
@@ -205,10 +202,22 @@ const NghiemThuCongViec = () => {
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: khachHangList?.map((kh) => kh.tenKhachHang) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            khachHangList?.map((kh) => ({
+              value: kh.id.toString(),
+              text: `${kh.tenKhachHang} (ID: ${kh.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
@@ -223,11 +232,8 @@ const NghiemThuCongViec = () => {
           return nv?.tenNhanVien ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const nv = nhanVienList?.find(
-            (nv: DanhMucNhanVien) => nv.tenNhanVien === selectedName
-          );
-          params.data.nhanVienId = nv ? Number(nv.id) : null;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellRenderer: (params: CellRendererParams) => {
@@ -252,10 +258,22 @@ const NghiemThuCongViec = () => {
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
@@ -270,11 +288,8 @@ const NghiemThuCongViec = () => {
           return cv?.ten ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const cv = congViecList?.find(
-            (cv: DanhMucCongViec) => cv.ten === selectedName
-          );
-          params.data.congViecId = cv ? Number(cv.id) : null;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.congViecId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellRenderer: (params: CellRendererParams) => {
@@ -298,14 +313,26 @@ const NghiemThuCongViec = () => {
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: congViecList?.map((cv) => cv.ten) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            congViecList?.map((cv) => ({
+              value: cv.id.toString(),
+              text: `${cv.ten} (ID: ${cv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
     ],
-    [nghiemThuList, nhanVienList, khachHangList, congViecList]
+    [nhanVienList, khachHangList, congViecList]
   );
 
   if (isLoading) {
