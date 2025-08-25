@@ -24,7 +24,7 @@ interface ValueGetterParams {
 
 interface ValueSetterParams {
   data: ChiPhiCongViec;
-  newValue: string;
+  newValue: { value: string; text: string };
 }
 
 interface CellRendererParams {
@@ -85,24 +85,33 @@ const ChiPhiCongViec = () => {
           return kh?.tenKhachHang ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const kh = khachHangList?.find(
-            (kh: DanhMucKhachHang) => kh.tenKhachHang === selectedName
-          );
-          params.data.khId = kh ? String(kh.id) : null;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.khId = isNaN(selectedID) ? null : String(selectedID);
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: khachHangList?.map((kh) => kh.tenKhachHang) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            khachHangList?.map((kh) => ({
+              value: kh.id.toString(),
+              text: `${kh.tenKhachHang} (ID: ${kh.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
         field: "congViecId",
-        headerName: "Mã Công Việc",
+        headerName: "Công Việc",
         sortable: true,
         filter: "agNumberColumnFilter",
         editable: true,
@@ -114,29 +123,29 @@ const ChiPhiCongViec = () => {
           return cv?.ten ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const cv = congViecList?.find(
-            (cv: DanhMucCongViec) => cv.ten === selectedName
-          );
-          params.data.congViecId = cv ? Number(cv.id) : null;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.congViecId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: congViecList?.map((cv: DanhMucCongViec) => cv.ten) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            congViecList?.map((cv: DanhMucCongViec) => ({
+              value: cv.id.toString(),
+              text: `${cv.ten} (ID: ${cv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
-      },
-      {
-        field: "tenCongViec",
-        headerName: "Tên Công Việc",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) =>
-          params.data.tenCongViec || "-",
       },
       {
         field: "chiPhi",
@@ -151,7 +160,7 @@ const ChiPhiCongViec = () => {
         },
       },
     ],
-    []
+    [khachHangList, congViecList]
   );
 
   // Early return for loading state
