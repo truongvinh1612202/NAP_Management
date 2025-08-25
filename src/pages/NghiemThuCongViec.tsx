@@ -168,20 +168,6 @@ const NghiemThuCongViec = () => {
     []
   );
 
-  const rowSelection: RowSelectionOptions = useMemo(
-    () => ({
-      mode: "multiRow",
-      checkboxes: false,
-      headerCheckbox: false,
-      enableClickSelection: true,
-    }),
-    []
-  );
-
-  // Use shared grid config
-  const defaultColDef = DEFAULT_COL_DEF;
-  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
-
   if (isLoading) {
     return (
       <LoadingState
