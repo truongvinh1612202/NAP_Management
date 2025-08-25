@@ -57,11 +57,6 @@ const PhieuChi = () => {
       // Handle NaN cases (invalid dates)
       valuesAreDifferent =
         newTime !== oldTime && !isNaN(newTime || 0) && !isNaN(oldTime || 0);
-
-      if (valuesAreDifferent) {
-        console.log("New date:", newDate?.toISOString());
-        console.log("Old date:", oldDate?.toISOString());
-      }
     } else {
       // For non-date fields, use regular comparison
       valuesAreDifferent = newValue !== oldValue;
