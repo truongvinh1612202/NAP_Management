@@ -225,6 +225,7 @@ const NghiemThuCongViec = () => {
         headerName: "Nhân Viên",
         sortable: true,
         filter: "agTextColumnFilter",
+        minWidth: 250,
         editable: true,
         valueGetter: (params: ValueGetterParams): string => {
           const id = params.data?.nhanVienId ?? params.value;
