@@ -133,7 +133,6 @@ const PhieuChi = () => {
         },
         valueSetter: (params: ValueSetterParams): boolean => {
           const selectedID = parseInt(params.newValue.value);
-          console.log("Selected Nhân Viên ID:", selectedID);
           params.data.nhanVienId = isNaN(selectedID) ? 0 : selectedID;
           return true;
         },
