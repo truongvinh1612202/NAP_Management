@@ -275,6 +275,30 @@ export const appRouter = t.router({
   nghiemThuCongViec: t.procedure.query(() => {
     return prisma.nghiemThuCongViec.findMany();
   }),
+  updateNghiemThuCongViec: t.procedure
+    .input(
+      z.object({
+        id: z.number(),
+        data: z.object({
+          noiDung: z.string().nullable().optional(),
+          ngay: z.date().nullable().optional(),
+          soTien: z.number().nullable().optional(),
+          kyDuLieu: z.string().nullable().optional(),
+          khachHangId: z.number().nullable().optional(),
+          nhanVienId: z.number().nullable().optional(),
+          congViecId: z.number().nullable().optional(),
+        }),
+      })
+    )
+    .mutation(({ input }) => {
+      console.log("Updating Nghiem Thu Cong Viec:", input);
+      return prisma.nghiemThuCongViec.update({
+        where: {
+          id: input.id,
+        },
+        data: input.data,
+      });
+    }),
   quanLyPhiDichVu: t.procedure.query(() => {
     return prisma.quanLyPhiDichVu.findMany();
   }),
