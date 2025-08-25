@@ -1,10 +1,14 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { PhieuThu } from "../../generated/client";
+import type {
+  DanhMucNhanVien,
+  PhieuThu,
+  DanhMucKhachHang,
+} from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
 import {
   DEFAULT_GRID_OPTIONS,
@@ -13,15 +17,72 @@ import {
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
+interface ValueGetterParams {
+  data?: PhieuThu;
+  value?: string;
+}
+
+interface ValueSetterParams {
+  data: PhieuThu;
+  newValue: string;
+}
+
+interface CellRendererParams {
+  data: PhieuThu;
+  value?: string | number | Date;
+}
+
 const PhieuThu = () => {
+  const updatePhieuThu = useMutation(trpc.updatePhieuThu.mutationOptions());
   const {
     data: phieuThuList,
     isLoading,
     error,
   } = useQuery(trpc.phieuThu.queryOptions());
+  const { data: nhanVienList } = useQuery(trpc.danhMucNhanVien.queryOptions());
+  const { data: khachHangList } = useQuery(
+    trpc.danhMucKhachHang.queryOptions()
+  );
+
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<PhieuThu>
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    let valuesAreDifferent = false;
+
+    // Handle date field comparison properly
+    if (newValue instanceof Date && oldValue instanceof Date) {
+      // Safely convert to Date objects
+      const newDate = newValue ? new Date(newValue) : null;
+      const oldDate = oldValue ? new Date(oldValue) : null;
+
+      // Compare using getTime() for accurate date comparison
+      const newTime = newDate?.getTime();
+      const oldTime = oldDate?.getTime();
+
+      // Handle NaN cases (invalid dates)
+      valuesAreDifferent =
+        newTime !== oldTime && !isNaN(newTime || 0) && !isNaN(oldTime || 0);
+    } else {
+      // For non-date fields, use regular comparison
+      valuesAreDifferent = newValue !== oldValue;
+    }
+
+    // Only update if value actually changed
+    if (valuesAreDifferent) {
+      const fieldName = colDef.field as keyof PhieuThu;
+      await updatePhieuThu.mutateAsync({
+        id: data.id,
+        data: {
+          [fieldName]: data[fieldName],
+        },
+      });
+    }
+  };
 
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<PhieuThu>[] = useMemo(
     () => [
       {
         field: "id",
@@ -34,95 +95,116 @@ const PhieuThu = () => {
         headerName: "Số CT",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "ngayThu",
         headerName: "Ngày Thu",
         sortable: true,
         filter: "agDateColumnFilter",
-        cellRenderer: (params: any) => {
-          if (!params.value) return "-";
-          return new Date(params.value).toLocaleDateString("vi-VN");
+        editable: true,
+        cellDataType: "dateTime",
+        cellRenderer: (params: CellRendererParams) => {
+          if (!params.data.ngayThu) return "-";
+          else return params.data.ngayThu.toLocaleDateString("vi-VN");
         },
+        cellEditor: "agDateCellEditor",
       },
       {
         field: "noiDung",
         headerName: "Nội Dung",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          params.data.noiDung || "-",
       },
       {
-        field: "tenKhachHang",
+        field: "khachHangId",
         headerName: "Khách Hàng",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        minWidth: 400,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.khachHangId ?? params.value;
+          const kh = khachHangList?.find(
+            (kh: DanhMucKhachHang) => kh.id === Number(id)
+          );
+          return kh?.tenKhachHang ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedName = params.newValue;
+          const kh = khachHangList?.find(
+            (kh: DanhMucKhachHang) => kh.tenKhachHang === selectedName
+          );
+          params.data.khachHangId = kh ? Number(kh.id) : 0;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: khachHangList?.map((kh) => kh.tenKhachHang) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
-        field: "tenNhanVien",
+        field: "nhanVienId",
         headerName: "Nhân Viên",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.nhanVienId ?? params.value;
+          const nv = nhanVienList?.find((nv: DanhMucNhanVien) => nv.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedName = params.newValue;
+          const nv = nhanVienList?.find(
+            (nv: DanhMucNhanVien) => nv.tenNhanVien === selectedName
+          );
+          params.data.nhanVienId = nv ? Number(nv.id) : 0;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
-        field: "nhomThu",
-        headerName: "Nhóm Thu",
+        field: "nhomDoanhThu",
+        headerName: "Nhóm Doanh Thu",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          params.data.nhomDoanhThu || "-",
       },
       {
         field: "soTien",
         headerName: "Số Tiền (VNĐ)",
         sortable: true,
         filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => formatCurrencyVND(params.value),
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          formatCurrencyVND(params.data.soTien),
       },
       {
-        field: "tienMat",
-        headerName: "Tiền Mặt (VNĐ)",
-        sortable: true,
-        filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => {
-          if (params.value === null || params.value === undefined) return "-";
-          return new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-          }).format(params.value);
-        },
-      },
-      {
-        field: "chuyenKhoan",
-        headerName: "Chuyển Khoản (VNĐ)",
-        sortable: true,
-        filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => {
-          if (params.value === null || params.value === undefined) return "-";
-          return new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-          }).format(params.value);
-        },
-      },
-      {
-        field: "taiKhoan",
-        headerName: "Tài Khoản",
+        field: "thuQuy",
+        headerName: "Thu Quỹ",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
-      },
-      {
-        field: "ghiChu",
-        headerName: "Ghi Chú",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.data.thuQuy || "-",
       },
     ],
-    []
+    [phieuThuList, nhanVienList, khachHangList]
   );
 
   if (isLoading) {
@@ -174,6 +256,7 @@ const PhieuThu = () => {
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                onCellValueChanged={handleCellValueChanged}
               />
             </div>
           </div>

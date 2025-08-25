@@ -229,6 +229,36 @@ export const appRouter = t.router({
   phieuThu: t.procedure.query(() => {
     return prisma.phieuThu.findMany();
   }),
+  updatePhieuThu: t.procedure
+    .input(
+      z.object({
+        id: z.number(),
+        data: z.object({
+          kyDuLieuId: z.number().optional(),
+          khachHangId: z.number().optional(),
+          nhanVienId: z.number().optional(),
+          noiDung: z.string().nullable().optional(),
+          nhomDoanhThu: z.string().nullable().optional(),
+          ngayThu: z.date().nullable().optional(),
+          soCT: z.string().nullable().optional(),
+          soTien: z.number().nullable().optional(),
+          thuQuy: z.string().nullable().optional(),
+          tenKhachHang: z.string().nullable().optional(),
+          tenNhanVien: z.string().nullable().optional(),
+          quyenSo: z.number().nullable().optional(),
+          thuQuyId: z.number().nullable().optional(),
+        }),
+      })
+    )
+    .mutation(({ input }) => {
+      console.log("Updating Phieu Thu:", input);
+      return prisma.phieuThu.update({
+        where: {
+          id: input.id,
+        },
+        data: input.data,
+      });
+    }),
   phieuThuByKhachHang: t.procedure
     .input(
       z.object({
