@@ -1,10 +1,14 @@
 import React, { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { ChiPhiCongViec } from "../../generated/client";
+import type {
+  ChiPhiCongViec,
+  DanhMucCongViec,
+  DanhMucKhachHang,
+} from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
 import {
   DEFAULT_GRID_OPTIONS,
@@ -12,6 +16,21 @@ import {
   AUTO_SIZE_STRATEGY,
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
+
+interface ValueGetterParams {
+  data?: ChiPhiCongViec;
+  value?: string;
+}
+
+interface ValueSetterParams {
+  data: ChiPhiCongViec;
+  newValue: string;
+}
+
+interface CellRendererParams {
+  data: ChiPhiCongViec;
+  value?: string | number;
+}
 
 const ChiPhiCongViec = () => {
   const updateChiPhi = useMutation(trpc.updateChiPhi.mutationOptions());
@@ -23,13 +42,16 @@ const ChiPhiCongViec = () => {
   const { data: khachHangList } = useQuery(
     trpc.danhMucKhachHang.queryOptions()
   );
+  const { data: congViecList } = useQuery(trpc.danhMucCongViec.queryOptions());
 
-  const handleCellValueChanged = async (event: any) => {
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<ChiPhiCongViec>
+  ) => {
     const { data, colDef, newValue, oldValue } = event;
 
     // Only update if value actually changed
     if (newValue !== oldValue) {
-      const fieldName = colDef.field;
+      const fieldName = colDef.field as keyof ChiPhiCongViec;
       await updateChiPhi.mutateAsync({
         id: data.id,
         data: {
@@ -39,7 +61,7 @@ const ChiPhiCongViec = () => {
     }
   };
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<ChiPhiCongViec>[] = useMemo(
     () => [
       {
         field: "id",
@@ -55,15 +77,17 @@ const ChiPhiCongViec = () => {
         filter: "agTextColumnFilter",
         editable: true,
         minWidth: 400,
-        valueGetter: (params: any) => {
+        valueGetter: (params: ValueGetterParams): string => {
           const id = params.data?.khId ?? params.value;
-          const kh = khachHangList?.find((kh: any) => kh.id === Number(id));
+          const kh = khachHangList?.find(
+            (kh: DanhMucKhachHang) => kh.id === Number(id)
+          );
           return kh?.tenKhachHang ?? "-";
         },
-        valueSetter: (params: any) => {
+        valueSetter: (params: ValueSetterParams): boolean => {
           const selectedName = params.newValue;
           const kh = khachHangList?.find(
-            (kh: any) => kh.tenKhachHang === selectedName
+            (kh: DanhMucKhachHang) => kh.tenKhachHang === selectedName
           );
           params.data.khId = kh ? String(kh.id) : null;
           return true;
@@ -81,23 +105,49 @@ const ChiPhiCongViec = () => {
         headerName: "Mã Công Việc",
         sortable: true,
         filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.congViecId ?? params.value;
+          const cv = congViecList?.find(
+            (cv: DanhMucCongViec) => cv.id === Number(id)
+          );
+          return cv?.ten ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedName = params.newValue;
+          const cv = congViecList?.find(
+            (cv: DanhMucCongViec) => cv.ten === selectedName
+          );
+          params.data.congViecId = cv ? Number(cv.id) : null;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: congViecList?.map((cv: DanhMucCongViec) => cv.ten) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
         field: "tenCongViec",
         headerName: "Tên Công Việc",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          params.data.tenCongViec || "-",
       },
       {
         field: "chiPhi",
         headerName: "Chi Phí (VNĐ)",
         sortable: true,
         filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => {
-          if (params.value === null || params.value === undefined) return "-";
-          return formatCurrencyVND(params.value);
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => {
+          if (params.data.chiPhi === null || params.data.chiPhi === undefined)
+            return "-";
+          return formatCurrencyVND(params.data.chiPhi);
         },
       },
     ],
