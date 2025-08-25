@@ -21,7 +21,7 @@ interface ValueGetterParams {
 
 interface ValueSetterParams {
   data: PhieuChi;
-  newValue: string;
+  newValue: { value: string; text: string };
 }
 
 interface CellRendererParams {
@@ -63,7 +63,6 @@ const PhieuChi = () => {
     }
     // Only update if value actually changed
     if (valuesAreDifferent) {
-      console.log("Data value Phieu Chi:", data.ngayChi?.toISOString());
       const fieldName = colDef.field as keyof PhieuChi;
       await updatePhieuChi.mutateAsync({
         id: data.id,
@@ -133,19 +132,33 @@ const PhieuChi = () => {
           return nv?.tenNhanVien ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const nv = nhanVienList?.find(
-            (nv: DanhMucNhanVien) => nv.tenNhanVien === selectedName
-          );
-          params.data.nhanVienId = nv ? Number(nv.id) : 0;
+          const selectedID = parseInt(params.newValue.value);
+          console.log("Selected Nhân Viên ID:", selectedID);
+          params.data.nhanVienId = isNaN(selectedID) ? 0 : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: any) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            // Fallback for when value is just the ID
+            const nv = nhanVienList?.find(
+              (nv: DanhMucNhanVien) => nv.id.toString() === value
+            );
+            return nv ? `${nv.tenNhanVien} (ID: ${nv.id})` : value;
+          },
         },
       },
       {
