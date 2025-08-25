@@ -24,7 +24,7 @@ interface ValueGetterParams {
 
 interface ValueSetterParams {
   data: PhieuThu;
-  newValue: string;
+  newValue: { value: string; text: string };
 }
 
 interface CellRendererParams {
@@ -135,19 +135,28 @@ const PhieuThu = () => {
           return kh?.tenKhachHang ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const kh = khachHangList?.find(
-            (kh: DanhMucKhachHang) => kh.tenKhachHang === selectedName
-          );
-          params.data.khachHangId = kh ? Number(kh.id) : 0;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.khachHangId = isNaN(selectedID) ? 0 : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: khachHangList?.map((kh) => kh.tenKhachHang) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            khachHangList?.map((kh) => ({
+              value: kh.id.toString(),
+              text: `${kh.tenKhachHang} (ID: ${kh.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
@@ -162,19 +171,28 @@ const PhieuThu = () => {
           return nv?.tenNhanVien ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedName = params.newValue;
-          const nv = nhanVienList?.find(
-            (nv: DanhMucNhanVien) => nv.tenNhanVien === selectedName
-          );
-          params.data.nhanVienId = nv ? Number(nv.id) : 0;
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienId = isNaN(selectedID) ? 0 : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
@@ -204,7 +222,7 @@ const PhieuThu = () => {
         cellRenderer: (params: CellRendererParams) => params.data.thuQuy || "-",
       },
     ],
-    [phieuThuList, nhanVienList, khachHangList]
+    [nhanVienList, khachHangList]
   );
 
   if (isLoading) {
