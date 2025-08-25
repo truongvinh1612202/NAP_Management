@@ -218,7 +218,6 @@ export const appRouter = t.router({
       })
     )
     .mutation(({ input }) => {
-      console.log("Updating Phieu Chi:", input);
       return prisma.phieuChi.update({
         where: {
           id: input.id,
@@ -251,7 +250,6 @@ export const appRouter = t.router({
       })
     )
     .mutation(({ input }) => {
-      console.log("Updating Phieu Thu:", input);
       return prisma.phieuThu.update({
         where: {
           id: input.id,
@@ -291,7 +289,6 @@ export const appRouter = t.router({
       })
     )
     .mutation(({ input }) => {
-      console.log("Updating Nghiem Thu Cong Viec:", input);
       return prisma.nghiemThuCongViec.update({
         where: {
           id: input.id,

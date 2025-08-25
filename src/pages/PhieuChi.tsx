@@ -12,7 +12,6 @@ import {
   AUTO_SIZE_STRATEGY,
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
-import { update } from "electron/main/update";
 
 interface ValueGetterParams {
   data?: PhieuChi;
@@ -123,6 +122,7 @@ const PhieuChi = () => {
       {
         field: "nhanVienId",
         headerName: "Nhân Viên",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
@@ -148,16 +148,12 @@ const PhieuChi = () => {
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
-          formatValue: (value: any) => {
+          formatValue: (value: { value: string; text: string }) => {
             // Display the text part when selected
             if (typeof value === "object" && value.text) {
               return value.text;
             }
-            // Fallback for when value is just the ID
-            const nv = nhanVienList?.find(
-              (nv: DanhMucNhanVien) => nv.id.toString() === value
-            );
-            return nv ? `${nv.tenNhanVien} (ID: ${nv.id})` : value;
+            return value?.toString() || "-";
           },
         },
       },
@@ -188,7 +184,7 @@ const PhieuChi = () => {
         cellRenderer: (params: CellRendererParams) => params.data.thuQuy || "-",
       },
     ],
-    [phieuChiList, nhanVienList]
+    [nhanVienList]
   );
 
   // Early return for loading state
