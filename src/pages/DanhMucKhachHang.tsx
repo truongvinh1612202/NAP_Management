@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { queryClient, trpc } from "../utils/trpc";
 import type { DanhMucKhachHang } from "../../generated/client";
@@ -15,6 +15,21 @@ import {
 } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
+interface ValueGetterParams {
+  data?: DanhMucKhachHang;
+  value?: string;
+}
+
+interface ValueSetterParams {
+  data: DanhMucKhachHang;
+  newValue: { value: string; text: string };
+}
+
+interface CellRendererParams {
+  data: DanhMucKhachHang;
+  value?: string | number | Date;
+}
+
 const DanhMucKhachHang = () => {
   const updateKhachhHang = useMutation(trpc.updateKhachHang.mutationOptions());
   const {
@@ -27,15 +42,17 @@ const DanhMucKhachHang = () => {
   const [selectedKhachHangForPhieuThu, setSelectedKhachHangForPhieuThu] =
     useState<DanhMucKhachHang | null>(null);
 
-  const handleCellValueChanged = (event: any) => {
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<DanhMucKhachHang>
+  ) => {
     const { data, colDef, newValue, oldValue } = event;
 
     // Only update if value actually changed
     if (newValue !== oldValue) {
-      const fieldName = colDef.field;
+      const fieldName = colDef.field as keyof DanhMucKhachHang;
 
       try {
-        updateKhachhHang.mutate({
+        await updateKhachhHang.mutateAsync({
           id: data.id,
           data: {
             [fieldName]: data[fieldName],
@@ -47,12 +64,11 @@ const DanhMucKhachHang = () => {
     }
   };
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<DanhMucKhachHang>[] = useMemo(
     () => [
       {
         headerName: "Chi tiết",
-        field: "details",
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
               className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
@@ -72,8 +88,7 @@ const DanhMucKhachHang = () => {
       },
       {
         headerName: "Phí dịch vụ",
-        field: "actions",
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
               className="w-full h-5 px-0 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none flex items-center justify-center"
@@ -104,7 +119,7 @@ const DanhMucKhachHang = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "maSoThue",
@@ -112,7 +127,7 @@ const DanhMucKhachHang = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "diaChi",
@@ -120,7 +135,7 @@ const DanhMucKhachHang = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "dienThoai",
@@ -128,7 +143,7 @@ const DanhMucKhachHang = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "nganhKD",
@@ -136,7 +151,7 @@ const DanhMucKhachHang = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "cqtQuanLy",
@@ -144,87 +159,117 @@ const DanhMucKhachHang = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "nhanVienDVKHId",
         headerName: "Nhân Viên DVKH",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        valueGetter: (params: any) => {
+        valueGetter: (params: ValueGetterParams): string => {
           const id = params.data?.nhanVienDVKHId ?? params.value;
           const nv = nhanVienList?.find((nv: any) => nv.id === id);
           return nv?.tenNhanVien ?? "-";
         },
-        valueSetter: (params: any) => {
-          const selectedName = params.newValue;
-          const nv = nhanVienList?.find(
-            (nv: any) => nv.tenNhanVien === selectedName
-          );
-          params.data.nhanVienDVKHId = nv ? Number(nv.id) : null;
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienDVKHId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
         field: "nhanVienLapSoId",
         headerName: "Nhân Viên Lập Sổ",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        valueGetter: (params: any) => {
+        valueGetter: (params: ValueGetterParams): string => {
           const id = params.data?.nhanVienLapSoId ?? params.value;
           const nv = nhanVienList?.find((nv: any) => nv.id === id);
           return nv?.tenNhanVien ?? "-";
         },
-        valueSetter: (params: any) => {
-          const selectedName = params.newValue;
-          const nv = nhanVienList?.find(
-            (nv: any) => nv.tenNhanVien === selectedName
-          );
-          params.data.nhanVienLapSoId = nv ? Number(nv.id) : null;
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienLapSoId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
       {
         field: "nhanVienNSLId",
         headerName: "Nhân Viên NSL",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        valueGetter: (params: any) => {
+        valueGetter: (params: ValueGetterParams): string => {
           const id = params.data?.nhanVienNSLId ?? params.value;
           const nv = nhanVienList?.find((nv: any) => nv.id === id);
           return nv?.tenNhanVien ?? "-";
         },
-        valueSetter: (params: any) => {
-          const selectedName = params.newValue;
-          const nv = nhanVienList?.find(
-            (nv: any) => nv.tenNhanVien === selectedName
-          );
-          params.data.nhanVienNSLId = nv ? Number(nv.id) : null;
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienNSLId = isNaN(selectedID) ? null : selectedID;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
         cellEditorParams: {
-          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
           allowTyping: true,
           filterList: true,
           searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
         },
       },
     ],
