@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef, RowSelectionOptions } from "ag-grid-community";
+import {
+  CellValueChangedEvent,
+  ColDef,
+  RowSelectionOptions,
+} from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucNhanVien } from "../../generated/client";
@@ -23,23 +27,40 @@ const DanhMucNhanVien = () => {
   // Define mutation for updating nhân viên
   const updateNhanVien = useMutation(trpc.updateNhanVien.mutationOptions());
 
-  const handleCellValueChanged = (event: any) => {
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<DanhMucNhanVien>
+  ) => {
     const { data, colDef, newValue, oldValue } = event;
 
-    // Only update if value actually changed
-    if (newValue !== oldValue) {
-      const fieldName = colDef.field;
+    let valuesAreDifferent = false;
 
-      try {
-        updateNhanVien.mutate({
-          id: data.id,
-          data: {
-            [fieldName]: data[fieldName],
-          },
-        });
-      } catch (err) {
-        console.error("updateNhanVien error:", err);
-      }
+    // Handle date field comparison properly
+    if (newValue instanceof Date && oldValue instanceof Date) {
+      // Safely convert to Date objects
+      const newDate = newValue ? new Date(newValue) : null;
+      const oldDate = oldValue ? new Date(oldValue) : null;
+
+      // Compare using getTime() for accurate date comparison
+      const newTime = newDate?.getTime();
+      const oldTime = oldDate?.getTime();
+
+      // Handle NaN cases (invalid dates)
+      valuesAreDifferent =
+        newTime !== oldTime && !isNaN(newTime || 0) && !isNaN(oldTime || 0);
+    } else {
+      // For non-date fields, use regular comparison
+      valuesAreDifferent = newValue !== oldValue;
+    }
+
+    // Only update if value actually changed
+    if (valuesAreDifferent) {
+      const fieldName = colDef.field as keyof DanhMucNhanVien;
+      await updateNhanVien.mutateAsync({
+        id: data.id,
+        data: {
+          [fieldName]: data[fieldName],
+        },
+      });
     }
   };
 
@@ -96,6 +117,7 @@ const DanhMucNhanVien = () => {
         headerName: "Năm Sinh",
         sortable: true,
         filter: "agDateColumnFilter",
+        cellDataType: "dateTime",
         editable: true,
         cellRenderer: (params: any) => {
           if (!params.value) return "-";
