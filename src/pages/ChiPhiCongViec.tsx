@@ -85,8 +85,7 @@ const ChiPhiCongViec = () => {
           return kh?.tenKhachHang ?? "-";
         },
         valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedID = parseInt(params.newValue.value);
-          params.data.khId = isNaN(selectedID) ? null : String(selectedID);
+          params.data.khId = params.newValue.value;
           return true;
         },
         cellEditor: "agRichSelectCellEditor",
