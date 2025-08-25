@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { PhieuChi } from "../../generated/client";
+import type { DanhMucNhanVien, PhieuChi } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
 import {
   DEFAULT_GRID_OPTIONS,
@@ -12,16 +12,74 @@ import {
   AUTO_SIZE_STRATEGY,
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
+import { update } from "electron/main/update";
+
+interface ValueGetterParams {
+  data?: PhieuChi;
+  value?: string;
+}
+
+interface ValueSetterParams {
+  data: PhieuChi;
+  newValue: string;
+}
+
+interface CellRendererParams {
+  data: PhieuChi;
+  value?: string | number | Date;
+}
 
 const PhieuChi = () => {
+  const updatePhieuChi = useMutation(trpc.updatePhieuChi.mutationOptions());
   const {
     data: phieuChiList,
     isLoading,
     error,
   } = useQuery(trpc.phieuChi.queryOptions());
+  const { data: nhanVienList } = useQuery(trpc.danhMucNhanVien.queryOptions());
 
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<PhieuChi>
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
+    let valuesAreDifferent = false;
+
+    // Handle date field comparison properly
+    if (newValue instanceof Date && oldValue instanceof Date) {
+      // Safely convert to Date objects
+      const newDate = newValue ? new Date(newValue) : null;
+      const oldDate = oldValue ? new Date(oldValue) : null;
+
+      // Compare using getTime() for accurate date comparison
+      const newTime = newDate?.getTime();
+      const oldTime = oldDate?.getTime();
+
+      // Handle NaN cases (invalid dates)
+      valuesAreDifferent =
+        newTime !== oldTime && !isNaN(newTime || 0) && !isNaN(oldTime || 0);
+
+      if (valuesAreDifferent) {
+        console.log("New date:", newDate?.toISOString());
+        console.log("Old date:", oldDate?.toISOString());
+      }
+    } else {
+      // For non-date fields, use regular comparison
+      valuesAreDifferent = newValue !== oldValue;
+    }
+    // Only update if value actually changed
+    if (valuesAreDifferent) {
+      console.log("Data value Phieu Chi:", data.ngayChi?.toISOString());
+      const fieldName = colDef.field as keyof PhieuChi;
+      await updatePhieuChi.mutateAsync({
+        id: data.id,
+        data: {
+          [fieldName]: data[fieldName],
+        },
+      });
+    }
+  };
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<PhieuChi>[] = useMemo(
     () => [
       {
         field: "id",
@@ -34,62 +92,95 @@ const PhieuChi = () => {
         headerName: "Số CT",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "ngayChi",
         headerName: "Ngày Chi",
         sortable: true,
         filter: "agDateColumnFilter",
-        cellRenderer: (params: any) => {
-          if (!params.value) return "-";
-          return new Date(params.value).toLocaleDateString("vi-VN");
+        editable: true,
+        cellDataType: "dateTime",
+        cellRenderer: (params: CellRendererParams) => {
+          if (!params.data.ngayChi) return "-";
+          else return params.data.ngayChi.toLocaleDateString("vi-VN");
         },
+        cellEditor: "agDateCellEditor",
       },
       {
         field: "noiDung",
         headerName: "Nội Dung",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          params.data.noiDung || "-",
       },
       {
         field: "tenKhachHang",
         headerName: "Khách Hàng",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          params.data.tenKhachHang || "-",
       },
       {
-        field: "tenNhanVien",
+        field: "nhanVienId",
         headerName: "Nhân Viên",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.nhanVienId ?? params.value;
+          const nv = nhanVienList?.find((nv: DanhMucNhanVien) => nv.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedName = params.newValue;
+          const nv = nhanVienList?.find(
+            (nv: DanhMucNhanVien) => nv.tenNhanVien === selectedName
+          );
+          params.data.nhanVienId = nv ? Number(nv.id) : 0;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          values: nhanVienList?.map((nv) => nv.tenNhanVien) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+        },
       },
       {
         field: "nhomChi",
         headerName: "Nhóm Chi",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          params.data.nhomChi || "-",
       },
       {
         field: "soTien",
         headerName: "Số Tiền (VNĐ)",
         sortable: true,
         filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => formatCurrencyVND(params.value),
+        editable: true,
+        cellRenderer: (params: CellRendererParams) =>
+          formatCurrencyVND(params.data.soTien),
       },
       {
         field: "thuQuy",
         headerName: "Thu Quỹ",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.data.thuQuy || "-",
       },
     ],
-    []
+    [phieuChiList, nhanVienList]
   );
 
   // Early return for loading state
@@ -143,6 +234,7 @@ const PhieuChi = () => {
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                onCellValueChanged={handleCellValueChanged}
               />
             </div>
           </div>
