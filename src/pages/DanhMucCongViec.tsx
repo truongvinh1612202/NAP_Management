@@ -1,17 +1,21 @@
 import React, { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef, RowSelectionOptions } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucCongViec } from "../../generated/client";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
   AUTO_SIZE_STRATEGY_FILL,
 } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
+
+interface CellRendererParams {
+  data: DanhMucCongViec;
+  value?: string | number | Date;
+}
 
 const DanhMucCongViec = () => {
   const updateCongViec = useMutation(trpc.updateCongViec.mutationOptions());
@@ -20,12 +24,14 @@ const DanhMucCongViec = () => {
     isLoading,
     error,
   } = useQuery(trpc.danhMucCongViec.queryOptions());
-  const handleCellValueChanged = (event: any) => {
+  const handleCellValueChanged = (
+    event: CellValueChangedEvent<DanhMucCongViec>
+  ) => {
     const { data, colDef, newValue, oldValue } = event;
 
     // Only update if value actually changed
     if (newValue !== oldValue) {
-      const fieldName = colDef.field;
+      const fieldName = colDef.field as keyof DanhMucCongViec;
 
       try {
         updateCongViec.mutate({
@@ -46,7 +52,7 @@ const DanhMucCongViec = () => {
         field: "id",
         headerName: "ID",
         sortable: true,
-        width: 100,
+        minWidth: 100,
         filter: "agNumberColumnFilter",
       },
       {
@@ -55,7 +61,7 @@ const DanhMucCongViec = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "moTa",
@@ -63,7 +69,7 @@ const DanhMucCongViec = () => {
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
-        cellRenderer: (params: any) => params.value || "-",
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
     ],
     []
