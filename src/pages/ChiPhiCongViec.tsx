@@ -1,27 +1,67 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { ChiPhiCongViec } from "../../generated/client";
+import type {
+  ChiPhiCongViec,
+  DanhMucCongViec,
+  DanhMucKhachHang,
+} from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
-  AUTO_SIZE_STRATEGY_FILL,
+  AUTO_SIZE_STRATEGY,
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
+interface ValueGetterParams {
+  data?: ChiPhiCongViec;
+  value?: string;
+}
+
+interface ValueSetterParams {
+  data: ChiPhiCongViec;
+  newValue: { value: string; text: string };
+}
+
+interface CellRendererParams {
+  data: ChiPhiCongViec;
+  value?: string | number;
+}
+
 const ChiPhiCongViec = () => {
+  const updateChiPhi = useMutation(trpc.updateChiPhi.mutationOptions());
   const {
     data: chiPhiList,
     isLoading,
     error,
   } = useQuery(trpc.chiPhiCongViec.queryOptions());
+  const { data: khachHangList } = useQuery(
+    trpc.danhMucKhachHang.queryOptions()
+  );
+  const { data: congViecList } = useQuery(trpc.danhMucCongViec.queryOptions());
 
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<ChiPhiCongViec>
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field as keyof ChiPhiCongViec;
+      await updateChiPhi.mutateAsync({
+        id: data.id,
+        data: {
+          [fieldName]: data[fieldName],
+        },
+      });
+    }
+  };
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<ChiPhiCongViec>[] = useMemo(
     () => [
       {
         field: "id",
@@ -31,46 +71,95 @@ const ChiPhiCongViec = () => {
         filter: "agNumberColumnFilter",
       },
       {
-        field: "tenKhachHang",
-        headerName: "Khách Hàng",
+        field: "khId",
+        headerName: "Tên Khách Hàng",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        minWidth: 400,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.khId ?? params.value;
+          const kh = khachHangList?.find(
+            (kh: DanhMucKhachHang) => kh.id === Number(id)
+          );
+          return kh?.tenKhachHang ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          params.data.khId = params.newValue.value;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            khachHangList?.map((kh) => ({
+              value: kh.id.toString(),
+              text: `${kh.tenKhachHang} (ID: ${kh.id})`,
+            })) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
+        },
       },
       {
         field: "congViecId",
-        headerName: "Mã Công Việc",
+        headerName: "Công Việc",
         sortable: true,
-        flex: 0.5,
         filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
-      },
-      {
-        field: "tenCongViec",
-        headerName: "Tên Công Việc",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.congViecId ?? params.value;
+          const cv = congViecList?.find(
+            (cv: DanhMucCongViec) => cv.id === Number(id)
+          );
+          return cv?.ten ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.congViecId = isNaN(selectedID) ? null : selectedID;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            congViecList?.map((cv: DanhMucCongViec) => ({
+              value: cv.id.toString(),
+              text: `${cv.ten} (ID: ${cv.id})`,
+            })) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
+        },
       },
       {
         field: "chiPhi",
         headerName: "Chi Phí (VNĐ)",
         sortable: true,
         filter: "agNumberColumnFilter",
-        cellRenderer: (params: any) => {
-          if (params.value === null || params.value === undefined) return "-";
-          return formatCurrencyVND(params.value);
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => {
+          if (params.data.chiPhi === null || params.data.chiPhi === undefined)
+            return "-";
+          return formatCurrencyVND(params.data.chiPhi);
         },
       },
-      {
-        field: "khId",
-        headerName: "Mã KH",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
-      },
     ],
-    []
+    [khachHangList, congViecList]
   );
 
   // Early return for loading state
@@ -127,7 +216,8 @@ const ChiPhiCongViec = () => {
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 {...DEFAULT_GRID_OPTIONS}
-                autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
+                autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                onCellValueChanged={handleCellValueChanged}
               />
             </div>
           </div>

@@ -1,11 +1,10 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef, RowSelectionOptions } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucCongViec } from "../../generated/client";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -13,13 +12,39 @@ import {
 } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
+interface CellRendererParams {
+  data: DanhMucCongViec;
+  value?: string | number | Date;
+}
+
 const DanhMucCongViec = () => {
+  const updateCongViec = useMutation(trpc.updateCongViec.mutationOptions());
   const {
     data: congViecList,
     isLoading,
     error,
   } = useQuery(trpc.danhMucCongViec.queryOptions());
+  const handleCellValueChanged = (
+    event: CellValueChangedEvent<DanhMucCongViec>
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
 
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field as keyof DanhMucCongViec;
+
+      try {
+        updateCongViec.mutate({
+          id: data.id,
+          data: {
+            [fieldName]: data[fieldName],
+          },
+        });
+      } catch (err) {
+        console.error("updateCongViec error:", err);
+      }
+    }
+  };
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(
     () => [
@@ -27,24 +52,24 @@ const DanhMucCongViec = () => {
         field: "id",
         headerName: "ID",
         sortable: true,
-        width: 100,
+        minWidth: 100,
         filter: "agNumberColumnFilter",
       },
       {
         field: "ten",
         headerName: "Tên Công Việc",
         sortable: true,
-        flex: 3,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "moTa",
         headerName: "Mô Tả",
         sortable: true,
-        flex: 3,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
     ],
     []
@@ -52,16 +77,6 @@ const DanhMucCongViec = () => {
 
   // Use shared grid config
   const defaultColDef = DEFAULT_COL_DEF;
-
-  const rowSelection: RowSelectionOptions = useMemo(
-    () => ({
-      mode: "multiRow" as const,
-      checkboxes: false,
-      headerCheckbox: false,
-      enableClickSelection: true,
-    }),
-    []
-  );
 
   // Early return for loading state
   if (isLoading) {
@@ -116,6 +131,7 @@ const DanhMucCongViec = () => {
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
+                onCellValueChanged={handleCellValueChanged}
               />
             </div>
           </div>

@@ -1,23 +1,13 @@
 import React, { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import {
-  ColDef,
-  colorSchemeDarkBlue,
-  colorSchemeLightWarm,
-  RowSelectionOptions,
-  themeAlpine,
-  themeBalham,
-  themeQuartz,
-} from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
-import { trpc } from "../utils/trpc";
+import { queryClient, trpc } from "../utils/trpc";
 import type { DanhMucKhachHang } from "../../generated/client";
-import { formatCurrencyVND } from "@/utils/helper";
 import { useState } from "react";
 import DetailModal from "../components/DetailModal";
 import PhieuThuModal from "../components/PhieuThuModal";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -25,22 +15,60 @@ import {
 } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
+interface ValueGetterParams {
+  data?: DanhMucKhachHang;
+  value?: string;
+}
+
+interface ValueSetterParams {
+  data: DanhMucKhachHang;
+  newValue: { value: string; text: string };
+}
+
+interface CellRendererParams {
+  data: DanhMucKhachHang;
+  value?: string | number | Date;
+}
+
 const DanhMucKhachHang = () => {
+  const updateKhachhHang = useMutation(trpc.updateKhachHang.mutationOptions());
   const {
     data: khachHangList,
     isLoading,
     error,
   } = useQuery(trpc.danhMucKhachHang.queryOptions());
+  const { data: nhanVienList } = useQuery(trpc.danhMucNhanVien.queryOptions());
   const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
   const [selectedKhachHangForPhieuThu, setSelectedKhachHangForPhieuThu] =
     useState<DanhMucKhachHang | null>(null);
+
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<DanhMucKhachHang>
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    // Only update if value actually changed
+    if (newValue !== oldValue) {
+      const fieldName = colDef.field as keyof DanhMucKhachHang;
+
+      try {
+        await updateKhachhHang.mutateAsync({
+          id: data.id,
+          data: {
+            [fieldName]: data[fieldName],
+          },
+        });
+      } catch (err) {
+        console.error("updateKhachhHang error:", err);
+      }
+    }
+  };
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<DanhMucKhachHang>[] = useMemo(
     () => [
       {
         headerName: "Chi tiết",
-        field: "details",
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
               className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
@@ -60,8 +88,7 @@ const DanhMucKhachHang = () => {
       },
       {
         headerName: "Phí dịch vụ",
-        field: "actions",
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
               className="w-full h-5 px-0 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none flex items-center justify-center"
@@ -91,66 +118,162 @@ const DanhMucKhachHang = () => {
         headerName: "Tên Khách Hàng",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "maSoThue",
         headerName: "Mã Số Thuế",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "diaChi",
         headerName: "Địa Chỉ",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "dienThoai",
         headerName: "Điện Thoại",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "nganhKD",
         headerName: "Ngành Kinh Doanh",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "cqtQuanLy",
         headerName: "CQT Quản Lý",
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
-        field: "nhanVienDVKH",
+        field: "nhanVienDVKHId",
         headerName: "Nhân Viên DVKH",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.nhanVienDVKHId ?? params.value;
+          const nv = nhanVienList?.find((nv: any) => nv.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienDVKHId = isNaN(selectedID) ? null : selectedID;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
+        },
       },
       {
-        field: "nhanVienLapSo",
+        field: "nhanVienLapSoId",
         headerName: "Nhân Viên Lập Sổ",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.nhanVienLapSoId ?? params.value;
+          const nv = nhanVienList?.find((nv: any) => nv.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienLapSoId = isNaN(selectedID) ? null : selectedID;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
+        },
       },
       {
-        field: "nhanVienNSL",
+        field: "nhanVienNSLId",
         headerName: "Nhân Viên NSL",
+        minWidth: 250,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        valueGetter: (params: ValueGetterParams): string => {
+          const id = params.data?.nhanVienNSLId ?? params.value;
+          const nv = nhanVienList?.find((nv: any) => nv.id === id);
+          return nv?.tenNhanVien ?? "-";
+        },
+        valueSetter: (params: ValueSetterParams): boolean => {
+          const selectedID = parseInt(params.newValue.value);
+          params.data.nhanVienNSLId = isNaN(selectedID) ? null : selectedID;
+          return true;
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          // Use objects with value (ID) and text (name) pairs
+          values:
+            nhanVienList?.map((nv) => ({
+              value: nv.id.toString(),
+              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
+            })) || [],
+          allowTyping: true,
+          filterList: true,
+          searchType: "matchAny",
+          formatValue: (value: { value: string; text: string }) => {
+            // Display the text part when selected
+            if (typeof value === "object" && value.text) {
+              return value.text;
+            }
+            return value?.toString() || "-";
+          },
+        },
       },
     ],
-    []
+    [nhanVienList]
   );
 
   // Use shared grid config
@@ -215,6 +338,7 @@ const DanhMucKhachHang = () => {
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 autoSizeStrategy={autoSizeStrategy}
+                onCellValueChanged={handleCellValueChanged}
                 {...DEFAULT_GRID_OPTIONS}
               />
             </div>

@@ -1,18 +1,18 @@
 import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { ColDef, RowSelectionOptions } from "ag-grid-community";
+import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucNhanVien } from "../../generated/client";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
-import {
-  DEFAULT_GRID_OPTIONS,
-  DEFAULT_COL_DEF,
-  AUTO_SIZE_STRATEGY,
-} from "../utils/gridConfig";
+import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
+
+interface CellRendererParams {
+  data: DanhMucNhanVien;
+  value?: string | number | Date;
+}
 
 const DanhMucNhanVien = () => {
   const {
@@ -21,16 +21,55 @@ const DanhMucNhanVien = () => {
     error,
   } = useQuery(trpc.danhMucNhanVien.queryOptions());
 
+  // Define mutation for updating nhân viên
+  const updateNhanVien = useMutation(trpc.updateNhanVien.mutationOptions());
+
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<DanhMucNhanVien>
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
+
+    let valuesAreDifferent = false;
+
+    // Handle date field comparison properly
+    if (newValue instanceof Date && oldValue instanceof Date) {
+      // Safely convert to Date objects
+      const newDate = newValue ? new Date(newValue) : null;
+      const oldDate = oldValue ? new Date(oldValue) : null;
+
+      // Compare using getTime() for accurate date comparison
+      const newTime = newDate?.getTime();
+      const oldTime = oldDate?.getTime();
+
+      // Handle NaN cases (invalid dates)
+      valuesAreDifferent =
+        newTime !== oldTime && !isNaN(newTime || 0) && !isNaN(oldTime || 0);
+    } else {
+      // For non-date fields, use regular comparison
+      valuesAreDifferent = newValue !== oldValue;
+    }
+
+    // Only update if value actually changed
+    if (valuesAreDifferent) {
+      const fieldName = colDef.field as keyof DanhMucNhanVien;
+      await updateNhanVien.mutateAsync({
+        id: data.id,
+        data: {
+          [fieldName]: data[fieldName],
+        },
+      });
+    }
+  };
+
   const [selectedNhanVienForKhachHang, setSelectedNhanVienForKhachHang] =
     useState<DanhMucNhanVien | null>(null);
 
   // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef[] = useMemo(
+  const columnDefs: ColDef<DanhMucNhanVien>[] = useMemo(
     () => [
       {
         headerName: "Chi tiết NV",
-        field: "actions",
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
               className="w-full h-5 px-0 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none flex items-center justify-center"
@@ -51,60 +90,60 @@ const DanhMucNhanVien = () => {
       {
         field: "id",
         headerName: "ID",
-        width: 80,
         sortable: true,
         filter: "agNumberColumnFilter",
       },
       {
         field: "maSoNhanVien",
         headerName: "Mã Số NV",
-        width: 120,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "tenNhanVien",
         headerName: "Tên Nhân Viên",
-        flex: 2,
-        sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "namSinh",
         headerName: "Năm Sinh",
-        width: 120,
         sortable: true,
         filter: "agDateColumnFilter",
-        cellRenderer: (params: any) => {
+        cellDataType: "dateTime",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => {
           if (!params.value) return "-";
-          return new Date(params.value).toLocaleDateString("vi-VN");
+          return new Date(params.value as Date).toLocaleDateString("vi-VN");
         },
+        cellEditor: "agDateCellEditor",
       },
       {
         field: "dienThoai",
         headerName: "Điện Thoại",
-        width: 140,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "thuongTru",
         headerName: "Thường Trú",
-        flex: 2,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
         field: "userDangNhap",
         headerName: "User Đăng Nhập",
-        width: 150,
         sortable: true,
         filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
+        editable: true,
+        cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
     ],
     []
@@ -112,7 +151,6 @@ const DanhMucNhanVien = () => {
 
   // Use shared grid config
   const defaultColDef = DEFAULT_COL_DEF;
-  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
 
   // Early return for loading state
   if (isLoading) {
@@ -165,6 +203,7 @@ const DanhMucNhanVien = () => {
                 rowData={nhanVienList}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
+                onCellValueChanged={handleCellValueChanged}
                 {...DEFAULT_GRID_OPTIONS}
               />
             </div>
