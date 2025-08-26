@@ -113,13 +113,45 @@ const DanhMucNhanVien = () => {
         headerName: "Năm Sinh",
         sortable: true,
         filter: "agDateColumnFilter",
-        cellDataType: "dateTime",
         editable: true,
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.value) return "-";
-          return new Date(params.value as Date).toLocaleDateString("vi-VN");
+        valueGetter: (params) => {
+          if (!params.data?.namSinh) return null;
+          const date = new Date(params.data.namSinh);
+          return isNaN(date.getTime()) ? null : date;
         },
-        cellEditor: "agDateCellEditor",
+        valueFormatter: (params) => {
+          if (!params.value) return "-";
+          const date = new Date(params.value);
+          return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("vi-VN");
+        },
+        cellEditor: "agDateStringCellEditor",
+        filterParams: {
+          comparator: (
+            filterLocalDateAtMidnight: Date,
+            cellValue: string | Date
+          ) => {
+            if (!cellValue) return -1;
+
+            const cellDate = new Date(cellValue);
+            if (isNaN(cellDate.getTime())) return -1;
+
+            // Normalize both dates to midnight for accurate comparison
+            const filterDate = new Date(
+              filterLocalDateAtMidnight.getFullYear(),
+              filterLocalDateAtMidnight.getMonth(),
+              filterLocalDateAtMidnight.getDate()
+            );
+            const normalizedCellDate = new Date(
+              cellDate.getFullYear(),
+              cellDate.getMonth(),
+              cellDate.getDate()
+            );
+
+            if (normalizedCellDate < filterDate) return -1;
+            if (normalizedCellDate > filterDate) return 1;
+            return 0;
+          },
+        },
       },
       {
         field: "dienThoai",

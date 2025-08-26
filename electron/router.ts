@@ -105,7 +105,10 @@ export const appRouter = t.router({
         data: z.object({
           maSoNhanVien: z.string().optional(),
           tenNhanVien: z.string().optional(),
-          namSinh: z.date().optional(),
+          namSinh: z
+            .string()
+            .transform((val) => new Date(val))
+            .optional(),
           dienThoai: z.string().optional(),
           thuongTru: z.string().optional(),
           userDangNhap: z.string().optional(),
