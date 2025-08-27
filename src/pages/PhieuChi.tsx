@@ -6,6 +6,7 @@ import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucNhanVien, PhieuChi } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -88,19 +89,7 @@ const PhieuChi = () => {
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
-      {
-        field: "ngayChi",
-        headerName: "Ngày Chi",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        editable: true,
-        cellDataType: "dateTime",
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.data.ngayChi) return "-";
-          else return params.data.ngayChi.toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateCellEditor",
-      },
+      createDateColumnConfig<PhieuChi>("ngayChi", "Ngày Chi"),
       {
         field: "noiDung",
         headerName: "Nội Dung",

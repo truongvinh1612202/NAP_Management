@@ -6,6 +6,7 @@ import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { QuanLyPhiDichVu } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -44,16 +45,7 @@ const QuanLyTieuNam = () => {
         cellRenderer: (params: any) => formatCurrencyVND(params.value),
         cellStyle: { textAlign: "left" },
       },
-      {
-        field: "ngayHieuLuc",
-        headerName: "Ngày Hiệu Lực",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        cellRenderer: (params: any) => {
-          if (!params.value) return "-";
-          return new Date(params.value).toLocaleDateString("vi-VN");
-        },
-      },
+      createDateColumnConfig<QuanLyPhiDichVu>("ngayHieuLuc", "Ngày Hiệu Lực"),
       {
         field: "ghiChu",
         headerName: "Ghi Chú",

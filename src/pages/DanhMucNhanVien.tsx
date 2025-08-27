@@ -5,6 +5,7 @@ import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucNhanVien } from "../../generated/client";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
 import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
@@ -108,51 +109,7 @@ const DanhMucNhanVien = () => {
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
-      {
-        field: "namSinh",
-        headerName: "Năm Sinh",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        editable: true,
-        valueGetter: (params) => {
-          if (!params.data?.namSinh) return null;
-          const date = new Date(params.data.namSinh);
-          return date;
-        },
-        valueFormatter: (params) => {
-          if (!params.value) return "-";
-          const date = new Date(params.value);
-          return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateStringCellEditor",
-        filterParams: {
-          comparator: (
-            filterLocalDateAtMidnight: Date,
-            cellValue: string | Date
-          ) => {
-            if (!cellValue) return -1;
-
-            const cellDate = new Date(cellValue);
-            if (isNaN(cellDate.getTime())) return -1;
-
-            // Normalize both dates to midnight for accurate comparison
-            const filterDate = new Date(
-              filterLocalDateAtMidnight.getFullYear(),
-              filterLocalDateAtMidnight.getMonth(),
-              filterLocalDateAtMidnight.getDate()
-            );
-            const normalizedCellDate = new Date(
-              cellDate.getFullYear(),
-              cellDate.getMonth(),
-              cellDate.getDate()
-            );
-
-            if (normalizedCellDate < filterDate) return -1;
-            if (normalizedCellDate > filterDate) return 1;
-            return 0;
-          },
-        },
-      },
+      createDateColumnConfig<DanhMucNhanVien>("namSinh", "Năm Sinh"),
       {
         field: "dienThoai",
         headerName: "Điện Thoại",

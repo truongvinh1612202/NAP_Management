@@ -15,6 +15,7 @@ import type {
   DanhMucCongViec,
 } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import DetailModal from "../components/DetailModal";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
@@ -130,19 +131,7 @@ const NghiemThuCongViec = () => {
         cellRenderer: (params: CellRendererParams) =>
           params.data.noiDung || "-",
       },
-      {
-        field: "ngay",
-        headerName: "Ngày",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        editable: true,
-        cellDataType: "dateTime",
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.data.ngay) return "-";
-          else return params.data.ngay.toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateCellEditor",
-      },
+      createDateColumnConfig<NghiemThuCongViec>("ngay", "Ngày"),
       {
         field: "soTien",
         headerName: "Số Tiền (VNĐ)",

@@ -10,6 +10,7 @@ import type {
   DanhMucKhachHang,
 } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -98,19 +99,7 @@ const PhieuThu = () => {
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
-      {
-        field: "ngayThu",
-        headerName: "Ngày Thu",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        editable: true,
-        cellDataType: "dateTime",
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.data.ngayThu) return "-";
-          else return params.data.ngayThu.toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateCellEditor",
-      },
+      createDateColumnConfig<PhieuThu>("ngayThu", "Ngày Thu"),
       {
         field: "noiDung",
         headerName: "Nội Dung",
