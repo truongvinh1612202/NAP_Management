@@ -1,4 +1,8 @@
-import type { ColDef } from "ag-grid-community";
+import type {
+  ColDef,
+  ValueGetterParams,
+  ValueFormatterParams,
+} from "ag-grid-community";
 
 /**
  * Creates a standardized date column configuration for AG Grid
@@ -9,17 +13,17 @@ export const createDateColumnConfig = <T = any>(
   headerName: string,
   editable = true
 ): ColDef<T> => ({
-  field: field as any,
+  field: field as any, // Required: AG Grid's ColDef.field type is complex, this cast is necessary
   headerName,
   sortable: true,
   filter: "agDateColumnFilter",
   editable,
-  valueGetter: (params: any) => {
-    if (!params.data?.[field]) return null;
-    const date = new Date(params.data[field]);
+  valueGetter: (params: ValueGetterParams<T>) => {
+    if (!params.data?.[field as keyof T]) return null;
+    const date = new Date(params.data[field as keyof T] as string | Date);
     return isNaN(date.getTime()) ? null : date;
   },
-  valueFormatter: (params: any) => {
+  valueFormatter: (params: ValueFormatterParams<T>) => {
     if (!params.value) return "-";
     const date = new Date(params.value);
     return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("vi-VN");
