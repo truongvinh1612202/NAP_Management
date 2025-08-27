@@ -117,7 +117,7 @@ const DanhMucNhanVien = () => {
         valueGetter: (params) => {
           if (!params.data?.namSinh) return null;
           const date = new Date(params.data.namSinh);
-          return isNaN(date.getTime()) ? null : date;
+          return date;
         },
         valueFormatter: (params) => {
           if (!params.value) return "-";
