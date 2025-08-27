@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
@@ -30,6 +30,7 @@ interface CellRendererParams {
 }
 
 const PhieuChi = () => {
+  const [isCurrentYearOnly, setIsCurrentYearOnly] = useState(true); // Default to current year
   const updatePhieuChi = useMutation(trpc.updatePhieuChi.mutationOptions());
   const {
     data: phieuChiList,
@@ -37,6 +38,27 @@ const PhieuChi = () => {
     error,
   } = useQuery(trpc.phieuChi.queryOptions());
   const { data: nhanVienList } = useQuery(trpc.danhMucNhanVien.queryOptions());
+
+  // Filter data based on current year state
+  const filteredPhieuChiList = useMemo(() => {
+    if (!phieuChiList) return [];
+
+    if (isCurrentYearOnly) {
+      const currentYear = new Date().getFullYear();
+      return phieuChiList.filter((item) => {
+        if (!item.ngayChi) return false;
+        const itemYear = new Date(item.ngayChi).getFullYear();
+        return itemYear === currentYear;
+      });
+    }
+
+    return phieuChiList;
+  }, [phieuChiList, isCurrentYearOnly]);
+
+  // Function to toggle between current year and all years
+  const handleToggleYearFilter = () => {
+    setIsCurrentYearOnly(!isCurrentYearOnly);
+  };
 
   const handleCellValueChanged = async (
     event: CellValueChangedEvent<PhieuChi>
@@ -212,17 +234,43 @@ const PhieuChi = () => {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách phiếu chi ({phieuChiList?.length || 0})
-          </h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Danh sách phiếu chi ({filteredPhieuChiList?.length || 0})
+            </h2>
+
+            {/* Year Filter Toggle Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleToggleYearFilter}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  isCurrentYearOnly
+                    ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500"
+                }`}
+                tabIndex={0}
+                aria-label={
+                  isCurrentYearOnly
+                    ? "Hiển thị tất cả năm"
+                    : "Lọc theo năm hiện tại"
+                }
+              >
+                {isCurrentYearOnly ? (
+                  <>🗓️ Năm {new Date().getFullYear()}</>
+                ) : (
+                  <>📅 Tất cả năm</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {phieuChiList && phieuChiList.length > 0 ? (
+        {filteredPhieuChiList && filteredPhieuChiList.length > 0 ? (
           <div className="p-4">
             <div className="w-full h-[60vh]">
               <AgGridReact
                 {...DEFAULT_GRID_OPTIONS}
-                rowData={phieuChiList}
+                rowData={filteredPhieuChiList}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY}
