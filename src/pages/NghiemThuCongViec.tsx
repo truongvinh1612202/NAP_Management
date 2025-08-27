@@ -15,6 +15,7 @@ import type {
   DanhMucCongViec,
 } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import DetailModal from "../components/DetailModal";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
@@ -40,6 +41,7 @@ interface CellRendererParams {
 }
 
 const NghiemThuCongViec = () => {
+  const [isCurrentYearOnly, setIsCurrentYearOnly] = useState(true); // Default to current year
   const updateNghiemThuCongViec = useMutation(
     trpc.updateNghiemThuCongViec.mutationOptions()
   );
@@ -53,6 +55,27 @@ const NghiemThuCongViec = () => {
     trpc.danhMucKhachHang.queryOptions()
   );
   const { data: congViecList } = useQuery(trpc.danhMucCongViec.queryOptions());
+
+  // Filter data based on current year state
+  const filteredNghiemThuList = useMemo(() => {
+    if (!nghiemThuList) return [];
+
+    if (isCurrentYearOnly) {
+      const currentYear = new Date().getFullYear();
+      return nghiemThuList.filter((item) => {
+        if (!item.ngay) return false;
+        const itemYear = new Date(item.ngay).getFullYear();
+        return itemYear === currentYear;
+      });
+    }
+
+    return nghiemThuList;
+  }, [nghiemThuList, isCurrentYearOnly]);
+
+  // Function to toggle between current year and all years
+  const handleToggleYearFilter = () => {
+    setIsCurrentYearOnly(!isCurrentYearOnly);
+  };
 
   const handleCellValueChanged = async (
     event: CellValueChangedEvent<NghiemThuCongViec>
@@ -130,19 +153,7 @@ const NghiemThuCongViec = () => {
         cellRenderer: (params: CellRendererParams) =>
           params.data.noiDung || "-",
       },
-      {
-        field: "ngay",
-        headerName: "Ngày",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        editable: true,
-        cellDataType: "dateTime",
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.data.ngay) return "-";
-          else return params.data.ngay.toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateCellEditor",
-      },
+      createDateColumnConfig<NghiemThuCongViec>("ngay", "Ngày"),
       {
         field: "soTien",
         headerName: "Số Tiền (VNĐ)",
@@ -375,17 +386,43 @@ const NghiemThuCongViec = () => {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách nghiệm thu ({nghiemThuList?.length || 0})
-          </h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Danh sách nghiệm thu ({filteredNghiemThuList?.length || 0})
+            </h2>
+
+            {/* Year Filter Toggle Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleToggleYearFilter}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  isCurrentYearOnly
+                    ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500"
+                }`}
+                tabIndex={0}
+                aria-label={
+                  isCurrentYearOnly
+                    ? "Hiển thị tất cả năm"
+                    : "Lọc theo năm hiện tại"
+                }
+              >
+                {isCurrentYearOnly ? (
+                  <>🗓️ Năm {new Date().getFullYear()}</>
+                ) : (
+                  <>📅 Tất cả năm</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {nghiemThuList && nghiemThuList.length > 0 ? (
+        {filteredNghiemThuList && filteredNghiemThuList.length > 0 ? (
           <div className="p-4">
             <div className="w-full h-[60vh]">
               <AgGridReact
                 {...DEFAULT_GRID_OPTIONS}
-                rowData={nghiemThuList}
+                rowData={filteredNghiemThuList}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY}

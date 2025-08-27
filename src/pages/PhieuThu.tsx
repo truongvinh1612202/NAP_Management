@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
@@ -10,6 +10,7 @@ import type {
   DanhMucKhachHang,
 } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -33,6 +34,7 @@ interface CellRendererParams {
 }
 
 const PhieuThu = () => {
+  const [isCurrentYearOnly, setIsCurrentYearOnly] = useState(true); // Default to current year
   const updatePhieuThu = useMutation(trpc.updatePhieuThu.mutationOptions());
   const {
     data: phieuThuList,
@@ -43,6 +45,27 @@ const PhieuThu = () => {
   const { data: khachHangList } = useQuery(
     trpc.danhMucKhachHang.queryOptions()
   );
+
+  // Filter data based on current year state
+  const filteredPhieuThuList = useMemo(() => {
+    if (!phieuThuList) return [];
+
+    if (isCurrentYearOnly) {
+      const currentYear = new Date().getFullYear();
+      return phieuThuList.filter((item) => {
+        if (!item.ngayThu) return false;
+        const itemYear = new Date(item.ngayThu).getFullYear();
+        return itemYear === currentYear;
+      });
+    }
+
+    return phieuThuList;
+  }, [phieuThuList, isCurrentYearOnly]);
+
+  // Function to toggle between current year and all years
+  const handleToggleYearFilter = () => {
+    setIsCurrentYearOnly(!isCurrentYearOnly);
+  };
 
   const handleCellValueChanged = async (
     event: CellValueChangedEvent<PhieuThu>
@@ -98,19 +121,7 @@ const PhieuThu = () => {
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
-      {
-        field: "ngayThu",
-        headerName: "Ngày Thu",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        editable: true,
-        cellDataType: "dateTime",
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.data.ngayThu) return "-";
-          else return params.data.ngayThu.toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateCellEditor",
-      },
+      createDateColumnConfig<PhieuThu>("ngayThu", "Ngày Thu"),
       {
         field: "noiDung",
         headerName: "Nội Dung",
@@ -260,17 +271,43 @@ const PhieuThu = () => {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách phiếu thu ({phieuThuList?.length || 0})
-          </h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Danh sách phiếu thu ({filteredPhieuThuList?.length || 0})
+            </h2>
+
+            {/* Year Filter Toggle Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleToggleYearFilter}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  isCurrentYearOnly
+                    ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500"
+                }`}
+                tabIndex={0}
+                aria-label={
+                  isCurrentYearOnly
+                    ? "Hiển thị tất cả năm"
+                    : "Lọc theo năm hiện tại"
+                }
+              >
+                {isCurrentYearOnly ? (
+                  <>🗓️ Năm {new Date().getFullYear()}</>
+                ) : (
+                  <>📅 Tất cả năm</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {phieuThuList && phieuThuList.length > 0 ? (
+        {filteredPhieuThuList && filteredPhieuThuList.length > 0 ? (
           <div className="p-4">
             <div className="w-full h-[60vh]">
               <AgGridReact
                 {...DEFAULT_GRID_OPTIONS}
-                rowData={phieuThuList}
+                rowData={filteredPhieuThuList}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY}

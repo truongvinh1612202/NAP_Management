@@ -5,6 +5,7 @@ import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucNhanVien } from "../../generated/client";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
 import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
@@ -108,19 +109,7 @@ const DanhMucNhanVien = () => {
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
-      {
-        field: "namSinh",
-        headerName: "Năm Sinh",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        cellDataType: "dateTime",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.value) return "-";
-          return new Date(params.value as Date).toLocaleDateString("vi-VN");
-        },
-        cellEditor: "agDateCellEditor",
-      },
+      createDateColumnConfig<DanhMucNhanVien>("namSinh", "Năm Sinh"),
       {
         field: "dienThoai",
         headerName: "Điện Thoại",

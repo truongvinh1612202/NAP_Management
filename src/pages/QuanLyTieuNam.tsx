@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
@@ -6,6 +6,7 @@ import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { QuanLyPhiDichVu } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
+import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -14,11 +15,33 @@ import {
 import LoadingState from "@/components/LoadingState";
 
 const QuanLyTieuNam = () => {
+  const [isCurrentYearOnly, setIsCurrentYearOnly] = useState(true); // Default to current year
   const {
     data: quanLyPhiDichVuList,
     isLoading,
     error,
   } = useQuery(trpc.quanLyPhiDichVu.queryOptions());
+
+  // Filter data based on current year state
+  const filteredQuanLyPhiDichVuList = useMemo(() => {
+    if (!quanLyPhiDichVuList) return [];
+
+    if (isCurrentYearOnly) {
+      const currentYear = new Date().getFullYear();
+      return quanLyPhiDichVuList.filter((item) => {
+        if (!item.ngayHieuLuc) return false;
+        const itemYear = new Date(item.ngayHieuLuc).getFullYear();
+        return itemYear === currentYear;
+      });
+    }
+
+    return quanLyPhiDichVuList;
+  }, [quanLyPhiDichVuList, isCurrentYearOnly]);
+
+  // Function to toggle between current year and all years
+  const handleToggleYearFilter = () => {
+    setIsCurrentYearOnly(!isCurrentYearOnly);
+  };
 
   // Column definitions map directly to Prisma fields
   const columnDefs: ColDef[] = useMemo(
@@ -44,16 +67,7 @@ const QuanLyTieuNam = () => {
         cellRenderer: (params: any) => formatCurrencyVND(params.value),
         cellStyle: { textAlign: "left" },
       },
-      {
-        field: "ngayHieuLuc",
-        headerName: "Ngày Hiệu Lực",
-        sortable: true,
-        filter: "agDateColumnFilter",
-        cellRenderer: (params: any) => {
-          if (!params.value) return "-";
-          return new Date(params.value).toLocaleDateString("vi-VN");
-        },
-      },
+      createDateColumnConfig<QuanLyPhiDichVu>("ngayHieuLuc", "Ngày Hiệu Lực"),
       {
         field: "ghiChu",
         headerName: "Ghi Chú",
@@ -101,17 +115,44 @@ const QuanLyTieuNam = () => {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách tiêu năm ({quanLyPhiDichVuList?.length || 0})
-          </h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Danh sách tiêu năm ({filteredQuanLyPhiDichVuList?.length || 0})
+            </h2>
+
+            {/* Year Filter Toggle Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleToggleYearFilter}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  isCurrentYearOnly
+                    ? "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500"
+                }`}
+                tabIndex={0}
+                aria-label={
+                  isCurrentYearOnly
+                    ? "Hiển thị tất cả năm"
+                    : "Lọc theo năm hiện tại"
+                }
+              >
+                {isCurrentYearOnly ? (
+                  <>🗓️ Năm {new Date().getFullYear()}</>
+                ) : (
+                  <>📅 Tất cả năm</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {quanLyPhiDichVuList && quanLyPhiDichVuList.length > 0 ? (
+        {filteredQuanLyPhiDichVuList &&
+        filteredQuanLyPhiDichVuList.length > 0 ? (
           <div className="p-4">
             <div className="w-full h-[60vh]">
               <AgGridReact
                 {...DEFAULT_GRID_OPTIONS}
-                rowData={quanLyPhiDichVuList}
+                rowData={filteredQuanLyPhiDichVuList}
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
