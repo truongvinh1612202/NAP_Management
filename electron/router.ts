@@ -209,7 +209,11 @@ export const appRouter = t.router({
           nhanVienId: z.number().optional(),
           noiDung: z.string().nullable().optional(),
           nhomChi: z.string().nullable().optional(),
-          ngayChi: z.date().nullable().optional(),
+          ngayChi: z
+            .string()
+            .transform((val) => new Date(val))
+            .nullable()
+            .optional(),
           soCT: z.string().nullable().optional(),
           soTien: z.number().nullable().optional(),
           thuQuy: z.string().nullable().optional(),
@@ -241,7 +245,11 @@ export const appRouter = t.router({
           nhanVienId: z.number().optional(),
           noiDung: z.string().nullable().optional(),
           nhomDoanhThu: z.string().nullable().optional(),
-          ngayThu: z.date().nullable().optional(),
+          ngayThu: z
+            .string()
+            .transform((val) => new Date(val))
+            .nullable()
+            .optional(),
           soCT: z.string().nullable().optional(),
           soTien: z.number().nullable().optional(),
           thuQuy: z.string().nullable().optional(),
@@ -282,7 +290,11 @@ export const appRouter = t.router({
         id: z.number(),
         data: z.object({
           noiDung: z.string().nullable().optional(),
-          ngay: z.date().nullable().optional(),
+          ngay: z
+            .string()
+            .transform((val) => new Date(val))
+            .nullable()
+            .optional(),
           soTien: z.number().nullable().optional(),
           kyDuLieu: z.string().nullable().optional(),
           khachHangId: z.number().nullable().optional(),
