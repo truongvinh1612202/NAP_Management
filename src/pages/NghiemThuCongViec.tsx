@@ -1,11 +1,7 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import {
-  ColDef,
-  RowSelectionOptions,
-  CellValueChangedEvent,
-} from "ag-grid-community";
+import { ColDef, CellValueChangedEvent } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type {
@@ -17,7 +13,6 @@ import type {
 import { formatCurrencyVND } from "@/utils/helper";
 import { createDateColumnConfig } from "@/utils/dateColumnConfig";
 import DetailModal from "../components/DetailModal";
-import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,

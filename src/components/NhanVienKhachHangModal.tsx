@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { DanhMucNhanVien, DanhMucKhachHang } from "../../generated/client";
+import type { DanhMucNhanVien } from "../../generated/client";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 
 interface NhanVienKhachHangModalProps {
@@ -18,7 +18,7 @@ type ResponsibilityType = "DVKH" | "LAPSO" | "NSL";
 const RESPONSIBILITY_LABELS: Record<ResponsibilityType, string> = {
   DVKH: "Dịch Vụ Khách Hàng",
   LAPSO: "Lập Sổ",
-  NSL: "Nghiệp Sự Luật",
+  NSL: "Nhập Số Liệu",
 };
 
 const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({

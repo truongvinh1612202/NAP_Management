@@ -1,9 +1,22 @@
 import { useState } from "react";
+import {
+  Users,
+  UserCheck,
+  Briefcase,
+  DollarSign,
+  FileText,
+  Receipt,
+  CheckSquare,
+  Calendar,
+  CreditCard,
+  Database,
+  LogOut,
+} from "lucide-react";
 
 interface NavigationItem {
   id: string;
   label: string;
-  icon: string; // Using string for simplicity, could be a component in a real app
+  icon: React.ReactNode;
   active: boolean;
 }
 
@@ -16,49 +29,55 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
     {
       id: "khachhang",
       label: "Khách Hàng",
-      icon: "👥",
+      icon: <Users size={18} />,
       active: true,
     },
     {
       id: "nhanvien",
       label: "Nhân Viên",
-      icon: "👨‍💼",
+      icon: <UserCheck size={18} />,
       active: false,
     },
     {
       id: "congviec",
       label: "Công Việc",
-      icon: "📋",
+      icon: <Briefcase size={18} />,
       active: false,
     },
     {
       id: "chiphi",
       label: "Chi Phí",
-      icon: "💰",
+      icon: <DollarSign size={18} />,
       active: false,
     },
     {
       id: "phieuchi",
       label: "Phiếu Chi",
-      icon: "🧾",
+      icon: <FileText size={18} />,
       active: false,
     },
     {
       id: "phieuthu",
       label: "Phiếu Thu",
-      icon: "💵",
+      icon: <Receipt size={18} />,
       active: false,
     },
     {
       id: "nghiemthucongviec",
       label: "Nghiệm Thu",
-      icon: "✅",
+      icon: <CheckSquare size={18} />,
       active: false,
     },
     {
       id: "ds_qltnam",
-      label: "QL Tiêu Năm",
-      icon: "📅",
+      label: "Quản Lý Tiêu Năm",
+      icon: <Calendar size={18} />,
+      active: false,
+    },
+    {
+      id: "phieuthunew",
+      label: "Thu Phí Dịch Vụ",
+      icon: <CreditCard size={18} />,
       active: false,
     },
   ]);
@@ -96,13 +115,15 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
               aria-label={item.label}
               style={{ outline: "none", border: "none" }}
             >
-              <span className="mr-3 text-lg">{item.icon}</span>
+              <span className="mr-3 flex-shrink-0 flex items-center">
+                {item.icon}
+              </span>
               <span>{item.label}</span>
             </button>
           ))}
         </div>
       </div>
-      <div className="py-4">
+      <div className="py-4 border-t border-gray-200">
         <button
           className="flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium
             hover:bg-gray-100 hover:text-gray-900 text-gray-700
@@ -115,7 +136,9 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
             }
           }}
         >
-          <span className="mr-3">⚙️</span>
+          <span className="mr-3 flex-shrink-0 flex items-center">
+            <Database size={18} />
+          </span>
           <span>Cài Đặt Database</span>
         </button>
         <button
@@ -129,7 +152,9 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
             window.location.href = "/";
           }}
         >
-          <span className="mr-3">🚪</span>
+          <span className="mr-3 flex-shrink-0 flex items-center">
+            <LogOut size={18} />
+          </span>
           <span>Đăng Xuất</span>
         </button>
       </div>

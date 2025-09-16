@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
@@ -13,7 +13,7 @@ import { formatCurrencyVND } from "@/utils/helper";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
-  AUTO_SIZE_STRATEGY,
+  AUTO_SIZE_STRATEGY_FILL,
 } from "@/utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
@@ -216,7 +216,7 @@ const ChiPhiCongViec = () => {
                 columnDefs={columnDefs}
                 defaultColDef={DEFAULT_COL_DEF}
                 {...DEFAULT_GRID_OPTIONS}
-                autoSizeStrategy={AUTO_SIZE_STRATEGY}
+                autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
                 onCellValueChanged={handleCellValueChanged}
               />
             </div>

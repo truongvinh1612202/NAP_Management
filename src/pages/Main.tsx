@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import NavigationMenu from "../components/NavigationMenu";
-import DataTable from "../components/DataTable";
 import { DatabaseConfigModal } from "../components/DatabaseConfigModal";
 import ChiPhiCongViec from "./ChiPhiCongViec";
 import DanhMucCongViec from "./DanhMucCongViec";
@@ -12,10 +11,11 @@ import PhieuThu from "./PhieuThu";
 import NghiemThuCongViec from "./NghiemThuCongViec";
 import QuanLyTieuNam from "./QuanLyTieuNam";
 import type { DatabaseConfig } from "../../electron/api";
+import PhieuThuNew from "./PhieuThuNew";
 
 const Main = () => {
   const navigate = useNavigate();
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState("khachhang");
   const [isDatabaseConfigOpen, setIsDatabaseConfigOpen] = useState(false);
 
   // Check if user is authenticated
@@ -60,6 +60,8 @@ const Main = () => {
         return <NghiemThuCongViec />;
       case "ds_qltnam":
         return <QuanLyTieuNam />;
+      case "phieuthunew":
+        return <PhieuThuNew />;
       case "dashboard":
       default:
         return null;

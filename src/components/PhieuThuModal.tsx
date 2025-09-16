@@ -1,28 +1,38 @@
-import React, { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { PhieuThu, DanhMucKhachHang } from "../../generated/client";
 import { formatCurrencyVND } from "@/utils/helper";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 
 interface PhieuThuModalProps {
-  khachHang: DanhMucKhachHang | null;
+  khachHangId: number | null;
   isOpen: boolean;
   onClose: () => void;
+  year: number;
+  month: number;
+  onYearChange: (year: number) => void;
+  onMonthChange: (month: number) => void;
 }
 
 const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
-  khachHang,
+  khachHangId,
   isOpen,
   onClose,
+  year,
+  month,
+  onYearChange,
+  onMonthChange,
 }) => {
-  const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    currentDate.getMonth() + 1
-  );
+  // Fetch customer data using the ID
+  const { data: khachHang } = useQuery({
+    ...trpc.khachHangById.queryOptions({
+      id: khachHangId || 0,
+    }),
+    enabled: !!khachHangId && isOpen,
+  });
 
   const {
     data: phieuThuList,
@@ -30,34 +40,40 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
     error,
   } = useQuery({
     ...trpc.phieuThuByKhachHang.queryOptions({
-      khachHangId: khachHang?.id || 0,
+      khachHangId: khachHangId || 0,
     }),
-    enabled: !!khachHang?.id && isOpen,
+    enabled: !!khachHangId && isOpen,
   });
 
-  // Filter PhieuThu by selected month across all years, sorted by year descending
+  // Filter PhieuThu by selected year and month, sorted by date descending
   const filteredPhieuThu = useMemo(() => {
     if (!phieuThuList) return [];
 
-    return phieuThuList
-      .filter((phieu) => {
-        if (!phieu.ngayThu) return false;
-        const phieuDate = new Date(phieu.ngayThu);
-        return phieuDate.getMonth() + 1 === selectedMonth;
-      })
-      .sort((a, b) => {
-        if (!a.ngayThu || !b.ngayThu) return 0;
-        const dateA = new Date(a.ngayThu);
-        const dateB = new Date(b.ngayThu);
-        // Sort by year descending, then by date descending within the same year
-        if (dateA.getFullYear() !== dateB.getFullYear()) {
-          return dateB.getFullYear() - dateA.getFullYear();
-        }
-        return dateB.getTime() - dateA.getTime();
-      });
-  }, [phieuThuList, selectedMonth]);
+    return phieuThuList.filter((phieu) => {
+      if (!phieu.ngayThu) return false;
+      const phieuDate = new Date(phieu.ngayThu);
+      return (
+        phieuDate.getFullYear() === year && phieuDate.getMonth() + 1 === month
+      );
+    });
+  }, [phieuThuList, year, month]);
 
-  // Get available months from data
+  // Get available years from data
+  const availableYears = useMemo(() => {
+    if (!phieuThuList) return [];
+
+    const years = new Set<number>();
+    phieuThuList.forEach((phieu) => {
+      if (phieu.ngayThu) {
+        const date = new Date(phieu.ngayThu);
+        years.add(date.getFullYear());
+      }
+    });
+
+    return Array.from(years).sort((a, b) => b - a);
+  }, [phieuThuList]);
+
+  // Get available months for the selected year
   const availableMonths = useMemo(() => {
     if (!phieuThuList) return [];
 
@@ -65,30 +81,21 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
     phieuThuList.forEach((phieu) => {
       if (phieu.ngayThu) {
         const date = new Date(phieu.ngayThu);
-        months.add(date.getMonth() + 1);
+        if (date.getFullYear() === year) {
+          months.add(date.getMonth() + 1);
+        }
       }
     });
 
     return Array.from(months).sort((a, b) => a - b);
-  }, [phieuThuList]);
+  }, [phieuThuList, year]);
 
-  // Calculate total amount for selected month across all years
+  // Calculate total amount for selected year and month
   const totalAmount = useMemo(() => {
     return filteredPhieuThu.reduce(
       (sum, phieu) => sum + (phieu.soTien || 0),
       0
     );
-  }, [filteredPhieuThu]);
-
-  // Get years that have data for the selected month
-  const yearsWithData = useMemo(() => {
-    const years = new Set<number>();
-    filteredPhieuThu.forEach((phieu) => {
-      if (phieu.ngayThu) {
-        years.add(new Date(phieu.ngayThu).getFullYear());
-      }
-    });
-    return Array.from(years).sort((a, b) => b - a);
   }, [filteredPhieuThu]);
 
   const columnDefs: ColDef[] = useMemo(
@@ -98,17 +105,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         headerName: "ID",
         sortable: true,
         filter: "agNumberColumnFilter",
-      },
-      {
-        field: "ngayThu",
-        headerName: "Năm",
-        filter: "agNumberColumnFilter",
-        suppressFilter: true,
-        cellRenderer: (params: any) => {
-          if (!params.value) return "-";
-          return new Date(params.value).getFullYear();
-        },
-        // maxWidth: 100,
+        minWidth: 80,
       },
       {
         field: "ngayThu",
@@ -119,7 +116,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
           if (!params.value) return "-";
           return new Date(params.value).toLocaleDateString("vi-VN");
         },
-        // maxWidth: 120,
+        minWidth: 120,
       },
       {
         field: "noiDung",
@@ -127,7 +124,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
-        flex: 1,
+        minWidth: 200,
       },
       {
         field: "soTien",
@@ -135,7 +132,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         sortable: true,
         filter: "agNumberColumnFilter",
         cellRenderer: (params: any) => formatCurrencyVND(params.value || 0),
-        cellStyle: { textAlign: "right" },
+        minWidth: 150,
       },
       {
         field: "soCT",
@@ -143,6 +140,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
+        minWidth: 120,
       },
       {
         field: "tenNhanVien",
@@ -150,6 +148,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
+        minWidth: 200,
       },
       {
         field: "thuQuy",
@@ -157,6 +156,7 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
         sortable: true,
         filter: "agTextColumnFilter",
         cellRenderer: (params: any) => params.value || "-",
+        minWidth: 200,
       },
     ],
     []
@@ -192,13 +192,14 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
               Phiếu Thu - {khachHang?.tenKhachHang}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              MST: {khachHang?.maSoThue}
+              MST: {khachHang?.maSoThue} | Tháng {month}/{year}
             </p>
           </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Đóng modal"
+            tabIndex={0}
           >
             <svg
               className="w-6 h-6"
@@ -216,36 +217,43 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
           </button>
         </div>
 
-        {/* Month Selector */}
+        {/* Year and Month Selectors */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-4 flex-wrap">
+            {/* Year Selector */}
             <div className="flex items-center gap-2">
               <label
-                htmlFor="month-select"
+                htmlFor="year-select"
                 className="text-sm font-medium text-gray-700"
               >
-                Tháng:
+                Năm:
               </label>
               <select
-                id="month-select"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700"
+                id="year-select"
+                value={availableYears.length === 0 ? "" : year}
+                onChange={(e) => onYearChange(Number(e.target.value))}
+                disabled={availableYears.length === 0}
+                className={`border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700 ${
+                  availableYears.length === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                  <option key={month} value={month}>
-                    Tháng {month}
+                {availableYears.length === 0 ? (
+                  <option value="" disabled>
+                    Không có dữ liệu
                   </option>
-                ))}
+                ) : (
+                  availableYears.map((availableYear) => (
+                    <option key={availableYear} value={availableYear}>
+                      {availableYear}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">
-                Năm có dữ liệu: {yearsWithData.join(", ") || "Không có"}
-              </span>
-            </div>
-
+            {/* Total Amount */}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-sm font-medium text-gray-700">
                 Tổng tiền:{" "}
@@ -256,25 +264,33 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
             </div>
           </div>
 
-          {/* Quick month navigation */}
-          <div className="mt-3 flex gap-2 flex-wrap">
-            {availableMonths.map((month) => {
-              const isSelected = month === selectedMonth;
-              return (
-                <button
-                  key={month}
-                  onClick={() => setSelectedMonth(month)}
-                  className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                    isSelected
-                      ? "bg-blue-500 text-white border-blue-500"
-                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  Tháng {month}
-                </button>
-              );
-            })}
-          </div>
+          {/* Quick month navigation for selected year */}
+          {availableMonths.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs text-gray-600 mb-2">
+                Tháng có dữ liệu trong năm {year}:
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {availableMonths.map((availableMonth) => {
+                  const isSelected = availableMonth === month;
+                  return (
+                    <button
+                      key={availableMonth}
+                      onClick={() => onMonthChange(availableMonth)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        isSelected
+                          ? "bg-blue-500 text-white border-blue-500"
+                          : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                      }`}
+                      tabIndex={0}
+                    >
+                      Tháng {availableMonth}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -312,9 +328,11 @@ const PhieuThuModal: React.FC<PhieuThuModalProps> = ({
             <div className="flex justify-center items-center h-full">
               <div className="text-center">
                 <div className="text-gray-500 text-lg mb-2">
-                  Không có phiếu thu trong tháng {selectedMonth}
+                  Không có phiếu thu trong tháng {month}/{year}
                 </div>
-                <p className="text-gray-400">Chọn tháng khác để xem dữ liệu</p>
+                <p className="text-gray-400">
+                  Chọn tháng/năm khác để xem dữ liệu
+                </p>
               </div>
             </div>
           )}
