@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   X,
+  PanelLeftClose,
 } from "lucide-react";
 
 interface NavigationItem {
@@ -100,7 +101,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
 
   return (
     <nav
-      className={`h-full bg-white text-gray-800 flex-shrink-0 relative border-r border-gray-200 transition-all duration-300 ${
+      className={`h-full bg-white text-gray-800 flex-shrink-0 relative border-r border-gray-200 ${
         isCollapsed ? "w-12 min-w-12" : "w-64 min-w-64"
       }`}
     >
@@ -117,9 +118,8 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           <span
             className={`flex-shrink-0 flex items-center ${!isCollapsed && "mr-3"}`}
           >
-            {isCollapsed ? <Menu size={18} /> : <X size={18} />}
+            {isCollapsed ? <Menu size={18} /> : <PanelLeftClose size={18} />}
           </span>
-          {!isCollapsed && <span>Quản Lý Dữ Liệu NAP</span>}
         </button>
       </div>
       <div className="py-4">
