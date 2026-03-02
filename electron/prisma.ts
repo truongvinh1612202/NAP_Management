@@ -1,9 +1,12 @@
 import log from "electron-log";
 import { PrismaClient } from "../generated/client/index.js";
-import { dbUrl, mePath, qePath, isDev } from "./constants";
+import { dbUrl, mePath, qePath, schemaPath, isDev } from "./constants";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { fork } from "child_process";
 import fs from "fs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 log.info("DB URL", dbUrl);
 log.info("QE Path", qePath);
@@ -114,6 +117,22 @@ export async function testDatabaseConnection(
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
     };
+  }
+}
+
+// Runs `prisma migrate deploy` against the current database on startup.
+// Creates the DB file (SQLite) and applies all pending migrations automatically.
+export async function ensureMigrationsApplied(): Promise<void> {
+  try {
+    log.info("Applying database migrations...");
+    await runPrismaCommand({
+      command: ["migrate", "deploy", "--schema", schemaPath],
+      dbUrl,
+    });
+    log.info("Database migrations applied successfully");
+  } catch (error) {
+    log.error("Failed to apply database migrations:", error);
+    throw error;
   }
 }
 

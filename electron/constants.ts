@@ -163,6 +163,15 @@ export const qePath = path.join(
   platformToExecutables[platformName].queryEngine,
 );
 
+// Path to prisma/schema.prisma — unpacked from asar in production
+export const schemaPath = isDev
+  ? path.join(process.cwd(), "prisma", "schema.prisma")
+  : path.join(
+      app.getAppPath().replace("app.asar", "app.asar.unpacked"),
+      "prisma",
+      "schema.prisma",
+    );
+
 export interface Migration {
   id: string;
   checksum: string;

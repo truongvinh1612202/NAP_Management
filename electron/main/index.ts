@@ -8,7 +8,11 @@ import { IpcRequest, DatabaseConfig } from "../api";
 import { ipcRequestHandler } from "./ipcRequestHandler";
 import { appRouter } from "../router";
 import { loadDatabaseConfig, saveDatabaseConfig } from "../constants";
-import { testDatabaseConnection, applyDatabaseConfig } from "../prisma";
+import {
+  testDatabaseConnection,
+  applyDatabaseConfig,
+  ensureMigrationsApplied,
+} from "../prisma";
 import "dotenv/config";
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -95,7 +99,10 @@ async function createWindow() {
   update(win);
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  await ensureMigrationsApplied();
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   win = null;
