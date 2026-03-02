@@ -6,6 +6,7 @@ import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucKhachHang } from "../../generated/client";
 import { useState } from "react";
+import { Search, Plus } from "lucide-react";
 import DetailModal from "../components/DetailModal";
 import PhieuThuModal from "../components/PhieuThuModal";
 import {
@@ -47,6 +48,7 @@ const DanhMucKhachHang = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(
     new Date().getMonth() + 1,
   );
+  const [searchText, setSearchText] = useState<string>("");
 
   // Query PhieuThu data for the selected customer to find latest
   const { data: phieuThuForLatest } = useQuery({
@@ -410,9 +412,38 @@ const DanhMucKhachHang = () => {
   return (
     <div className="p-0">
       {khachHangList && khachHangList.length > 0 ? (
-        <div className="">
+        <>
+          <div className="py-4 px-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="relative w-96">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Search size={18} className="text-gray-700" />
+                </div>
+                <input
+                  type="text"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="Tìm kiếm khách hàng..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-600"
+                  tabIndex={0}
+                  aria-label="Tìm kiếm khách hàng"
+                />
+              </div>
+              <button
+                className="flex items-center justify-center flex-shrink-0 w-10 h-10 border border-gray-700 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors "
+                tabIndex={0}
+                aria-label="Thêm khách hàng mới"
+                onClick={() => {
+                  // Add customer functionality here
+                  console.log("Add customer clicked");
+                }}
+              >
+                <Plus size={20} className="text-gray-700" />
+              </button>
+            </div>
+          </div>
           <div
-            className="w-auto h-[100vh]"
+            className="w-auto h-[calc(100vh-73px)]"
             tabIndex={0}
             aria-label="Bảng khách hàng"
           >
@@ -441,7 +472,7 @@ const DanhMucKhachHang = () => {
             onYearChange={setSelectedYear}
             onMonthChange={setSelectedMonth}
           />
-        </div>
+        </>
       ) : (
         <div className="px-6 py-8 text-center">
           <div className="text-gray-500 text-lg">
