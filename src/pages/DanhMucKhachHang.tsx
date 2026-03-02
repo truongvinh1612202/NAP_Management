@@ -42,10 +42,10 @@ const DanhMucKhachHang = () => {
   const [selectedKhachHangIdForPhieuThu, setSelectedKhachHangIdForPhieuThu] =
     useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear()
+    new Date().getFullYear(),
   );
   const [selectedMonth, setSelectedMonth] = useState<number>(
-    new Date().getMonth() + 1
+    new Date().getMonth() + 1,
   );
 
   // Query PhieuThu data for the selected customer to find latest
@@ -98,7 +98,7 @@ const DanhMucKhachHang = () => {
   }, [selectedKhachHangIdForPhieuThu, latestPhieuThuData]);
 
   const handleCellValueChanged = async (
-    event: CellValueChangedEvent<DanhMucKhachHang>
+    event: CellValueChangedEvent<DanhMucKhachHang>,
   ) => {
     const { data, colDef, newValue, oldValue } = event;
 
@@ -370,7 +370,7 @@ const DanhMucKhachHang = () => {
         },
       },
     ],
-    [nhanVienList]
+    [nhanVienList],
   );
 
   // Use shared grid config
@@ -408,65 +408,50 @@ const DanhMucKhachHang = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Danh Mục Khách Hàng
-        </h1>
-        <p className="text-gray-600 mt-2">Quản lý thông tin khách hàng</p>
-      </div>
-
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách khách hàng ({khachHangList?.length || 0})
-          </h2>
-        </div>
-
-        {khachHangList && khachHangList.length > 0 ? (
-          <div className="p-4">
-            <div
-              className="w-auto h-[60vh]"
-              tabIndex={0}
-              aria-label="Bảng khách hàng"
-            >
-              <AgGridReact
-                rowData={khachHangList}
-                columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                autoSizeStrategy={autoSizeStrategy}
-                onCellValueChanged={handleCellValueChanged}
-                {...DEFAULT_GRID_OPTIONS}
-              />
-            </div>
-            {selectedRow && (
-              <DetailModal
-                data={selectedRow}
-                title="Thông tin khách hàng"
-                onClose={() => setSelectedRow(null)}
-              />
-            )}
-            <PhieuThuModal
-              khachHangId={selectedKhachHangIdForPhieuThu}
-              isOpen={!!selectedKhachHangIdForPhieuThu}
-              onClose={() => setSelectedKhachHangIdForPhieuThu(null)}
-              year={selectedYear}
-              month={selectedMonth}
-              onYearChange={setSelectedYear}
-              onMonthChange={setSelectedMonth}
+    <div className="p-0">
+      {khachHangList && khachHangList.length > 0 ? (
+        <div className="">
+          <div
+            className="w-auto h-[100vh]"
+            tabIndex={0}
+            aria-label="Bảng khách hàng"
+          >
+            <AgGridReact
+              rowData={khachHangList}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              autoSizeStrategy={autoSizeStrategy}
+              onCellValueChanged={handleCellValueChanged}
+              {...DEFAULT_GRID_OPTIONS}
             />
           </div>
-        ) : (
-          <div className="px-6 py-8 text-center">
-            <div className="text-gray-500 text-lg">
-              Không có dữ liệu khách hàng
-            </div>
-            <p className="text-gray-400 mt-2">
-              Chưa có khách hàng nào được thêm vào hệ thống
-            </p>
+          {selectedRow && (
+            <DetailModal
+              data={selectedRow}
+              title="Thông tin khách hàng"
+              onClose={() => setSelectedRow(null)}
+            />
+          )}
+          <PhieuThuModal
+            khachHangId={selectedKhachHangIdForPhieuThu}
+            isOpen={!!selectedKhachHangIdForPhieuThu}
+            onClose={() => setSelectedKhachHangIdForPhieuThu(null)}
+            year={selectedYear}
+            month={selectedMonth}
+            onYearChange={setSelectedYear}
+            onMonthChange={setSelectedMonth}
+          />
+        </div>
+      ) : (
+        <div className="px-6 py-8 text-center">
+          <div className="text-gray-500 text-lg">
+            Không có dữ liệu khách hàng
           </div>
-        )}
-      </div>
+          <p className="text-gray-400 mt-2">
+            Chưa có khách hàng nào được thêm vào hệ thống
+          </p>
+        </div>
+      )}
     </div>
   );
 };
