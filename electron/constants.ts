@@ -116,7 +116,7 @@ process.env.DATABASE_URL = dbUrl;
 export { loadDatabaseConfig };
 
 // This needs to be updated every time you create a migration!
-export const latestMigration = "20260302085347_init";
+export const latestMigration = "20260302105909_init";
 export const platformToExecutables: any = {
   win32: {
     migrationEngine: "node_modules/@prisma/engines/schema-engine-windows.exe",

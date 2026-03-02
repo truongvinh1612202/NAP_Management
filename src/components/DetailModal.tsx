@@ -1,5 +1,4 @@
 import { useRef, useEffect } from "react";
-
 import { formatCurrencyVND } from "@/utils/helper";
 
 interface DetailModalProps {
@@ -11,65 +10,30 @@ interface DetailModalProps {
 
 // Map field keys to Vietnamese labels
 const FIELD_LABELS: Record<string, string> = {
-  tenKhachHang: "Tên Khách Hàng",
-  maSoThue: "Mã Số Thuế",
-  diaChi: "Địa chỉ",
-  phiDichVu: "Phí Dịch Vụ",
-  kyKhaiThue: "Kỳ Khai Thuế",
-  kyNhanCT: "Kỳ Nhận CT",
-  dienThoai: "Điện thoại",
-  email: "Email",
-  nganhKD: "Ngành Kinh Doanh",
-  cqtQuanLy: "CQT Quản Lý",
-  trangThai: "Trạng Thái",
-  giamDoc: "Giám Đốc",
-  nhanVienDVKH: "Nhân Viên DVKH",
-  nhanVienLapSo: "Nhân Viên Lập Sổ",
-  trangThaiHoatDong: "Trạng Thái Hoạt Động",
-  nhanVienDVKHId: "ID Nhân Viên DVKH",
-  nhanVienLapSoId: "ID Nhân Viên Lập Sổ",
-  nhanVienNSLId: "ID Nhân Viên NSL",
-  nhanVienNSL: "Nhân Viên NSL",
   id: "ID",
-  // nhanvien
-  maSoNhanVien: "Mã Số Nhân Viên",
-  tenNhanVien: "Tên Nhân Viên",
-  namSinh: "Năm Sinh",
-  thuongTru: "Thường Trú",
-  userDangNhap: "User Đăng Nhập",
-  // congviec
-  ten: "Tên",
-  moTa: "Mô Tả",
+  // Company
+  companyName: "Tên Công Ty",
+  taxId: "Mã Số Thuế",
+  serviceFee: "Phí Dịch Vụ",
+  // Employee
+  fullName: "Họ Tên",
+  // CompanyEmployee
+  role: "Vai Trò",
+  companyId: "ID Công Ty",
+  employeeId: "ID Nhân Viên",
+  // Payment
+  month: "Tháng",
+  year: "Năm",
+  note: "Ghi Chú",
 };
 
-const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
-  if (!value) return <>-</>;
-  let className = "";
-  switch (value) {
-    case "Đang hoạt động":
-    case "Đang cung cấp dịch vụ":
-      className = "bg-green-100 text-green-800";
-      break;
-    case "Ngưng cung cấp dịch vụ":
-    case "Pending":
-      className = "bg-yellow-100 text-yellow-800";
-      break;
-    case "Không hoạt động":
-    case "Inactive":
-      className = "bg-red-100 text-red-800";
-      break;
-    default:
-      className = "bg-gray-100 text-gray-800";
-  }
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}>
-      {value}
-    </span>
-  );
+const ROLE_LABELS: Record<string, string> = {
+  LAP_SO: "Lập Sổ",
+  NHAP_SO_LIEU: "Nhập Số Liệu",
+  DICH_VU_KH: "Dịch Vụ Khách Hàng",
 };
 
-const currencyFields = ["phiDichVu"];
-const statusFields = ["trangThai", "trangThaiHoatDong"];
+const currencyFields = ["serviceFee"];
 
 const DetailModal: React.FC<DetailModalProps> = ({
   data,
@@ -79,10 +43,8 @@ const DetailModal: React.FC<DetailModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
-  const lastFocusableRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    // Focus the first button when modal opens
     firstFocusableRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -91,7 +53,7 @@ const DetailModal: React.FC<DetailModalProps> = ({
       // Focus trap
       if (e.key === "Tab" && modalRef.current) {
         const focusableEls = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
         const firstEl = focusableEls[0];
         const lastEl = focusableEls[focusableEls.length - 1];
@@ -113,9 +75,14 @@ const DetailModal: React.FC<DetailModalProps> = ({
   }, [onClose]);
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  const renderValue = (key: string, value: any): React.ReactNode => {
+    if (value === null || value === undefined) return "-";
+    if (currencyFields.includes(key)) return formatCurrencyVND(value);
+    if (key === "role") return ROLE_LABELS[value] ?? value;
+    return String(value);
   };
 
   return (
@@ -134,52 +101,31 @@ const DetailModal: React.FC<DetailModalProps> = ({
         <h3 className="text-xl font-bold mb-4 text-gray-900">{title}</h3>
 
         {isLoading ? (
-          // Show loading state
           <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-            <div className="text-gray-600 text-lg mb-2">
-              Đang tải dữ liệu...
-            </div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4" />
+            <div className="text-gray-600 text-lg mb-2">Đang tải dữ liệu...</div>
             <p className="text-gray-500">Vui lòng chờ trong giây lát</p>
           </div>
         ) : data === undefined || data === null ? (
-          // Show error message when data is undefined (query failed) or null (no record found)
           <div className="text-center py-8">
-            <div className="text-red-500 text-lg mb-2">
-              ⚠️ Không tìm thấy dữ liệu
-            </div>
+            <div className="text-red-500 text-lg mb-2">⚠️ Không tìm thấy dữ liệu</div>
             <p className="text-gray-600 mb-4">
-              ID tham chiếu không hợp lệ hoặc bản ghi không tồn tại trong hệ
-              thống.
+              ID tham chiếu không hợp lệ hoặc bản ghi không tồn tại trong hệ thống.
             </p>
           </div>
-        ) : data && Object.keys(data).length > 0 ? (
-          // Show data when available and not empty
+        ) : Object.keys(data).length > 0 ? (
           <div className="space-y-2">
             {Object.entries(data).map(([key, value]) => (
               <div key={key} className="text-gray-800">
-                <span className="font-semibold">
-                  {FIELD_LABELS[key] || key}:
-                </span>{" "}
-                {statusFields.includes(key) ? (
-                  <StatusBadge value={value} />
-                ) : currencyFields.includes(key) ? (
-                  formatCurrencyVND(value)
-                ) : (
-                  String(value)
-                )}
+                <span className="font-semibold">{FIELD_LABELS[key] ?? key}:</span>{" "}
+                {renderValue(key, value)}
               </div>
             ))}
           </div>
         ) : (
-          // Fallback for empty data object
           <div className="text-center py-8">
-            <div className="text-red-500 text-lg mb-2">
-              ⚠️ Không tìm thấy dữ liệu
-            </div>
-            <p className="text-gray-600">
-              Bản ghi tồn tại nhưng không có thông tin chi tiết.
-            </p>
+            <div className="text-red-500 text-lg mb-2">⚠️ Không tìm thấy dữ liệu</div>
+            <p className="text-gray-600">Bản ghi tồn tại nhưng không có thông tin chi tiết.</p>
           </div>
         )}
 

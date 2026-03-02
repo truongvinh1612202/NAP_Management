@@ -4,92 +4,62 @@ import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { DanhMucNhanVien } from "../../generated/client";
+import type { Employee, CompanyEmployee, Company } from "../../generated/client";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
+import { CELL_RENDERERS } from "../utils/gridConfig";
+
+type EmployeeWithAssignments = Employee & {
+  companyAssignments: (CompanyEmployee & { company: Company })[];
+};
 
 interface NhanVienKhachHangModalProps {
-  nhanVien: DanhMucNhanVien | null;
+  employee: EmployeeWithAssignments | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-type ResponsibilityType = "DVKH" | "LAPSO" | "NSL";
+type RoleType = "DICH_VU_KH" | "LAP_SO" | "NHAP_SO_LIEU";
 
-const RESPONSIBILITY_LABELS: Record<ResponsibilityType, string> = {
-  DVKH: "Dịch Vụ Khách Hàng",
-  LAPSO: "Lập Sổ",
-  NSL: "Nhập Số Liệu",
+const ROLE_LABELS: Record<RoleType, string> = {
+  DICH_VU_KH: "Dịch Vụ Khách Hàng",
+  LAP_SO: "Lập Sổ",
+  NHAP_SO_LIEU: "Nhập Số Liệu",
 };
 
 const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
-  nhanVien,
+  employee,
   isOpen,
   onClose,
 }) => {
-  const [selectedResponsibility, setSelectedResponsibility] =
-    useState<ResponsibilityType>("DVKH");
+  const [selectedRole, setSelectedRole] = useState<RoleType>("DICH_VU_KH");
 
-  // Fetch customers for each responsibility type
-  const { data: khachHangDVKH, isLoading: isLoadingDVKH } = useQuery({
-    ...trpc.khachHangByNhanVien.queryOptions({
-      nhanVienId: nhanVien?.id || 0,
-      nhanVienType: "DVKH",
+  // Single query for all assignments of this employee
+  const { data: allAssignments, isLoading } = useQuery({
+    ...trpc.companyEmployees.queryOptions({
+      employeeId: employee?.id ?? 0,
     }),
-    enabled: !!nhanVien?.id && isOpen,
+    enabled: !!employee?.id && isOpen,
   });
 
-  const { data: khachHangLAPSO, isLoading: isLoadingLAPSO } = useQuery({
-    ...trpc.khachHangByNhanVien.queryOptions({
-      nhanVienId: nhanVien?.id || 0,
-      nhanVienType: "LAPSO",
+  // Split by role client-side
+  const byRole = useMemo<Record<RoleType, (CompanyEmployee & { company: Company; employee: Employee })[]>>(
+    () => ({
+      DICH_VU_KH: allAssignments?.filter((a) => a.role === "DICH_VU_KH") ?? [],
+      LAP_SO: allAssignments?.filter((a) => a.role === "LAP_SO") ?? [],
+      NHAP_SO_LIEU: allAssignments?.filter((a) => a.role === "NHAP_SO_LIEU") ?? [],
     }),
-    enabled: !!nhanVien?.id && isOpen,
-  });
+    [allAssignments],
+  );
 
-  const { data: khachHangNSL, isLoading: isLoadingNSL } = useQuery({
-    ...trpc.khachHangByNhanVien.queryOptions({
-      nhanVienId: nhanVien?.id || 0,
-      nhanVienType: "NSL",
-    }),
-    enabled: !!nhanVien?.id && isOpen,
-  });
+  const currentData = byRole[selectedRole];
 
-  // Get current data based on selected responsibility
-  const currentData = useMemo(() => {
-    switch (selectedResponsibility) {
-      case "DVKH":
-        return khachHangDVKH || [];
-      case "LAPSO":
-        return khachHangLAPSO || [];
-      case "NSL":
-        return khachHangNSL || [];
-      default:
-        return [];
-    }
-  }, [selectedResponsibility, khachHangDVKH, khachHangLAPSO, khachHangNSL]);
-
-  // Get current loading state
-  const isLoading = useMemo(() => {
-    switch (selectedResponsibility) {
-      case "DVKH":
-        return isLoadingDVKH;
-      case "LAPSO":
-        return isLoadingLAPSO;
-      case "NSL":
-        return isLoadingNSL;
-      default:
-        return false;
-    }
-  }, [selectedResponsibility, isLoadingDVKH, isLoadingLAPSO, isLoadingNSL]);
-
-  // Get counts for each responsibility type
   const counts = useMemo(
     () => ({
-      DVKH: khachHangDVKH?.length || 0,
-      LAPSO: khachHangLAPSO?.length || 0,
-      NSL: khachHangNSL?.length || 0,
+      DICH_VU_KH: byRole.DICH_VU_KH.length,
+      LAP_SO: byRole.LAP_SO.length,
+      NHAP_SO_LIEU: byRole.NHAP_SO_LIEU.length,
     }),
-    [khachHangDVKH, khachHangLAPSO, khachHangNSL]
+    [byRole],
   );
 
   const columnDefs: ColDef[] = useMemo(
@@ -99,154 +69,89 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
         headerName: "ID",
         sortable: true,
         filter: "agNumberColumnFilter",
+        width: 80,
       },
       {
-        field: "tenKhachHang",
-        headerName: "Tên Khách Hàng",
+        headerName: "Tên Công Ty",
         sortable: true,
         filter: "agTextColumnFilter",
         flex: 2,
+        valueGetter: (params: any) => params.data?.company?.companyName ?? "-",
         cellRenderer: (params: any) => params.value || "-",
       },
       {
-        field: "maSoThue",
         headerName: "Mã Số Thuế",
         sortable: true,
         filter: "agTextColumnFilter",
         flex: 1,
+        valueGetter: (params: any) => params.data?.company?.taxId ?? "-",
         cellRenderer: (params: any) => params.value || "-",
       },
       {
-        field: "dienThoai",
-        headerName: "Điện Thoại",
+        headerName: "Phí Dịch Vụ",
         sortable: true,
-        filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => params.value || "-",
-      },
-      {
-        field: "nganhKD",
-        headerName: "Ngành KD",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        flex: 1,
-        cellRenderer: (params: any) => params.value || "-",
-      },
-      {
-        field: "trangThai",
-        headerName: "Trạng Thái",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        cellRenderer: (params: any) => {
-          if (!params.value) return "-";
-          let className = "";
-          switch (params.value) {
-            case "Đang hoạt động":
-            case "Đang cung cấp dịch vụ":
-              className = "bg-green-100 text-green-800";
-              break;
-            case "Ngưng cung cấp dịch vụ":
-            case "Pending":
-              className = "bg-yellow-100 text-yellow-800";
-              break;
-            case "Không hoạt động":
-            case "Inactive":
-              className = "bg-red-100 text-red-800";
-              break;
-            default:
-              className = "bg-gray-100 text-gray-800";
-          }
-          return (
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}
-            >
-              {params.value}
-            </span>
-          );
-        },
+        filter: "agNumberColumnFilter",
+        valueGetter: (params: any) => params.data?.company?.serviceFee ?? null,
+        cellRenderer: CELL_RENDERERS.currency,
       },
     ],
-    []
+    [],
   );
 
   const defaultColDef = useMemo(
-    () => ({
-      resizable: true,
-      sortable: true,
-      filter: true,
-    }),
-    []
+    () => ({ resizable: true, sortable: true, filter: true }),
+    [],
   );
+
   const autoSizeStrategy = useMemo(
     () => ({
       type: "fitCellContents" as const,
       defaultMaxWidth: 500,
       defaultMinWidth: 30,
     }),
-    []
+    [],
   );
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-4xl flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              Nhân Viên Phụ Trách - {nhanVien?.tenNhanVien}
+              Công Ty Phụ Trách — {employee?.fullName}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Mã NV: {nhanVien?.maSoNhanVien}
-            </p>
           </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Đóng modal"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Responsibility Type Selector */}
+        {/* Role Selector */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-sm font-medium text-gray-700">
-              Loại trách nhiệm:
-            </span>
-
-            {(Object.keys(RESPONSIBILITY_LABELS) as ResponsibilityType[]).map(
-              (type) => {
-                const isSelected = type === selectedResponsibility;
-                const count = counts[type];
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setSelectedResponsibility(type)}
-                    className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
-                      isSelected
-                        ? "bg-blue-500 text-white border-blue-500"
-                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {RESPONSIBILITY_LABELS[type]} ({count})
-                  </button>
-                );
-              }
-            )}
+            <span className="text-sm font-medium text-gray-700">Vai trò:</span>
+            {(Object.keys(ROLE_LABELS) as RoleType[]).map((role) => (
+              <button
+                key={role}
+                onClick={() => setSelectedRole(role)}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+                  selectedRole === role
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {ROLE_LABELS[role]} ({counts[role]})
+              </button>
+            ))}
           </div>
         </div>
 
@@ -255,24 +160,20 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-                <div className="text-lg text-gray-600">
-                  Đang tải danh sách khách hàng...
-                </div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4" />
+                <div className="text-lg text-gray-600">Đang tải dữ liệu...</div>
               </div>
             </div>
           ) : currentData.length > 0 ? (
             <div className="w-full h-full">
-              <div className="mb-4">
-                <h3 className="text-lg font-medium text-gray-800">
-                  {RESPONSIBILITY_LABELS[selectedResponsibility]} -{" "}
-                  {currentData.length} khách hàng
+              <div className="mb-3">
+                <h3 className="text-base font-medium text-gray-800">
+                  {ROLE_LABELS[selectedRole]} — {currentData.length} công ty
                 </h3>
               </div>
-              <div className="w-full h-[calc(100%-3rem)]">
+              <div className="w-full h-[calc(100%-2.5rem)]">
                 <AgGridReact
                   rowData={currentData}
-                  cellSelection={true}
                   columnDefs={columnDefs}
                   defaultColDef={defaultColDef}
                   pagination={true}
@@ -291,12 +192,10 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
             <div className="flex justify-center items-center h-full">
               <div className="text-center">
                 <div className="text-gray-500 text-lg mb-2">
-                  Không có khách hàng trong{" "}
-                  {RESPONSIBILITY_LABELS[selectedResponsibility]}
+                  Không có công ty trong {ROLE_LABELS[selectedRole]}
                 </div>
                 <p className="text-gray-400">
-                  Nhân viên này chưa được phân công khách hàng nào cho loại
-                  trách nhiệm này
+                  Nhân viên này chưa được phân công công ty nào cho vai trò này
                 </p>
               </div>
             </div>

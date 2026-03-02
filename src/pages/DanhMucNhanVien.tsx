@@ -4,144 +4,104 @@ import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { DanhMucNhanVien } from "../../generated/client";
-import { createDateColumnConfig } from "@/utils/dateColumnConfig";
+import type { Employee, CompanyEmployee, Company } from "../../generated/client";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
 import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
+// Employee with nested company assignments from the `employees` query
+type EmployeeWithAssignments = Employee & {
+  companyAssignments: (CompanyEmployee & {
+    company: Company;
+  })[];
+};
+
 interface CellRendererParams {
-  data: DanhMucNhanVien;
-  value?: string | number | Date;
+  data: EmployeeWithAssignments;
+  value?: string | number;
 }
 
 const DanhMucNhanVien = () => {
   const {
-    data: nhanVienList,
+    data: employeeList,
     isLoading,
     error,
-  } = useQuery(trpc.danhMucNhanVien.queryOptions());
+  } = useQuery(trpc.employees.queryOptions());
 
-  // Define mutation for updating nhân viên
-  const updateNhanVien = useMutation(trpc.updateNhanVien.mutationOptions());
+  const updateEmployee = useMutation(trpc.updateEmployee.mutationOptions());
+
+  const [selectedEmployeeForModal, setSelectedEmployeeForModal] =
+    useState<EmployeeWithAssignments | null>(null);
 
   const handleCellValueChanged = async (
-    event: CellValueChangedEvent<DanhMucNhanVien>
+    event: CellValueChangedEvent<EmployeeWithAssignments>,
   ) => {
     const { data, colDef, newValue, oldValue } = event;
+    if (newValue === oldValue) return;
 
-    let valuesAreDifferent = false;
-
-    // Handle date field comparison properly
-    if (newValue instanceof Date && oldValue instanceof Date) {
-      // Safely convert to Date objects
-      const newDate = newValue ? new Date(newValue) : null;
-      const oldDate = oldValue ? new Date(oldValue) : null;
-
-      // Compare using getTime() for accurate date comparison
-      const newTime = newDate?.getTime();
-      const oldTime = oldDate?.getTime();
-
-      // Handle NaN cases (invalid dates)
-      valuesAreDifferent =
-        newTime !== oldTime && !isNaN(newTime || 0) && !isNaN(oldTime || 0);
-    } else {
-      // For non-date fields, use regular comparison
-      valuesAreDifferent = newValue !== oldValue;
-    }
-
-    // Only update if value actually changed
-    if (valuesAreDifferent) {
-      const fieldName = colDef.field as keyof DanhMucNhanVien;
-      await updateNhanVien.mutateAsync({
-        id: data.id,
-        data: {
-          [fieldName]: data[fieldName],
-        },
-      });
-    }
+    const field = colDef.field as keyof Employee;
+    await updateEmployee.mutateAsync({
+      id: data.id,
+      data: { [field]: data[field] },
+    });
   };
 
-  const [selectedNhanVienForKhachHang, setSelectedNhanVienForKhachHang] =
-    useState<DanhMucNhanVien | null>(null);
-
-  // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef<DanhMucNhanVien>[] = useMemo(
+  const columnDefs: ColDef<EmployeeWithAssignments>[] = useMemo(
     () => [
       {
-        headerName: "Chi tiết NV",
+        headerName: "Công Ty Phụ Trách",
         cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
               className="w-full h-5 px-0 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none flex items-center justify-center"
               tabIndex={0}
-              aria-label={`Xem khách hàng phụ trách của ${params.data.tenNhanVien}`}
-              onClick={() => setSelectedNhanVienForKhachHang(params.data)}
+              aria-label={`Xem công ty phụ trách của ${params.data.fullName}`}
+              onClick={() => setSelectedEmployeeForModal(params.data)}
             >
-              Khách Hàng
+              Công Ty
             </button>
           </div>
         ),
         suppressHeaderMenuButton: true,
         sortable: false,
         filter: false,
-        maxWidth: 120,
+        maxWidth: 130,
         pinned: "right",
       },
       {
         field: "id",
         headerName: "ID",
         sortable: true,
+        width: 80,
         filter: "agNumberColumnFilter",
       },
       {
-        field: "maSoNhanVien",
-        headerName: "Mã Số NV",
+        field: "fullName",
+        headerName: "Họ Tên",
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
-        field: "tenNhanVien",
-        headerName: "Tên Nhân Viên",
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      createDateColumnConfig<DanhMucNhanVien>("namSinh", "Năm Sinh"),
-      {
-        field: "dienThoai",
-        headerName: "Điện Thoại",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      {
-        field: "thuongTru",
-        headerName: "Thường Trú",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      {
-        field: "userDangNhap",
-        headerName: "User Đăng Nhập",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
+        headerName: "Số Công Ty",
+        sortable: false,
+        filter: "agNumberColumnFilter",
+        valueGetter: (params) =>
+          params.data?.companyAssignments?.length ?? 0,
+        cellRenderer: (params: { value: number }) =>
+          params.value > 0 ? (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {params.value}
+            </span>
+          ) : (
+            <span className="text-gray-400">0</span>
+          ),
       },
     ],
-    []
+    [],
   );
 
-  // Use shared grid config
-  const defaultColDef = DEFAULT_COL_DEF;
-
-  // Early return for loading state
   if (isLoading) {
     return (
       <LoadingState
@@ -152,14 +112,11 @@ const DanhMucNhanVien = () => {
     );
   }
 
-  // Early return for error state
   if (error) {
     return (
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Danh Mục Nhân Viên
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Danh Mục Nhân Viên</h1>
           <p className="text-gray-600 mt-2">Quản lý thông tin nhân viên</p>
         </div>
         <div className="flex justify-center items-center h-64">
@@ -181,25 +138,25 @@ const DanhMucNhanVien = () => {
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách nhân viên ({nhanVienList?.length || 0})
+            Danh sách nhân viên ({employeeList?.length ?? 0})
           </h2>
         </div>
 
-        {nhanVienList && nhanVienList.length > 0 ? (
+        {employeeList && employeeList.length > 0 ? (
           <div className="p-4">
             <div className="w-full h-[60vh]">
               <AgGridReact
-                rowData={nhanVienList}
+                rowData={employeeList}
                 columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
+                defaultColDef={DEFAULT_COL_DEF}
                 onCellValueChanged={handleCellValueChanged}
                 {...DEFAULT_GRID_OPTIONS}
               />
             </div>
             <NhanVienKhachHangModal
-              nhanVien={selectedNhanVienForKhachHang}
-              isOpen={!!selectedNhanVienForKhachHang}
-              onClose={() => setSelectedNhanVienForKhachHang(null)}
+              employee={selectedEmployeeForModal}
+              isOpen={!!selectedEmployeeForModal}
+              onClose={() => setSelectedEmployeeForModal(null)}
             />
           </div>
         ) : (

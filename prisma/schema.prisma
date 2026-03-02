@@ -9,242 +9,49 @@ generator client {
   binaryTargets = ["native", "darwin", "darwin-arm64"]
 }
 
-model ChiPhiCongViec {
-  id           Int     @id @map("Id")
-  tenKhachHang String? @map("TenKhachHang")
-  congViecId   Int?    @map("CongViec_Id")
-  tenCongViec  String? @map("Tencongviec")
-  chiPhi       Float?  @map("chiphi")
-  moTa         String? @map("Mota")
-  khId         String? @map("kh_Id")
+model Employee {
+  id       Int    @id @default(autoincrement())
+  fullName String
 
-  @@map("chiphicongviec")
+  companyAssignments CompanyEmployee[]
 }
 
-model DanhMucCongViec {
-  id   Int     @id @map("Id")
-  ten  String  @map("Ten")
-  moTa String? @map("MoTa")
+model Company {
+  id          Int    @id @default(autoincrement())
+  companyName String
+  taxId       String @unique
+  serviceFee  Float?
 
-  @@map("danhmuccongviec")
+  employeeAssignments CompanyEmployee[]
+  payments            Payment[]
 }
 
-model DanhMucKhachHang {
-  id                Int        @id @map("Id")
-  tenKhachHang      String     @map("TenKhachHang")
-  maSoThue          String     @map("MaSoThue")
-  diaChi            String?    @map("DiaChi")
-  phiDichVu         Float?     @map("PhiDichVu")
-  kyKhaiThue        String?    @map("KyKhaiThue")
-  kyNhanCT          String?    @map("KyNhanCT")
-  dienThoai         String?    @map("DienThoai")
-  email             String?    @map("Email")
-  nganhKD           String?    @map("NganhKD")
-  cqtQuanLy         String?    @map("CQTquanLy")
-  trangThai         String?    @map("TrangThai")
-  giamDoc           String?    @map("GiamDoc")
-  nhanVienDVKH      String?    @map("NhanVienDVKH")
-  nhanVienLapSo     String?    @map("NhanVienLapSo")
-  trangThaiHoatDong String?    @map("TrangThaiHoatDong")
-  nhanVienDVKHId    Int?       @map("NhanVienDVKH_Id")
-  nhanVienLapSoId   Int?       @map("NhanVienLapSo_Id")
-  nhanVienNSLId     Int?       @map("NhanVienNSL_Id")
-  nhanVienNSL       String?    @map("NhanVienNSL")
-  phieuThu          PhieuThu[]
-
-  @@map("danhmuckhachhang")
+enum EmployeeRole {
+  LAP_SO
+  NHAP_SO_LIEU
+  DICH_VU_KH
 }
 
-model DanhMucNhanVien {
-  id           Int        @id @default(autoincrement()) @map("Id")
-  maSoNhanVien String     @map("MaSoNhanVien")
-  tenNhanVien  String?    @map("TenNhanVien")
-  namSinh      DateTime?  @map("NamSinh")
-  dienThoai    String?    @map("DienThoai")
-  thuongTru    String?    @map("ThuongTru")
-  userDangNhap String?    @map("UserDangNhap")
-  phieuThu     PhieuThu[]
+model CompanyEmployee {
+  id         Int          @id @default(autoincrement())
+  companyId  Int
+  employeeId Int
+  role       EmployeeRole
 
-  @@map("danhmucnhanvien")
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, employeeId, role])
 }
 
-model DichVuKhachHang {
-  id          Int       @id @default(autoincrement()) @map("Id")
-  nhanVienId  Int       @map("NhanVienId")
-  khachHangId Int       @map("KhachHangId")
-  ngayBanGiao DateTime? @map("NgayBanGiao")
+model Payment {
+  id        Int     @id @default(autoincrement())
+  companyId Int
+  month     Int
+  year      Int
+  note      String?
 
-  @@map("dichvukhachhang")
-}
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-model DsQlcNam {
-  id          Int     @id @map("Id")
-  nam         Int     @map("nam")
-  stt         Int     @map("stt")
-  nhanVienId  Int     @map("NhanvienId")
-  tenNhanVien String? @map("TenNhanvien")
-
-  @@map("ds_qlcnam")
-}
-
-model DsQltNam {
-  id             Int     @id @map("Id")
-  nam            Int     @map("Nam")
-  stt            Int     @map("Stt")
-  khachHangId    Int     @map("KhachHangId")
-  tenKhachHang   String  @map("TenKhachHang")
-  phiDV          Float?  @map("PhiDV")
-  ghiChu         String? @map("GhiChu")
-  dauKy          Float?  @map("DauKy")
-  khaiThue       String? @map("KhaiThue")
-  nhanHS         String? @map("NhanHS")
-  nhanVienDVKHId Int?    @map("NhanVienDVKH_Id")
-  nhanVienNSLId  Int?    @map("NhanVienNSL_Id")
-  nhanVienLSId   Int?    @map("NhanVienLS_Id")
-  phiQLKH        Float?  @map("PhiQLKH")
-  phiNSL         Float?  @map("PhiNSL")
-  phiLSo         Float?  @map("PhiLSo")
-  ngungDV        Int?    @default(0) @map("NgungDV")
-
-  @@map("ds_qltnam")
-}
-
-model KyDuLieu {
-  id       Int        @id @map("Id")
-  noiDung  String     @map("NoiDung")
-  tuNgay   DateTime?  @map("TuNgay")
-  denNgay  DateTime?  @map("DenNgay")
-  tonQuy   Float?     @map("TonQuy")
-  lockdata Int?       @map("lockdata")
-  phieuThu PhieuThu[]
-
-  @@map("kydulieu")
-}
-
-model NghiemThuCongViec {
-  id          Int       @id @map("Id")
-  noiDung     String?   @map("Noidung")
-  khachHangId Int?      @map("KhachhangId")
-  nhanVienId  Int?      @map("NhanvienId")
-  congViecId  Int?      @map("CongviecId")
-  khachHang   String?   @map("Khachhang")
-  nhanVien    String?   @map("Nhanvien")
-  congViec    String?   @map("Congviec")
-  ngay        DateTime? @map("Ngay")
-  soTien      Float?    @map("Sotien")
-  kyDuLieu    String?   @map("Kydulieu")
-
-  @@map("nghiemthucongviec")
-}
-
-model NoiDungChi {
-  id      Int    @id @map("Id")
-  noiDung String @map("NoiDung")
-
-  @@map("noidungchi")
-}
-
-model NoiDungThu {
-  id      Int    @id @map("Id")
-  noiDung String @map("NoiDung")
-
-  @@map("noidungthu")
-}
-
-model PhaiThu {
-  id           Int       @id @default(autoincrement()) @map("Id")
-  kyKeToanId   Int       @map("KyKeToanId")
-  khachHangId  Int       @map("KhachHangId")
-  nhanVienId   Int       @map("NhanVienId")
-  soTien       Float     @map("SoTien")
-  noiDung      String?   @map("NoiDung")
-  tenNhanVien  String?   @map("TenNhanVien")
-  tenKhachHang String?   @map("TenKhachHang")
-  ngayCT       DateTime? @map("NgayCT")
-  ghiChu       String?   @map("Ghichu")
-  nguoiLap     String?   @map("NguoiLap")
-  maSoThue     String?   @map("MaSoThue")
-
-  @@map("phaithu")
-}
-
-model PhieuChi {
-  id           Int       @id @default(autoincrement()) @map("Id")
-  kyDuLieuId   Int?      @map("KyDuLieuId")
-  userId       Int?      @map("UserId")
-  nhanVienId   Int       @map("NhanVienId")
-  noiDung      String?   @map("NoiDung")
-  nhomChi      String?   @map("NhomChi")
-  ngayChi      DateTime? @map("NgayChi")
-  soCT         String?   @map("SoCT")
-  soTien       Float?    @default(0) @map("SoTien")
-  thuQuy       String?   @map("ThuQuy")
-  tenKhachHang String?   @map("TenKhachHang")
-  tenNhanVien  String?   @map("TenNhanVien")
-  quyenSo      Int?      @map("QuyenSo")
-  thuQuyId     Int?      @map("ThuQuyid")
-
-  @@map("phieuchi")
-}
-
-model PhieuChi1 {
-  id           Int       @id @default(autoincrement()) @map("Id")
-  kyDuLieuId   Int?      @map("KyDuLieuId")
-  userId       Int?      @map("UserId")
-  nhanVienId   Int       @map("NhanVienId")
-  noiDung      String?   @map("NoiDung")
-  nhomChi      String?   @map("NhomChi")
-  ngayChi      DateTime? @map("NgayChi")
-  soCT         String?   @map("SoCT")
-  soTien       Float?    @default(0) @map("SoTien")
-  thuQuy       String?   @map("ThuQuy")
-  tenKhachHang String?   @map("TenKhachHang")
-  tenNhanVien  String?   @map("TenNhanVien")
-  quyenSo      Int?      @map("QuyenSo")
-  thuQuyId     Int?      @map("ThuQuyid")
-
-  @@map("phieuchi1")
-}
-
-model PhieuThu {
-  id               Int              @id @default(autoincrement()) @map("Id")
-  kyDuLieuId       Int              @map("KyDuLieuId")
-  khachHangId      Int              @map("KhachHangId")
-  nhanVienId       Int              @map("NhanVienId")
-  noiDung          String?          @map("NoiDung")
-  nhomDoanhThu     String?          @map("NhomDoanhThu")
-  ngayThu          DateTime?        @map("NgayThu")
-  soCT             String?          @map("SoCT")
-  soTien           Float?           @default(0) @map("SoTien")
-  thuQuy           String?          @map("ThuQuy")
-  tenKhachHang     String?          @map("TenKhachHang")
-  tenNhanVien      String?          @map("TenNhanVien")
-  quyenSo          Int?             @map("QuyenSo")
-  thuQuyId         Int?             @map("ThuQuyId")
-  danhMucKhachHang DanhMucKhachHang @relation(fields: [khachHangId], references: [id], onUpdate: NoAction)
-  danhMucNhanVien  DanhMucNhanVien  @relation(fields: [nhanVienId], references: [id], onUpdate: NoAction)
-  kyDuLieu         KyDuLieu         @relation(fields: [kyDuLieuId], references: [id], onUpdate: NoAction)
-
-  @@map("phieuthu")
-}
-
-model QuanLyPhiDichVu {
-  id          Int       @id @default(autoincrement()) @map("Id")
-  khachHangId Int       @map("KhachHangId")
-  phiDichVu   Float?    @map("PhiDichVu")
-  ngayHieuLuc DateTime? @map("NgayHieuLuc")
-  ghiChu      String?   @map("GhiChu")
-
-  @@map("quanlyphidichvu")
-}
-
-model SysDiagrams {
-  name        String @map("name")
-  principalId Int    @map("principal_id")
-  diagramId   Int    @id @default(autoincrement()) @map("diagram_id")
-  version     Int?
-  definition  Bytes?
-
-  @@unique([principalId, name])
-  @@map("sysdiagrams")
+  @@unique([companyId, month, year])
 }
