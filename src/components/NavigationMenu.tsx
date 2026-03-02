@@ -170,25 +170,6 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           </span>
           {!isCollapsed && <span>Cài Đặt Database</span>}
         </button>
-        <button
-          className={`flex items-center w-full transition-colors mb-2 text-base font-medium hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none ${
-            isCollapsed ? "justify-center py-3 px-0" : "px-5 py-3"
-          }`}
-          tabIndex={0}
-          aria-label="Logout"
-          onClick={() => {
-            sessionStorage.removeItem("isAuthenticated");
-            window.location.href = "/";
-          }}
-          style={{ outline: "none", border: "none" }}
-        >
-          <span
-            className={`flex-shrink-0 flex items-center ${!isCollapsed && "mr-3"}`}
-          >
-            <LogOut size={18} />
-          </span>
-          {!isCollapsed && <span>Đăng Xuất</span>}
-        </button>
       </div>
     </nav>
   );

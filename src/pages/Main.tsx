@@ -14,17 +14,8 @@ import type { DatabaseConfig } from "../../electron/api";
 import PhieuThuNew from "./PhieuThuNew";
 
 const Main = () => {
-  const navigate = useNavigate();
   const [activeView, setActiveView] = useState("khachhang");
   const [isDatabaseConfigOpen, setIsDatabaseConfigOpen] = useState(false);
-
-  // Check if user is authenticated
-  useEffect(() => {
-    const isAuthenticated = sessionStorage.getItem("isAuthenticated");
-    if (!isAuthenticated) {
-      navigate("/");
-    }
-  }, [navigate]);
 
   // Handle navigation menu item clicks
   const handleMenuItemClick = (itemId: string) => {
