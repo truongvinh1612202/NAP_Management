@@ -11,6 +11,8 @@ import {
   CreditCard,
   Database,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 
 interface NavigationItem {
@@ -25,6 +27,7 @@ interface NavigationMenuProps {
 }
 
 const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [menuItems, setMenuItems] = useState<NavigationItem[]>([
     {
       id: "khachhang",
@@ -87,7 +90,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       prevItems.map((item) => ({
         ...item,
         active: item.id === id,
-      }))
+      })),
     );
     // Call the parent's callback if provided
     if (onItemClick) {
@@ -96,9 +99,28 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
   };
 
   return (
-    <nav className="h-full bg-white text-gray-800 w-64 min-w-64 flex-shrink-0 relative border-r border-gray-200">
-      <div className="p-5 border-b border-gray-200 bg-gray-50">
-        <h1 className="text-xl font-bold text-gray-700">Quản Lý Dữ Liệu NAP</h1>
+    <nav
+      className={`h-full bg-white text-gray-800 flex-shrink-0 relative border-r border-gray-200 transition-all duration-300 ${
+        isCollapsed ? "w-12 min-w-12" : "w-64 min-w-64"
+      }`}
+    >
+      <div className="border-b border-gray-200 bg-gray-50">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={`flex items-center w-full transition-colors text-base font-medium hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none ${
+            isCollapsed ? "justify-center py-3 px-0" : "px-5 py-3"
+          }`}
+          tabIndex={0}
+          aria-label={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          style={{ outline: "none", border: "none" }}
+        >
+          <span
+            className={`flex-shrink-0 flex items-center ${!isCollapsed && "mr-3"}`}
+          >
+            {isCollapsed ? <Menu size={18} /> : <X size={18} />}
+          </span>
+          {!isCollapsed && <span>Quản Lý Dữ Liệu NAP</span>}
+        </button>
       </div>
       <div className="py-4">
         <div>
@@ -106,28 +128,32 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
             <button
               key={item.id}
               onClick={() => handleMenuItemClick(item.id)}
-              className={`flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium ${
+              className={`flex items-center w-full transition-colors mb-2 text-base font-medium ${
                 item.active
                   ? "bg-gray-200 text-gray-900"
                   : "hover:bg-gray-100 hover:text-gray-900 text-gray-700"
+              } ${
+                isCollapsed ? "justify-center py-3 px-0" : "px-5 py-3"
               } border-none rounded-none`}
               tabIndex={0}
               aria-label={item.label}
               style={{ outline: "none", border: "none" }}
             >
-              <span className="mr-3 flex-shrink-0 flex items-center">
+              <span
+                className={`flex-shrink-0 flex items-center ${!isCollapsed && "mr-3"}`}
+              >
                 {item.icon}
               </span>
-              <span>{item.label}</span>
+              {!isCollapsed && <span>{item.label}</span>}
             </button>
           ))}
         </div>
       </div>
       <div className="py-4 border-t border-gray-200">
         <button
-          className="flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium
-            hover:bg-gray-100 hover:text-gray-900 text-gray-700
-            border-none rounded-none"
+          className={`flex items-center w-full transition-colors mb-2 text-base font-medium hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none ${
+            isCollapsed ? "justify-center py-3 px-0" : "px-5 py-3"
+          }`}
           tabIndex={0}
           aria-label="Database Settings"
           onClick={() => {
@@ -135,27 +161,33 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
               onItemClick("database-config");
             }
           }}
+          style={{ outline: "none", border: "none" }}
         >
-          <span className="mr-3 flex-shrink-0 flex items-center">
+          <span
+            className={`flex-shrink-0 flex items-center ${!isCollapsed && "mr-3"}`}
+          >
             <Database size={18} />
           </span>
-          <span>Cài Đặt Database</span>
+          {!isCollapsed && <span>Cài Đặt Database</span>}
         </button>
         <button
-          className="flex items-center w-full px-5 py-3 transition-colors mb-2 text-base font-medium
-            hover:bg-gray-100 hover:text-gray-900 text-gray-700
-            border-none rounded-none"
+          className={`flex items-center w-full transition-colors mb-2 text-base font-medium hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none ${
+            isCollapsed ? "justify-center py-3 px-0" : "px-5 py-3"
+          }`}
           tabIndex={0}
           aria-label="Logout"
           onClick={() => {
             sessionStorage.removeItem("isAuthenticated");
             window.location.href = "/";
           }}
+          style={{ outline: "none", border: "none" }}
         >
-          <span className="mr-3 flex-shrink-0 flex items-center">
+          <span
+            className={`flex-shrink-0 flex items-center ${!isCollapsed && "mr-3"}`}
+          >
             <LogOut size={18} />
           </span>
-          <span>Đăng Xuất</span>
+          {!isCollapsed && <span>Đăng Xuất</span>}
         </button>
       </div>
     </nav>

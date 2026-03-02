@@ -6,6 +6,7 @@ import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { DanhMucKhachHang } from "../../generated/client";
 import { useState } from "react";
+import { Search, Plus } from "lucide-react";
 import DetailModal from "../components/DetailModal";
 import PhieuThuModal from "../components/PhieuThuModal";
 import {
@@ -42,11 +43,12 @@ const DanhMucKhachHang = () => {
   const [selectedKhachHangIdForPhieuThu, setSelectedKhachHangIdForPhieuThu] =
     useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear()
+    new Date().getFullYear(),
   );
   const [selectedMonth, setSelectedMonth] = useState<number>(
-    new Date().getMonth() + 1
+    new Date().getMonth() + 1,
   );
+  const [searchText, setSearchText] = useState<string>("");
 
   // Query PhieuThu data for the selected customer to find latest
   const { data: phieuThuForLatest } = useQuery({
@@ -98,7 +100,7 @@ const DanhMucKhachHang = () => {
   }, [selectedKhachHangIdForPhieuThu, latestPhieuThuData]);
 
   const handleCellValueChanged = async (
-    event: CellValueChangedEvent<DanhMucKhachHang>
+    event: CellValueChangedEvent<DanhMucKhachHang>,
   ) => {
     const { data, colDef, newValue, oldValue } = event;
 
@@ -370,7 +372,7 @@ const DanhMucKhachHang = () => {
         },
       },
     ],
-    [nhanVienList]
+    [nhanVienList],
   );
 
   // Use shared grid config
@@ -408,65 +410,79 @@ const DanhMucKhachHang = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Danh Mục Khách Hàng
-        </h1>
-        <p className="text-gray-600 mt-2">Quản lý thông tin khách hàng</p>
-      </div>
-
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Danh sách khách hàng ({khachHangList?.length || 0})
-          </h2>
-        </div>
-
-        {khachHangList && khachHangList.length > 0 ? (
-          <div className="p-4">
-            <div
-              className="w-auto h-[60vh]"
-              tabIndex={0}
-              aria-label="Bảng khách hàng"
-            >
-              <AgGridReact
-                rowData={khachHangList}
-                columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                autoSizeStrategy={autoSizeStrategy}
-                onCellValueChanged={handleCellValueChanged}
-                {...DEFAULT_GRID_OPTIONS}
-              />
+    <div className="p-0">
+      {khachHangList && khachHangList.length > 0 ? (
+        <>
+          <div className="py-4 px-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="relative w-96">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Search size={18} className="text-gray-700" />
+                </div>
+                <input
+                  type="text"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="Tìm kiếm khách hàng..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-600"
+                  tabIndex={0}
+                  aria-label="Tìm kiếm khách hàng"
+                />
+              </div>
+              <button
+                className="flex items-center justify-center flex-shrink-0 w-10 h-10 border border-gray-700 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors "
+                tabIndex={0}
+                aria-label="Thêm khách hàng mới"
+                onClick={() => {
+                  // Add customer functionality here
+                  console.log("Add customer clicked");
+                }}
+              >
+                <Plus size={20} className="text-gray-700" />
+              </button>
             </div>
-            {selectedRow && (
-              <DetailModal
-                data={selectedRow}
-                title="Thông tin khách hàng"
-                onClose={() => setSelectedRow(null)}
-              />
-            )}
-            <PhieuThuModal
-              khachHangId={selectedKhachHangIdForPhieuThu}
-              isOpen={!!selectedKhachHangIdForPhieuThu}
-              onClose={() => setSelectedKhachHangIdForPhieuThu(null)}
-              year={selectedYear}
-              month={selectedMonth}
-              onYearChange={setSelectedYear}
-              onMonthChange={setSelectedMonth}
+          </div>
+          <div
+            className="w-auto h-[calc(100vh-73px)]"
+            tabIndex={0}
+            aria-label="Bảng khách hàng"
+          >
+            <AgGridReact
+              rowData={khachHangList}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              autoSizeStrategy={autoSizeStrategy}
+              onCellValueChanged={handleCellValueChanged}
+              {...DEFAULT_GRID_OPTIONS}
             />
           </div>
-        ) : (
-          <div className="px-6 py-8 text-center">
-            <div className="text-gray-500 text-lg">
-              Không có dữ liệu khách hàng
-            </div>
-            <p className="text-gray-400 mt-2">
-              Chưa có khách hàng nào được thêm vào hệ thống
-            </p>
+          {selectedRow && (
+            <DetailModal
+              data={selectedRow}
+              title="Thông tin khách hàng"
+              onClose={() => setSelectedRow(null)}
+            />
+          )}
+          <PhieuThuModal
+            khachHangId={selectedKhachHangIdForPhieuThu}
+            isOpen={!!selectedKhachHangIdForPhieuThu}
+            onClose={() => setSelectedKhachHangIdForPhieuThu(null)}
+            year={selectedYear}
+            month={selectedMonth}
+            onYearChange={setSelectedYear}
+            onMonthChange={setSelectedMonth}
+          />
+        </>
+      ) : (
+        <div className="px-6 py-8 text-center">
+          <div className="text-gray-500 text-lg">
+            Không có dữ liệu khách hàng
           </div>
-        )}
-      </div>
+          <p className="text-gray-400 mt-2">
+            Chưa có khách hàng nào được thêm vào hệ thống
+          </p>
+        </div>
+      )}
     </div>
   );
 };

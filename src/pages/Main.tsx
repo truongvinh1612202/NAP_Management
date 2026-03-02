@@ -74,7 +74,7 @@ const Main = () => {
       <NavigationMenu onItemClick={handleMenuItemClick} />
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto p-8">{renderContent()}</div>
+      <div className="flex-1 overflow-auto px-3">{renderContent()}</div>
 
       {/* Database Configuration Modal */}
       <DatabaseConfigModal
