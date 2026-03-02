@@ -10,7 +10,7 @@ import type {
   Employee,
 } from "../../generated/client";
 import { Search, Plus, ChevronDown } from "lucide-react";
-import DetailModal from "../components/DetailModal";
+import CompanyDetailModal from "../components/CompanyDetailModal";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -335,7 +335,7 @@ const DanhMucKhachHang = () => {
         cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
-              className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+              className="w-full h-5 px-0 bg-gray-500 text-white rounded focus:outline-none flex items-center justify-center"
               tabIndex={0}
               aria-label={`Chi tiết ${params.data.companyName}`}
               onClick={() => setSelectedRow(params.data)}
@@ -490,14 +490,8 @@ const DanhMucKhachHang = () => {
       </div>
 
       {selectedRow && (
-        <DetailModal
-          data={{
-            id: selectedRow.id,
-            companyName: selectedRow.companyName,
-            taxId: selectedRow.taxId,
-            serviceFee: selectedRow.serviceFee,
-          }}
-          title="Thông tin công ty"
+        <CompanyDetailModal
+          companyId={selectedRow.id}
           onClose={() => setSelectedRow(null)}
         />
       )}
