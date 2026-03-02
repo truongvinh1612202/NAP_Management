@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args;
     return ipcRenderer.on(channel, (event, ...args) =>
-      listener(event, ...args)
+      listener(event, ...args),
     );
   },
   off(...args: Parameters<typeof ipcRenderer.off>) {
@@ -38,13 +38,14 @@ const api: IElectronAPI = {
     ipcRenderer.invoke("save-database-config", config),
   testDatabaseConnection: (config) =>
     ipcRenderer.invoke("test-database-connection", config),
+  selectDbFile: () => ipcRenderer.invoke("select-db-file"),
   restartApp: () => ipcRenderer.invoke("restart-app"),
 };
 contextBridge.exposeInMainWorld("appApi", api);
 
 // --------- Preload scripts loading ---------
 function domReady(
-  condition: DocumentReadyState[] = ["complete", "interactive"]
+  condition: DocumentReadyState[] = ["complete", "interactive"],
 ) {
   return new Promise((resolve) => {
     if (condition.includes(document.readyState)) {

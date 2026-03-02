@@ -10,44 +10,11 @@ log.info("QE Path", qePath);
 log.info("ME Path", mePath);
 log.info("Is Development", isDev);
 
-// Check if query engine exists
+// Verify query engine exists at startup
 if (fs.existsSync(qePath)) {
   log.info("Query engine found at:", qePath);
 } else {
   log.error("Query engine NOT found at:", qePath);
-
-  // Try to find the engine in alternative locations
-  const alternatives = [
-    path.join(
-      process.cwd(),
-      "node_modules",
-      "@prisma",
-      "engines",
-      "query_engine-windows.dll.node"
-    ),
-    path.join(
-      __dirname,
-      "..",
-      "node_modules",
-      "@prisma",
-      "engines",
-      "query_engine-windows.dll.node"
-    ),
-    path.join(
-      process.resourcesPath,
-      "node_modules",
-      "@prisma",
-      "engines",
-      "query_engine-windows.dll.node"
-    ),
-  ];
-
-  for (const alt of alternatives) {
-    if (fs.existsSync(alt)) {
-      log.info("Alternative query engine found at:", alt);
-      break;
-    }
-  }
 }
 
 export let prisma = new PrismaClient({
@@ -76,7 +43,7 @@ export let prisma = new PrismaClient({
 
 // Function to apply new database configuration
 export async function applyDatabaseConfig(
-  connectionString: string
+  connectionString: string,
 ): Promise<void> {
   try {
     // Disconnect the current client
@@ -109,13 +76,10 @@ export async function applyDatabaseConfig(
 
 // Function to test database connection with custom connection string
 export async function testDatabaseConnection(
-  connectionString: string
+  connectionString: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    log.info(
-      "Testing database connection with URL:",
-      connectionString.replace(/password=[^;]+/i, "password=***")
-    );
+    log.info("Testing database connection with URL:", connectionString);
 
     // Create a temporary Prisma client with the test connection string
     const testPrisma = new PrismaClient({
@@ -137,7 +101,7 @@ export async function testDatabaseConnection(
     await testPrisma.$connect();
     log.info("Test Prisma client connected successfully");
 
-    await testPrisma.$executeRaw`SELECT 1 as test`;
+    await testPrisma.$queryRaw`SELECT 1 as test`;
     log.info("Test query executed successfully");
 
     await testPrisma.$disconnect();
@@ -172,7 +136,7 @@ export async function runPrismaCommand({
         __dirname,
         "..",
         "..",
-        "node_modules/prisma/build/index.js"
+        "node_modules/prisma/build/index.js",
       );
       log.info("Prisma path", prismaPath);
 

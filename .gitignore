@@ -35,3 +35,4 @@ yarn.lock
 .env
 
 /generated
+/prisma/dev.db

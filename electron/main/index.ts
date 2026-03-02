@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, BrowserWindow, shell, ipcMain, dialog } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -145,70 +145,23 @@ ipcMain.handle(
   "save-database-config",
   async (event, config: DatabaseConfig) => {
     try {
-      // Save the config to file
       saveDatabaseConfig(config);
-
-      // Build connection string for the new config in sqlserver:// format
-      const {
-        server,
-        port,
-        database,
-        username,
-        password,
-        encrypt,
-        trustServerCertificate,
-      } = config;
-
-      let connectionString = `sqlserver://${server}:${port};database=${database};user=${username};password=${password}`;
-
-      if (encrypt) {
-        connectionString += ";encrypt=true";
-        if (trustServerCertificate) {
-          connectionString += ";trustServerCertificate=true";
-        }
-      } else {
-        connectionString += ";encrypt=DANGER_PLAINTEXT";
-      }
-
-      // Apply the new database configuration
-      await applyDatabaseConfig(connectionString);
-
+      const dbUrl = `file:${config.filePath}`;
+      await applyDatabaseConfig(dbUrl);
       return { success: true };
     } catch (error) {
       console.error("Failed to save and apply database config:", error);
       throw error;
     }
-  }
+  },
 );
 
 ipcMain.handle(
   "test-database-connection",
   async (event, config: DatabaseConfig) => {
     try {
-      // Build connection string for testing
-      const {
-        server,
-        port,
-        database,
-        username,
-        password,
-        encrypt,
-        trustServerCertificate,
-      } = config;
-
-      let connectionString = `sqlserver://${server}:${port};database=${database};user=${username};password=${password}`;
-
-      if (encrypt) {
-        connectionString += ";encrypt=true";
-        if (trustServerCertificate) {
-          connectionString += ";trustServerCertificate=true";
-        }
-      } else {
-        connectionString += ";encrypt=DANGER_PLAINTEXT";
-      }
-
-      // Use the helper function from prisma.ts instead of creating a new PrismaClient
-      return await testDatabaseConnection(connectionString);
+      const dbUrl = `file:${config.filePath}`;
+      return await testDatabaseConnection(dbUrl);
     } catch (error) {
       console.error("Database connection test failed:", error);
       return {
@@ -216,8 +169,20 @@ ipcMain.handle(
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
-  }
+  },
 );
+
+ipcMain.handle("select-db-file", async () => {
+  const result = await dialog.showOpenDialog({
+    title: "Chọn tệp cơ sở dữ liệu SQLite",
+    filters: [
+      { name: "SQLite Database", extensions: ["db", "sqlite", "sqlite3"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+    properties: ["openFile"],
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
 
 ipcMain.handle("restart-app", async () => {
   app.relaunch();

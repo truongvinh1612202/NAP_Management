@@ -12,13 +12,7 @@ export type IpcResponse = {
 };
 
 export interface DatabaseConfig {
-  server: string;
-  port: number;
-  database: string;
-  username: string;
-  password: string;
-  encrypt: boolean;
-  trustServerCertificate?: boolean;
+  filePath: string;
 }
 
 export interface DatabaseTestResult {
@@ -36,8 +30,9 @@ export interface IElectronAPI {
   loadDatabaseConfig: () => Promise<DatabaseConfig | null>;
   saveDatabaseConfig: (config: DatabaseConfig) => Promise<void>;
   testDatabaseConnection: (
-    config: DatabaseConfig
+    config: DatabaseConfig,
   ) => Promise<DatabaseTestResult>;
+  selectDbFile: () => Promise<string | null>;
   restartApp: () => Promise<void>;
 }
 
