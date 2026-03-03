@@ -331,6 +331,7 @@ const DanhMucKhachHang = () => {
     refetch,
   } = useQuery(trpc.companies.queryOptions());
 
+  const gridRef = useRef<AgGridReact<CompanyWithAssignments>>(null);
   const [selectedRow, setSelectedRow] = useState<CompanyWithAssignments | null>(
     null,
   );
@@ -340,6 +341,19 @@ const DanhMucKhachHang = () => {
     role: EmployeeRole;
     ids: number[];
   } | null>(null);
+
+  // Stop cell editing when clicking outside the grid rows or popup editors
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.ag-body-viewport') || target.closest('.ag-popup')) {
+        return;
+      }
+      gridRef.current?.api?.stopEditing();
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, []);
 
   const getRowId = (params: GetRowIdParams<CompanyWithAssignments>) =>
     String(params.data.id);
@@ -585,6 +599,7 @@ const DanhMucKhachHang = () => {
         aria-label="Bảng công ty"
       >
         <AgGridReact
+          ref={gridRef}
           rowData={companyList}
           columnDefs={columnDefs}
           defaultColDef={DEFAULT_COL_DEF}
