@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(wc -l:*)",
-      "Bash(/usr/local/bin/node node_modules/.bin/tsc:*)"
+      "Bash(/usr/local/bin/node node_modules/.bin/tsc:*)",
+      "Bash(npx tsc --noEmit --pretty)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
