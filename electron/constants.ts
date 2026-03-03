@@ -84,6 +84,10 @@ function getDefaultDatabaseConfig(): DatabaseConfig {
 }
 
 function getDatabaseUrl(): string {
+  if (isDev && process.env.DATABASE_URL) {
+    console.log("Using DATABASE_URL from .env:", process.env.DATABASE_URL);
+    return process.env.DATABASE_URL;
+  }
   // Check saved config first
   const savedConfig = loadDatabaseConfig();
   if (savedConfig) {
