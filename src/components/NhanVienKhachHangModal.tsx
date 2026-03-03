@@ -1,10 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { Employee, CompanyEmployee, Company } from "../../generated/client";
+import type {
+  Employee,
+  CompanyEmployee,
+  Company,
+} from "../../generated/client";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import { CELL_RENDERERS } from "../utils/gridConfig";
 
@@ -33,6 +37,15 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
 }) => {
   const [selectedRole, setSelectedRole] = useState<RoleType>("DICH_VU_KH");
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Single query for all assignments of this employee
   const { data: allAssignments, isLoading } = useQuery({
     ...trpc.companyEmployees.queryOptions({
@@ -42,11 +55,17 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
   });
 
   // Split by role client-side
-  const byRole = useMemo<Record<RoleType, (CompanyEmployee & { company: Company; employee: Employee })[]>>(
+  const byRole = useMemo<
+    Record<
+      RoleType,
+      (CompanyEmployee & { company: Company; employee: Employee })[]
+    >
+  >(
     () => ({
       DICH_VU_KH: allAssignments?.filter((a) => a.role === "DICH_VU_KH") ?? [],
       LAP_SO: allAssignments?.filter((a) => a.role === "LAP_SO") ?? [],
-      NHAP_SO_LIEU: allAssignments?.filter((a) => a.role === "NHAP_SO_LIEU") ?? [],
+      NHAP_SO_LIEU:
+        allAssignments?.filter((a) => a.role === "NHAP_SO_LIEU") ?? [],
     }),
     [allAssignments],
   );
@@ -129,8 +148,18 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Đóng modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
