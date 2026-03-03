@@ -328,7 +328,10 @@ const DanhMucKhachHang = () => {
   );
   const [searchText, setSearchText] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const pendingEmployeeSelection = useRef<{ role: EmployeeRole; ids: number[] } | null>(null);
+  const pendingEmployeeSelection = useRef<{
+    role: EmployeeRole;
+    ids: number[];
+  } | null>(null);
 
   const getRowId = (params: GetRowIdParams<CompanyWithAssignments>) =>
     String(params.data.id);
@@ -422,6 +425,7 @@ const DanhMucKhachHang = () => {
         sortable: true,
         width: 80,
         filter: "agNumberColumnFilter",
+        hide: true,
       },
       {
         field: "companyName",
@@ -430,6 +434,7 @@ const DanhMucKhachHang = () => {
         filter: "agTextColumnFilter",
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
+        pinned: "left",
       },
       {
         field: "taxId",
@@ -539,7 +544,7 @@ const DanhMucKhachHang = () => {
 
   return (
     <div className="p-0">
-      <div className="py-4 px-4 border-b border-gray-200">
+      <div className="py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="relative w-96">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -576,7 +581,6 @@ const DanhMucKhachHang = () => {
           columnDefs={columnDefs}
           defaultColDef={DEFAULT_COL_DEF}
           autoSizeStrategy={AUTO_SIZE_STRATEGY}
-          getRowId={getRowId}
           onCellValueChanged={handleCellValueChanged}
           onCellEditingStopped={handleCellEditingStopped}
           quickFilterText={searchText}

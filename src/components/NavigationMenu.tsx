@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Users,
   UserCheck,
-  CreditCard,
   Database,
   Menu,
   PanelLeftClose,
@@ -34,12 +33,6 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       icon: <UserCheck size={18} />,
       active: false,
     },
-    {
-      id: "payments",
-      label: "Thanh Toán",
-      icon: <CreditCard size={18} />,
-      active: false,
-    },
   ]);
 
   const handleMenuItemClick = (id: string) => {
@@ -56,7 +49,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
 
   return (
     <nav
-      className={`h-full bg-white text-gray-800 flex-shrink-0 relative border-r border-gray-200 ${
+      className={`h-full bg-white text-gray-800 flex-shrink-0 relative border-r border-gray-200 flex flex-col ${
         isCollapsed ? "w-12 min-w-12" : "w-64 min-w-64"
       }`}
     >
@@ -104,7 +97,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
         ))}
       </div>
 
-      <div className="py-4 border-t border-gray-200">
+      <div className="py-4 border-t border-gray-200 mt-auto">
         <button
           className={`flex items-center w-full transition-colors mb-2 text-base font-medium hover:bg-gray-100 hover:text-gray-900 text-gray-700 border-none rounded-none ${
             isCollapsed ? "justify-center py-3 px-0" : "px-5 py-3"

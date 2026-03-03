@@ -139,7 +139,7 @@ const DanhMucNhanVien = () => {
   const columnDefs: ColDef<EmployeeWithAssignments>[] = useMemo(
     () => [
       {
-        headerName: "Công Ty Phụ Trách",
+        headerName: "Phụ Trách",
         cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
@@ -164,6 +164,7 @@ const DanhMucNhanVien = () => {
         sortable: true,
         width: 80,
         filter: "agNumberColumnFilter",
+        hide: true,
       },
       {
         field: "fullName",
@@ -172,6 +173,7 @@ const DanhMucNhanVien = () => {
         filter: "agTextColumnFilter",
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
+        pinned: "left",
       },
     ],
     [],
@@ -207,7 +209,7 @@ const DanhMucNhanVien = () => {
 
   return (
     <div className="p-0">
-      <div className="py-4 px-4 border-b border-gray-200">
+      <div className="py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="relative w-96">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
