@@ -1,136 +1,343 @@
-import { useEffect, useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
-import type { DanhMucKhachHang } from "../../generated/client";
-import { useState } from "react";
-import { Search, Plus } from "lucide-react";
-import DetailModal from "../components/DetailModal";
-import PhieuThuModal from "../components/PhieuThuModal";
+import type {
+  Company,
+  CompanyEmployee,
+  Employee,
+} from "../../generated/client";
+import { Search, Plus, ChevronDown } from "lucide-react";
+import CompanyDetailModal from "../components/CompanyDetailModal";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
   AUTO_SIZE_STRATEGY,
+  CELL_RENDERERS,
 } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
-interface ValueGetterParams {
-  data?: DanhMucKhachHang;
-  value?: string;
-}
-
-interface ValueSetterParams {
-  data: DanhMucKhachHang;
-  newValue: { value: string; text: string };
-}
+// Company with nested employee assignments from the `companies` query
+type CompanyWithAssignments = Company & {
+  employeeAssignments: (CompanyEmployee & {
+    employee: Employee;
+  })[];
+};
 
 interface CellRendererParams {
-  data: DanhMucKhachHang;
-  value?: string | number | Date;
+  data: CompanyWithAssignments;
+  value?: string | number | null;
 }
 
-const DanhMucKhachHang = () => {
-  const updateKhachhHang = useMutation(trpc.updateKhachHang.mutationOptions());
-  const {
-    data: khachHangList,
-    isLoading,
-    error,
-  } = useQuery(trpc.danhMucKhachHang.queryOptions());
-  const { data: nhanVienList } = useQuery(trpc.danhMucNhanVien.queryOptions());
-  const [selectedRow, setSelectedRow] = useState<DanhMucKhachHang | null>(null);
-  const [selectedKhachHangIdForPhieuThu, setSelectedKhachHangIdForPhieuThu] =
-    useState<number | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear(),
-  );
-  const [selectedMonth, setSelectedMonth] = useState<number>(
-    new Date().getMonth() + 1,
-  );
-  const [searchText, setSearchText] = useState<string>("");
+interface AddCompanyModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
 
-  // Query PhieuThu data for the selected customer to find latest
-  const { data: phieuThuForLatest } = useQuery({
-    ...trpc.phieuThuByKhachHang.queryOptions({
-      khachHangId: selectedKhachHangIdForPhieuThu as number,
-    }),
-    enabled: !!selectedKhachHangIdForPhieuThu,
-  });
+type EmployeeRole = "DICH_VU_KH" | "LAP_SO" | "NHAP_SO_LIEU";
 
-  // Calculate latest PhieuThu year/month when customer changes
-  const latestPhieuThuData = useMemo(() => {
-    if (!phieuThuForLatest || phieuThuForLatest.length === 0) {
-      return {
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
-      };
-    }
+interface MultiSelectProps {
+  options: { id: number; label: string }[];
+  selected: number[];
+  onChange: (ids: number[]) => void;
+  placeholder: string;
+}
 
-    // Find the most recent PhieuThu
-    const latestPhieu = phieuThuForLatest
-      .filter((p) => p.ngayThu) // Only PhieuThu with valid dates
-      .sort((a, b) => {
-        const dateA = new Date(a.ngayThu!);
-        const dateB = new Date(b.ngayThu!);
-        return dateB.getTime() - dateA.getTime(); // Descending order
-      })[0];
+const MultiSelect = ({
+  options,
+  selected,
+  onChange,
+  placeholder,
+}: MultiSelectProps) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-    if (latestPhieu && latestPhieu.ngayThu) {
-      const latestDate = new Date(latestPhieu.ngayThu);
-      return {
-        year: latestDate.getFullYear(),
-        month: latestDate.getMonth() + 1,
-      };
-    }
-
-    // Fallback to current date
-    return {
-      year: new Date().getFullYear(),
-      month: new Date().getMonth() + 1,
-    };
-  }, [phieuThuForLatest]);
-
-  // Update year/month when latest data changes (only if modal is open)
   useEffect(() => {
-    if (selectedKhachHangIdForPhieuThu && phieuThuForLatest) {
-      setSelectedYear(latestPhieuThuData.year);
-      setSelectedMonth(latestPhieuThuData.month);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const toggle = (id: number) =>
+    onChange(
+      selected.includes(id)
+        ? selected.filter((i) => i !== id)
+        : [...selected, id],
+    );
+
+  const selectedLabels = options
+    .filter((o) => selected.includes(o.id))
+    .map((o) => o.label);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full box-border px-3 py-2 border border-gray-300 rounded-lg text-left text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white flex items-center justify-between gap-2"
+      >
+        <span
+          className={`truncate ${selectedLabels.length ? "text-gray-900" : "text-gray-400"}`}
+        >
+          {selectedLabels.length ? selectedLabels.join(", ") : placeholder}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`flex-shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-44 overflow-y-auto">
+          {options.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-gray-400 italic">
+              Chưa có nhân viên
+            </p>
+          ) : (
+            options.map((opt) => (
+              <label
+                key={opt.id}
+                className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(opt.id)}
+                  onChange={() => toggle(opt.id)}
+                  className="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">{opt.label}</span>
+              </label>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ROLE_LABELS: Record<EmployeeRole, string> = {
+  DICH_VU_KH: "NV Dịch Vụ KH",
+  LAP_SO: "NV Lập Sổ",
+  NHAP_SO_LIEU: "NV Nhập Số Liệu",
+};
+
+const ROLES: EmployeeRole[] = ["DICH_VU_KH", "LAP_SO", "NHAP_SO_LIEU"];
+
+const AddCompanyModal = ({ onClose, onSuccess }: AddCompanyModalProps) => {
+  const createCompany = useMutation(trpc.createCompany.mutationOptions());
+  const assignEmployee = useMutation(
+    trpc.assignEmployeeToCompany.mutationOptions(),
+  );
+  const { data: employeeList } = useQuery(trpc.employees.queryOptions());
+
+  const [form, setForm] = useState({
+    companyName: "",
+    taxId: "",
+    serviceFee: "",
+  });
+  const [assignments, setAssignments] = useState<
+    Record<EmployeeRole, number[]>
+  >({
+    DICH_VU_KH: [],
+    LAP_SO: [],
+    NHAP_SO_LIEU: [],
+  });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.companyName.trim()) {
+      setErrorMsg("Tên công ty không được để trống");
+      return;
     }
-  }, [selectedKhachHangIdForPhieuThu, latestPhieuThuData]);
+    if (!form.taxId.trim()) {
+      setErrorMsg("Mã số thuế không được để trống");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const company = await createCompany.mutateAsync({
+        companyName: form.companyName.trim(),
+        taxId: form.taxId.trim(),
+        serviceFee: form.serviceFee ? parseFloat(form.serviceFee) : null,
+      });
 
-  const handleCellValueChanged = async (
-    event: CellValueChangedEvent<DanhMucKhachHang>,
-  ) => {
-    const { data, colDef, newValue, oldValue } = event;
+      const allAssignments = ROLES.flatMap((role) =>
+        assignments[role].map((employeeId) => ({
+          companyId: company.id,
+          employeeId,
+          role,
+        })),
+      );
+      await Promise.all(
+        allAssignments.map((a) => assignEmployee.mutateAsync(a)),
+      );
 
-    // Only update if value actually changed
-    if (newValue !== oldValue) {
-      const fieldName = colDef.field as keyof DanhMucKhachHang;
-
-      try {
-        await updateKhachhHang.mutateAsync({
-          id: data.id,
-          data: {
-            [fieldName]: data[fieldName],
-          },
-        });
-      } catch (err) {
-        console.error("updateKhachhHang error:", err);
-      }
+      onSuccess();
+      onClose();
+    } catch {
+      setErrorMsg("Có lỗi xảy ra khi thêm công ty");
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  // Column definitions map directly to Prisma fields
-  const columnDefs: ColDef<DanhMucKhachHang>[] = useMemo(
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-white rounded-lg shadow-lg p-6 w-[480px] max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-xl font-bold mb-4 text-gray-900">
+          Thêm công ty mới
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tên Công Ty <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.companyName}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, companyName: e.target.value }))
+              }
+              className="border-solid w-full box-border px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 text-gray-900"
+              placeholder="Nhập tên công ty"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mã Số Thuế <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.taxId}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, taxId: e.target.value }))
+              }
+              className="border-solid w-full box-border px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 text-gray-900"
+              placeholder="Nhập mã số thuế"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phí Dịch Vụ
+            </label>
+            <input
+              type="number"
+              value={form.serviceFee}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, serviceFee: e.target.value }))
+              }
+              className="border-solid w-full box-border px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 text-gray-900"
+              placeholder="Nhập phí dịch vụ (tùy chọn)"
+              min="0"
+            />
+          </div>
+
+          <div className="border-t border-gray-200 pt-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">
+              Phân công nhân viên
+            </p>
+            {ROLES.map((role) => (
+              <div key={role}>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  {ROLE_LABELS[role]}
+                </label>
+                <MultiSelect
+                  options={(employeeList ?? []).map((e) => ({
+                    id: e.id,
+                    label: e.fullName,
+                  }))}
+                  selected={assignments[role]}
+                  onChange={(ids) =>
+                    setAssignments((prev) => ({ ...prev, [role]: ids }))
+                  }
+                  placeholder="Chọn nhân viên..."
+                />
+              </div>
+            ))}
+          </div>
+
+          {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none disabled:opacity-50"
+            >
+              {isSubmitting ? "Đang thêm..." : "Thêm"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const DanhMucKhachHang = () => {
+  const updateCompany = useMutation(trpc.updateCompany.mutationOptions());
+  const {
+    data: companyList,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(trpc.companies.queryOptions());
+
+  const [selectedRow, setSelectedRow] = useState<CompanyWithAssignments | null>(
+    null,
+  );
+  const [searchText, setSearchText] = useState<string>("");
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleCellValueChanged = async (
+    event: CellValueChangedEvent<CompanyWithAssignments>,
+  ) => {
+    const { data, colDef, newValue, oldValue } = event;
+    if (newValue === oldValue) return;
+
+    const field = colDef.field as keyof Company;
+    try {
+      await updateCompany.mutateAsync({
+        id: data.id,
+        data: { [field]: data[field] },
+      });
+    } catch (err) {
+      console.error("updateCompany error:", err);
+    }
+  };
+
+  const columnDefs: ColDef<CompanyWithAssignments>[] = useMemo(
     () => [
       {
         headerName: "Chi tiết",
         cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
-              className="w-full h-5 px-0 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none flex items-center justify-center"
+              className="w-full h-5 px-0 bg-gray-500 text-white rounded focus:outline-none flex items-center justify-center"
               tabIndex={0}
-              aria-label={`${params.data.tenKhachHang}`}
+              aria-label={`Chi tiết ${params.data.companyName}`}
               onClick={() => setSelectedRow(params.data)}
             >
               Chi tiết
@@ -140,46 +347,26 @@ const DanhMucKhachHang = () => {
         suppressHeaderMenuButton: true,
         sortable: false,
         filter: false,
-        maxWidth: 120,
-        pinned: "right",
-      },
-      {
-        headerName: "Phí dịch vụ",
-        cellRenderer: (params: CellRendererParams) => (
-          <div className="flex items-center justify-center h-full w-full">
-            <button
-              className="w-full h-5 px-0 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none flex items-center justify-center"
-              tabIndex={0}
-              aria-label={`Xem phiếu thu của ${params.data.tenKhachHang}`}
-              onClick={() => setSelectedKhachHangIdForPhieuThu(params.data.id)}
-            >
-              Phiếu Thu
-            </button>
-          </div>
-        ),
-        suppressHeaderMenuButton: true,
-        sortable: false,
-        filter: false,
-        maxWidth: 120,
+        maxWidth: 110,
         pinned: "right",
       },
       {
         field: "id",
         headerName: "ID",
         sortable: true,
-        width: 100,
+        width: 80,
         filter: "agNumberColumnFilter",
       },
       {
-        field: "tenKhachHang",
-        headerName: "Tên Khách Hàng",
+        field: "companyName",
+        headerName: "Tên Công Ty",
         sortable: true,
         filter: "agTextColumnFilter",
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
-        field: "maSoThue",
+        field: "taxId",
         headerName: "Mã Số Thuế",
         sortable: true,
         filter: "agTextColumnFilter",
@@ -187,218 +374,66 @@ const DanhMucKhachHang = () => {
         cellRenderer: (params: CellRendererParams) => params.value || "-",
       },
       {
-        field: "diaChi",
-        headerName: "Địa Chỉ",
+        field: "serviceFee",
+        headerName: "Phí Dịch Vụ",
         sortable: true,
-        filter: "agTextColumnFilter",
+        filter: "agNumberColumnFilter",
         editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
+        cellRenderer: CELL_RENDERERS.currency,
       },
       {
-        field: "dienThoai",
-        headerName: "Điện Thoại",
-        sortable: true,
+        headerName: "NV Dịch Vụ KH",
+        sortable: false,
         filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      {
-        field: "nganhKD",
-        headerName: "Ngành Kinh Doanh",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      {
-        field: "cqtQuanLy",
-        headerName: "CQT Quản Lý",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      {
-        field: "nhanVienDVKHId",
-        headerName: "Nhân Viên DVKH",
-        minWidth: 250,
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        valueGetter: (params: ValueGetterParams): string => {
-          const id = params.data?.nhanVienDVKHId ?? params.value;
-          const nv = nhanVienList?.find((nv: any) => nv.id === id);
-          return nv?.tenNhanVien ?? "-";
-        },
-        valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedID = parseInt(params.newValue.value);
-          params.data.nhanVienDVKHId = isNaN(selectedID) ? null : selectedID;
-          return true;
-        },
-        cellEditor: "agRichSelectCellEditor",
-        cellEditorParams: {
-          // Use objects with value (ID) and text (name) pairs
-          values:
-            nhanVienList?.map((nv) => ({
-              value: nv.id.toString(),
-              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
-            })) || [],
-          allowTyping: true,
-          filterList: true,
-          searchType: "matchAny",
-          formatValue: (value: { value: string; text: string }) => {
-            // Display the text part when selected
-            if (typeof value === "object" && value.text) {
-              return value.text;
-            }
-            return value?.toString() || "-";
-          },
-        },
-      },
-      {
-        field: "nhanVienLapSoId",
-        headerName: "Nhân Viên Lập Sổ",
-        minWidth: 250,
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        valueGetter: (params: ValueGetterParams): string => {
-          const id = params.data?.nhanVienLapSoId ?? params.value;
-          const nv = nhanVienList?.find((nv: any) => nv.id === id);
-          return nv?.tenNhanVien ?? "-";
-        },
-        valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedID = parseInt(params.newValue.value);
-          params.data.nhanVienLapSoId = isNaN(selectedID) ? null : selectedID;
-          return true;
-        },
-        cellEditor: "agRichSelectCellEditor",
-        cellEditorParams: {
-          // Use objects with value (ID) and text (name) pairs
-          values:
-            nhanVienList?.map((nv) => ({
-              value: nv.id.toString(),
-              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
-            })) || [],
-          allowTyping: true,
-          filterList: true,
-          searchType: "matchAny",
-          formatValue: (value: { value: string; text: string }) => {
-            // Display the text part when selected
-            if (typeof value === "object" && value.text) {
-              return value.text;
-            }
-            return value?.toString() || "-";
-          },
-        },
-      },
-      {
-        field: "nhanVienNSLId",
-        headerName: "Nhân Viên NSL",
-        minWidth: 250,
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        valueGetter: (params: ValueGetterParams): string => {
-          const id = params.data?.nhanVienNSLId ?? params.value;
-          const nv = nhanVienList?.find((nv: any) => nv.id === id);
-          return nv?.tenNhanVien ?? "-";
-        },
-        valueSetter: (params: ValueSetterParams): boolean => {
-          const selectedID = parseInt(params.newValue.value);
-          params.data.nhanVienNSLId = isNaN(selectedID) ? null : selectedID;
-          return true;
-        },
-        cellEditor: "agRichSelectCellEditor",
-        cellEditorParams: {
-          // Use objects with value (ID) and text (name) pairs
-          values:
-            nhanVienList?.map((nv) => ({
-              value: nv.id.toString(),
-              text: `${nv.tenNhanVien} (ID: ${nv.id})`,
-            })) || [],
-          allowTyping: true,
-          filterList: true,
-          searchType: "matchAny",
-          formatValue: (value: { value: string; text: string }) => {
-            // Display the text part when selected
-            if (typeof value === "object" && value.text) {
-              return value.text;
-            }
-            return value?.toString() || "-";
-          },
-        },
-      },
-      {
-        field: "trangThai",
-        headerName: "Trạng Thái",
-        sortable: true,
-        filter: "agTextColumnFilter",
-        editable: true,
-        cellRenderer: (params: CellRendererParams) => {
-          if (!params.value) return "-";
-          const value = params.value.toString();
-          let className = "";
-          switch (value) {
-            case "Đang cung cấp dịch vụ":
-              className = "bg-green-100 text-green-800";
-              break;
-            case "Ngưng cung cấp dịch vụ":
-              className = "bg-yellow-100 text-yellow-800";
-              break;
-            case "Không hoạt động":
-              className = "bg-red-100 text-red-800";
-              break;
-            default:
-              className = "bg-gray-100 text-gray-800";
-          }
-          return (
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${className}`}
-            >
-              {value}
-            </span>
+        valueGetter: (params) => {
+          const a = params.data?.employeeAssignments?.find(
+            (e) => e.role === "DICH_VU_KH",
           );
+          return a?.employee?.fullName ?? "-";
         },
-        cellEditor: "agRichSelectCellEditor",
-        cellEditorParams: {
-          values: [
-            "Đang cung cấp dịch vụ",
-            "Ngưng cung cấp dịch vụ",
-            "Không hoạt động",
-          ],
-          allowTyping: false,
-          filterList: true,
+      },
+      {
+        headerName: "NV Lập Sổ",
+        sortable: false,
+        filter: "agTextColumnFilter",
+        valueGetter: (params) => {
+          const a = params.data?.employeeAssignments?.find(
+            (e) => e.role === "LAP_SO",
+          );
+          return a?.employee?.fullName ?? "-";
+        },
+      },
+      {
+        headerName: "NV Nhập Số Liệu",
+        sortable: false,
+        filter: "agTextColumnFilter",
+        valueGetter: (params) => {
+          const a = params.data?.employeeAssignments?.find(
+            (e) => e.role === "NHAP_SO_LIEU",
+          );
+          return a?.employee?.fullName ?? "-";
         },
       },
     ],
-    [nhanVienList],
+    [],
   );
 
-  // Use shared grid config
-  const defaultColDef = DEFAULT_COL_DEF;
-  const autoSizeStrategy = AUTO_SIZE_STRATEGY;
-
-  // Early return for loading state
   if (isLoading) {
     return (
       <LoadingState
-        title="Danh Mục Khách Hàng"
-        subtitle="Quản lý thông tin khách hàng"
-        message="Đang tải danh sách khách hàng..."
+        title="Danh Mục Công Ty"
+        subtitle="Quản lý thông tin công ty"
+        message="Đang tải danh sách công ty..."
       />
     );
   }
 
-  // Early return for error state
   if (error) {
     return (
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Danh Mục Khách Hàng
-          </h1>
-          <p className="text-gray-600 mt-2">Quản lý thông tin khách hàng</p>
+          <h1 className="text-2xl font-bold text-gray-900">Danh Mục Công Ty</h1>
+          <p className="text-gray-600 mt-2">Quản lý thông tin công ty</p>
         </div>
         <div className="flex justify-center items-center h-64">
           <div className="text-red-500 text-lg">
@@ -411,77 +446,61 @@ const DanhMucKhachHang = () => {
 
   return (
     <div className="p-0">
-      {khachHangList && khachHangList.length > 0 ? (
-        <>
-          <div className="py-4 px-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="relative w-96">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Search size={18} className="text-gray-700" />
-                </div>
-                <input
-                  type="text"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="Tìm kiếm khách hàng..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-600"
-                  tabIndex={0}
-                  aria-label="Tìm kiếm khách hàng"
-                />
-              </div>
-              <button
-                className="flex items-center justify-center flex-shrink-0 w-10 h-10 border border-gray-700 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors "
-                tabIndex={0}
-                aria-label="Thêm khách hàng mới"
-                onClick={() => {
-                  // Add customer functionality here
-                  console.log("Add customer clicked");
-                }}
-              >
-                <Plus size={20} className="text-gray-700" />
-              </button>
+      <div className="py-4 px-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="relative w-96">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search size={18} className="text-gray-700" />
             </div>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Tìm kiếm công ty..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-600"
+              tabIndex={0}
+              aria-label="Tìm kiếm công ty"
+            />
           </div>
-          <div
-            className="w-auto h-[calc(100vh-73px)]"
+          <button
+            className="flex items-center justify-center flex-shrink-0 w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors"
             tabIndex={0}
-            aria-label="Bảng khách hàng"
+            aria-label="Thêm công ty mới"
+            onClick={() => setShowAddModal(true)}
           >
-            <AgGridReact
-              rowData={khachHangList}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              autoSizeStrategy={autoSizeStrategy}
-              onCellValueChanged={handleCellValueChanged}
-              {...DEFAULT_GRID_OPTIONS}
-            />
-          </div>
-          {selectedRow && (
-            <DetailModal
-              data={selectedRow}
-              title="Thông tin khách hàng"
-              onClose={() => setSelectedRow(null)}
-            />
-          )}
-          <PhieuThuModal
-            khachHangId={selectedKhachHangIdForPhieuThu}
-            isOpen={!!selectedKhachHangIdForPhieuThu}
-            onClose={() => setSelectedKhachHangIdForPhieuThu(null)}
-            year={selectedYear}
-            month={selectedMonth}
-            onYearChange={setSelectedYear}
-            onMonthChange={setSelectedMonth}
-          />
-        </>
-      ) : (
-        <div className="px-6 py-8 text-center">
-          <div className="text-gray-500 text-lg">
-            Không có dữ liệu khách hàng
-          </div>
-          <p className="text-gray-400 mt-2">
-            Chưa có khách hàng nào được thêm vào hệ thống
-          </p>
+            <Plus size={20} className="text-gray-700" />
+          </button>
         </div>
+      </div>
+
+      <div
+        className="w-auto h-[calc(100vh-73px)]"
+        tabIndex={0}
+        aria-label="Bảng công ty"
+      >
+        <AgGridReact
+          rowData={companyList}
+          columnDefs={columnDefs}
+          defaultColDef={DEFAULT_COL_DEF}
+          autoSizeStrategy={AUTO_SIZE_STRATEGY}
+          onCellValueChanged={handleCellValueChanged}
+          quickFilterText={searchText}
+          {...DEFAULT_GRID_OPTIONS}
+        />
+      </div>
+
+      {selectedRow && (
+        <CompanyDetailModal
+          companyId={selectedRow.id}
+          onClose={() => setSelectedRow(null)}
+        />
+      )}
+
+      {showAddModal && (
+        <AddCompanyModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => refetch()}
+        />
       )}
     </div>
   );

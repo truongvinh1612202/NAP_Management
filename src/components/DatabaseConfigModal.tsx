@@ -12,15 +12,7 @@ export function DatabaseConfigModal({
   onClose,
   onSave,
 }: DatabaseConfigModalProps) {
-  const [config, setConfig] = useState<DatabaseConfig>({
-    server: "192.168.0.179",
-    port: 49172,
-    database: "napQuanly",
-    username: "tqthy",
-    password: "thydeptrai",
-    encrypt: false,
-    trustServerCertificate: true,
-  });
+  const [filePath, setFilePath] = useState<string>("");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,59 +20,52 @@ export function DatabaseConfigModal({
 
   useEffect(() => {
     if (isOpen) {
-      // Load existing configuration when modal opens
       loadConfig();
     }
   }, [isOpen]);
 
   const loadConfig = async () => {
     try {
-      // You'll need to expose this via IPC in your preload script
       const existingConfig = await window.appApi.loadDatabaseConfig();
       if (existingConfig) {
-        setConfig(existingConfig);
+        setFilePath(existingConfig.filePath);
       }
-    } catch (error) {
-      console.warn("Could not load existing config:", error);
+    } catch (err) {
+      console.warn("Could not load existing config:", err);
     }
   };
 
-  const handleInputChange = (
-    field: keyof DatabaseConfig,
-    value: string | number | boolean
-  ) => {
-    setConfig((prev) => ({ ...prev, [field]: value }));
-    setError(null);
-    setTestResult(null);
+  const handleBrowse = async () => {
+    const selected = await window.appApi.selectDbFile();
+    if (selected) {
+      setFilePath(selected);
+      setError(null);
+      setTestResult(null);
+    }
   };
 
   const testConnection = async () => {
+    if (!filePath.trim()) {
+      setError("Vui lòng nhập đường dẫn tệp cơ sở dữ liệu");
+      return;
+    }
     setIsLoading(true);
     setError(null);
     setTestResult(null);
-
     try {
-      console.log("Testing connection with config:", config);
-      const result = await window.appApi.testDatabaseConnection(config);
-      console.log("Connection test result:", result);
-
+      const result = await window.appApi.testDatabaseConnection({
+        filePath: filePath.trim(),
+      });
       if (result && result.success) {
         setTestResult("✅ Kết nối thành công!");
-      } else if (result && result.success === false) {
-        setError(
-          `❌ Kết nối thất bại: ${result.error || "Lỗi không xác định"}`
-        );
       } else {
         setError(
-          "❌ Kiểm tra kết nối thất bại: Phản hồi không hợp lệ từ máy chủ"
+          `❌ Kết nối thất bại: ${result?.error || "Lỗi không xác định"}`,
         );
       }
-    } catch (error) {
-      console.error("Connection test error:", error);
+    } catch (err) {
       setError(
-        `❌ Kiểm tra kết nối thất bại: ${
-          error instanceof Error ? error.message : "Lỗi không xác định"
-        }`
+        `❌ Kiểm tra kết nối thất bại: ${err instanceof Error ? err.message : "Lỗi không xác định"}`,
       );
     } finally {
       setIsLoading(false);
@@ -88,27 +73,24 @@ export function DatabaseConfigModal({
   };
 
   const handleSave = async () => {
-    if (!config.password) {
-      setError("Vui lòng kiểm tra mật khẩu");
+    if (!filePath.trim()) {
+      setError("Vui lòng nhập đường dẫn tệp cơ sở dữ liệu");
       return;
     }
-
     setIsLoading(true);
     setError(null);
     setTestResult(null);
-
     try {
+      const config: DatabaseConfig = { filePath: filePath.trim() };
       await window.appApi.saveDatabaseConfig(config);
       setTestResult("✅ Cấu hình đã được lưu và áp dụng thành công!");
       setTimeout(() => {
         onSave(config);
         onClose();
-      }, 1500); // Close modal after showing success message
-    } catch (error) {
+      }, 1500);
+    } catch (err) {
       setError(
-        `Failed to save configuration: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Không thể lưu cấu hình: ${err instanceof Error ? err.message : "Lỗi không xác định"}`,
       );
     } finally {
       setIsLoading(false);
@@ -119,106 +101,39 @@ export function DatabaseConfigModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
         <h2 className="text-xl font-bold mb-4 text-gray-900">
-          Cấu hình Database
+          Cấu hình Database (SQLite)
         </h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Máy chủ
+              Đường dẫn tệp cơ sở dữ liệu
             </label>
-            <input
-              type="text"
-              value={config.server}
-              onChange={(e) => handleInputChange("server", e.target.value)}
-              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
-              placeholder="localhost or server IP"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cổng
-            </label>
-            <input
-              type="number"
-              value={config.port}
-              onChange={(e) =>
-                handleInputChange("port", parseInt(e.target.value) || 1433)
-              }
-              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
-              placeholder="1433"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tên Cơ Sở Dữ Liệu
-            </label>
-            <input
-              type="text"
-              value={config.database}
-              onChange={(e) => handleInputChange("database", e.target.value)}
-              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
-              placeholder="NAP_Management"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tên Đăng Nhập
-            </label>
-            <input
-              type="text"
-              value={config.username}
-              onChange={(e) => handleInputChange("username", e.target.value)}
-              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
-              placeholder="SA"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mật Khẩu
-            </label>
-            <input
-              type="password"
-              value={config.password}
-              onChange={(e) => handleInputChange("password", e.target.value)}
-              className="w-full box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700"
-              placeholder="Enter password"
-            />
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <label className="flex items-center">
+            <div className="flex gap-2">
               <input
-                type="checkbox"
-                checked={config.encrypt}
-                onChange={(e) => handleInputChange("encrypt", e.target.checked)}
-                className="mr-2 appearance-none border-2 border-solid border-gray-400 rounded-sm w-4 h-4 bg-white shadow-none outline-none focus:ring-0"
+                type="text"
+                value={filePath}
+                onChange={(e) => {
+                  setFilePath(e.target.value);
+                  setError(null);
+                  setTestResult(null);
+                }}
+                className="flex-1 box-border px-3 py-2 border border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-gray-700 text-sm"
+                placeholder="/path/to/nap-management.db"
               />
-              <span className="text-sm text-gray-700">Mã hóa kết nối</span>
-            </label>
-
-            {config.encrypt && (
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={config.trustServerCertificate || false}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "trustServerCertificate",
-                      e.target.checked
-                    )
-                  }
-                  className="mr-2 appearance-none border-2 border-solid border-gray-400 rounded-sm w-4 h-4 bg-white shadow-none outline-none focus:ring-0"
-                />
-                <span className="text-sm text-gray-700">Kiểm tra kết nối</span>
-              </label>
-            )}
+              <button
+                onClick={handleBrowse}
+                disabled={isLoading}
+                className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-400 rounded-md hover:bg-gray-200 disabled:opacity-50 text-sm whitespace-nowrap"
+              >
+                Chọn tệp...
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Nếu tệp chưa tồn tại, nó sẽ được tạo tự động khi lưu.
+            </p>
           </div>
 
           {error && (
@@ -236,10 +151,10 @@ export function DatabaseConfigModal({
           <div className="flex space-x-2">
             <button
               onClick={testConnection}
-              disabled={isLoading}
+              disabled={isLoading || !filePath.trim()}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Testing..." : "Kiểm tra Kết Nối"}
+              {isLoading ? "Đang kiểm tra..." : "Kiểm tra Kết Nối"}
             </button>
           </div>
 
@@ -252,7 +167,7 @@ export function DatabaseConfigModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || !filePath.trim()}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "..." : "Lưu cấu hình"}
@@ -262,8 +177,9 @@ export function DatabaseConfigModal({
 
         <div className="mt-4 text-xs text-gray-500">
           <p>
-            <strong>Lưu ý:</strong> Cấu hình cơ sở dữ liệu mới sẽ được áp dụng
-            mà không cần khởi động lại ứng dụng
+            <strong>Lưu ý:</strong> Để sao lưu dữ liệu, hãy đặt tệp .db trong
+            thư mục được đồng bộ (Google Drive, OneDrive...) hoặc sao chép thủ
+            công.
           </p>
         </div>
       </div>

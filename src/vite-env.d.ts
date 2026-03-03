@@ -8,17 +8,18 @@ interface Window {
   ipcRenderer: import("electron").IpcRenderer;
   appApi: {
     trpc: (
-      req: import("../electron/api").IpcRequest
+      req: import("../electron/api").IpcRequest,
     ) => Promise<import("../electron/api").IpcResponse>;
     loadDatabaseConfig: () => Promise<
       import("../electron/api").DatabaseConfig | null
     >;
     saveDatabaseConfig: (
-      config: import("../electron/api").DatabaseConfig
+      config: import("../electron/api").DatabaseConfig,
     ) => Promise<void>;
     testDatabaseConnection: (
-      config: import("../electron/api").DatabaseConfig
+      config: import("../electron/api").DatabaseConfig,
     ) => Promise<import("../electron/api").DatabaseTestResult>;
+    selectDbFile: () => Promise<string | null>;
     restartApp: () => Promise<void>;
   };
 }

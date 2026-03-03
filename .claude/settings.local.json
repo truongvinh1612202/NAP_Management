@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l:*)",
+      "Bash(/usr/local/bin/node node_modules/.bin/tsc:*)"
+    ]
+  }
+}

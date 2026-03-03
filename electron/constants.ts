@@ -31,15 +31,9 @@ if (isDev) {
   }
 }
 
-// Database configuration with multiple fallback options
+// Database configuration
 export interface DatabaseConfig {
-  server: string;
-  port: number;
-  database: string;
-  username: string;
-  password: string;
-  encrypt: boolean;
-  trustServerCertificate?: boolean;
+  filePath: string;
 }
 
 function getConfigFilePath(): string {
@@ -79,82 +73,38 @@ export function saveDatabaseConfig(config: DatabaseConfig): void {
   }
 }
 
-function buildConnectionString(config: DatabaseConfig): string {
-  const {
-    server,
-    port,
-    database,
-    username,
-    password,
-    encrypt,
-    trustServerCertificate,
-  } = config;
-
-  let connectionString = `sqlserver://${server}:${port};database=${database};user=${username};password=${password}`;
-
-  if (encrypt) {
-    connectionString += ";encrypt=true";
-    if (trustServerCertificate) {
-      connectionString += ";trustServerCertificate=true";
-    }
-  } else {
-    connectionString += ";encrypt=DANGER_PLAINTEXT";
-  }
-
-  return connectionString;
+function buildDatabaseUrl(config: DatabaseConfig): string {
+  return `file:${config.filePath}`;
 }
 
 function getDefaultDatabaseConfig(): DatabaseConfig {
-  // Platform-specific defaults
-  const isWindows = process.platform === "win32";
-
   return {
-    server: "localhost",
-    port: 1433,
-    database: isWindows ? "NAP_Management" : "MyDatabase",
-    username: "SA",
-    password: "MyStrongPass123",
-    encrypt: false, // Set to true for production
-    trustServerCertificate: true,
+    filePath: path.join(app.getPath("userData"), "nap-management.db"),
   };
 }
 
 function getDatabaseUrl(): string {
-  // Priority order:
-  // 1. Environment variable (highest priority)
-  // 2. Config file in user data directory
-  // 3. Default configuration (lowest priority)
-
-  // Check environment variable first
-  // if (process.env.DATABASE_URL) {
-  //   console.log("Using DATABASE_URL from environment variable");
-  //   return process.env.DATABASE_URL;
-  // }
-
-  // Check config file
+  // Check saved config first
   const savedConfig = loadDatabaseConfig();
   if (savedConfig) {
-    console.log("Using DATABASE_URL from config file");
-    return buildConnectionString(savedConfig);
+    console.log("Using database from config file:", savedConfig.filePath);
+    return buildDatabaseUrl(savedConfig);
   }
 
-  // Use default configuration
+  // Fall back to default (SQLite file in Electron userData)
   const defaultConfig = getDefaultDatabaseConfig();
-  console.log("Using default DATABASE_URL configuration");
+  console.log("Using default database path:", defaultConfig.filePath);
 
-  // Save default config for user to modify if needed
+  // Persist default so user can see/change it later
   if (!isDev) {
     try {
       saveDatabaseConfig(defaultConfig);
-      console.log(
-        `Default database configuration saved to: ${getConfigFilePath()}`
-      );
     } catch (error) {
       console.warn("Could not save default database configuration:", error);
     }
   }
 
-  return buildConnectionString(defaultConfig);
+  return buildDatabaseUrl(defaultConfig);
 }
 
 export const dbUrl = getDatabaseUrl();
@@ -163,10 +113,10 @@ export const dbUrl = getDatabaseUrl();
 process.env.DATABASE_URL = dbUrl;
 
 // Export utility functions for UI configuration
-export { loadDatabaseConfig, getConfigFilePath };
+export { loadDatabaseConfig };
 
 // This needs to be updated every time you create a migration!
-export const latestMigration = "01_init";
+export const latestMigration = "20260302105909_init";
 export const platformToExecutables: any = {
   win32: {
     migrationEngine: "node_modules/@prisma/engines/schema-engine-windows.exe",
@@ -206,12 +156,21 @@ const platformName = getPlatformName();
 
 export const mePath = path.join(
   extraResourcesPath,
-  platformToExecutables[platformName].migrationEngine
+  platformToExecutables[platformName].migrationEngine,
 );
 export const qePath = path.join(
   extraResourcesPath,
-  platformToExecutables[platformName].queryEngine
+  platformToExecutables[platformName].queryEngine,
 );
+
+// Path to prisma/schema.prisma — unpacked from asar in production
+export const schemaPath = isDev
+  ? path.join(process.cwd(), "prisma", "schema.prisma")
+  : path.join(
+      app.getAppPath().replace("app.asar", "app.asar.unpacked"),
+      "prisma",
+      "schema.prisma",
+    );
 
 export interface Migration {
   id: string;
