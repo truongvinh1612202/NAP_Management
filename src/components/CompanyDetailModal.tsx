@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { trpc } from "../utils/trpc";
 import { formatCurrencyVND } from "@/utils/helper";
 
@@ -89,11 +89,13 @@ const MonthRow = ({
 interface CompanyDetailModalProps {
   companyId: number;
   onClose: () => void;
+  onDelete?: () => void;
 }
 
 const CompanyDetailModal = ({
   companyId,
   onClose,
+  onDelete,
 }: CompanyDetailModalProps) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loadingMonths, setLoadingMonths] = useState<Set<number>>(new Set());
@@ -108,6 +110,7 @@ const CompanyDetailModal = ({
   const createPayment = useMutation(trpc.createPayment.mutationOptions());
   const deletePayment = useMutation(trpc.deletePayment.mutationOptions());
   const updatePayment = useMutation(trpc.updatePayment.mutationOptions());
+  const deleteCompany = useMutation(trpc.deleteCompany.mutationOptions());
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -163,6 +166,13 @@ const CompanyDetailModal = ({
     });
     await refetch();
   };
+
+  const handleDelete = useCallback(async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn xoá công ty này?")) return;
+    await deleteCompany.mutateAsync({ id: companyId });
+    onDelete?.();
+    onClose();
+  }, [companyId, deleteCompany, onDelete, onClose]);
 
   const employeesByRole = {
     DICH_VU_KH: (company?.employeeAssignments ?? []).filter(
@@ -266,14 +276,11 @@ const CompanyDetailModal = ({
             </div>
 
             {/* Right panel – Payment table */}
-            <div className="flex-1 p-6 flex flex-col min-h-0">
+            <div className="flex-1 pr-2 flex flex-col min-h-0 overflow-x-auto">
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div>
                   <p className="text-sm font-semibold text-gray-700">
                     Thanh Toán
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Đã thanh toán: {paidCount}/12 tháng
                   </p>
                 </div>
 
@@ -338,7 +345,15 @@ const CompanyDetailModal = ({
         )}
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end shrink-0">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2 shrink-0">
+          <button
+            onClick={handleDelete}
+            disabled={deleteCompany.isPending}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm focus:outline-none inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Trash2 size={15} />
+            {deleteCompany.isPending ? "Đang xoá..." : "Xoá"}
+          </button>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm focus:outline-none"

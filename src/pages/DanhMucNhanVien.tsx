@@ -264,6 +264,7 @@ const DanhMucNhanVien = () => {
         employee={selectedEmployeeForModal}
         isOpen={!!selectedEmployeeForModal}
         onClose={() => setSelectedEmployeeForModal(null)}
+        onDelete={() => refetch()}
       />
 
       {showAddModal && (

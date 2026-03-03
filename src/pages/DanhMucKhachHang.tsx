@@ -600,6 +600,7 @@ const DanhMucKhachHang = () => {
         <CompanyDetailModal
           companyId={selectedRow.id}
           onClose={() => setSelectedRow(null)}
+          onDelete={() => refetch()}
         />
       )}
 

@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "ag-grid-enterprise";
@@ -20,6 +20,7 @@ interface NhanVienKhachHangModalProps {
   employee: EmployeeWithAssignments | null;
   isOpen: boolean;
   onClose: () => void;
+  onDelete?: () => void;
 }
 
 type RoleType = "DICH_VU_KH" | "LAP_SO" | "NHAP_SO_LIEU";
@@ -34,8 +35,10 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
   employee,
   isOpen,
   onClose,
+  onDelete,
 }) => {
   const [selectedRole, setSelectedRole] = useState<RoleType>("DICH_VU_KH");
+  const deleteEmployee = useMutation(trpc.deleteEmployee.mutationOptions());
 
   useEffect(() => {
     if (!isOpen) return;
@@ -130,6 +133,14 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
     }),
     [],
   );
+
+  const handleDelete = useCallback(async () => {
+    if (!employee) return;
+    if (!window.confirm("Bạn có chắc chắn muốn xoá nhân viên này?")) return;
+    await deleteEmployee.mutateAsync({ id: employee.id });
+    onDelete?.();
+    onClose();
+  }, [employee, deleteEmployee, onDelete, onClose]);
 
   if (!isOpen) return null;
 
@@ -229,6 +240,23 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2 shrink-0">
+          <button
+            onClick={handleDelete}
+            disabled={deleteEmployee.isPending}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm focus:outline-none disabled:opacity-50"
+          >
+            {deleteEmployee.isPending ? "Đang xoá..." : "Xoá"}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm focus:outline-none"
+          >
+            Đóng
+          </button>
         </div>
       </div>
     </div>
