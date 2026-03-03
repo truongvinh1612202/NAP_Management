@@ -1,7 +1,11 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
-import { CellValueChangedEvent, ColDef } from "ag-grid-community";
+import {
+  CellEditingStoppedEvent,
+  CellValueChangedEvent,
+  ColDef,
+} from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type {
@@ -11,6 +15,7 @@ import type {
 } from "../../generated/client";
 import { Search, Plus, ChevronDown } from "lucide-react";
 import CompanyDetailModal from "../components/CompanyDetailModal";
+import EmployeeMultiSelectEditor from "../components/EmployeeMultiSelectEditor";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -296,8 +301,20 @@ const AddCompanyModal = ({ onClose, onSuccess }: AddCompanyModalProps) => {
   );
 };
 
+const EMPLOYEE_ROLE_HEADERS = new Set([
+  "NV Dịch Vụ KH",
+  "NV Lập Sổ",
+  "NV Nhập Số Liệu",
+]);
+
 const DanhMucKhachHang = () => {
   const updateCompany = useMutation(trpc.updateCompany.mutationOptions());
+  const assignEmployee = useMutation(
+    trpc.assignEmployeeToCompany.mutationOptions(),
+  );
+  const removeEmployee = useMutation(
+    trpc.removeEmployeeFromCompany.mutationOptions(),
+  );
   const {
     data: companyList,
     isLoading,
@@ -310,12 +327,16 @@ const DanhMucKhachHang = () => {
   );
   const [searchText, setSearchText] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const pendingEmployeeSelection = useRef<{ role: EmployeeRole; ids: number[] } | null>(null);
 
   const handleCellValueChanged = async (
     event: CellValueChangedEvent<CompanyWithAssignments>,
   ) => {
     const { data, colDef, newValue, oldValue } = event;
     if (newValue === oldValue) return;
+
+    // Skip employee columns — handled by onCellEditingStopped
+    if (EMPLOYEE_ROLE_HEADERS.has(colDef.headerName ?? "")) return;
 
     const field = colDef.field as keyof Company;
     try {
@@ -325,6 +346,47 @@ const DanhMucKhachHang = () => {
       });
     } catch (err) {
       console.error("updateCompany error:", err);
+    }
+  };
+
+  const handleCellEditingStopped = async (
+    event: CellEditingStoppedEvent<CompanyWithAssignments>,
+  ) => {
+    const { data, colDef } = event;
+    if (!data) return;
+
+    const role = (
+      colDef.cellEditorParams as { role?: EmployeeRole } | undefined
+    )?.role;
+    if (!role) return;
+    const pending = pendingEmployeeSelection.current;
+    pendingEmployeeSelection.current = null;
+    if (!pending || pending.role !== role) return;
+    const newIds = pending.ids;
+    const currentAssignments = data.employeeAssignments.filter(
+      (a) => a.role === role,
+    );
+    const currentIds = currentAssignments.map((a) => a.employeeId);
+
+    const toAdd = newIds.filter((id) => !currentIds.includes(id));
+    const toRemove = currentAssignments.filter(
+      (a) => !newIds.includes(a.employeeId),
+    );
+    try {
+      await Promise.all([
+        ...toAdd.map((employeeId) =>
+          assignEmployee.mutateAsync({
+            companyId: data.id,
+            employeeId,
+            role,
+          }),
+        ),
+        ...toRemove.map((a) => removeEmployee.mutateAsync({ id: a.id })),
+      ]);
+      await refetch();
+    } catch (err) {
+      console.error("Employee assignment error:", err);
+      await refetch();
     }
   };
 
@@ -386,10 +448,19 @@ const DanhMucKhachHang = () => {
         sortable: false,
         filter: "agTextColumnFilter",
         valueGetter: (params) => {
-          const a = params.data?.employeeAssignments?.find(
-            (e) => e.role === "DICH_VU_KH",
-          );
-          return a?.employee?.fullName ?? "-";
+          const names = params.data?.employeeAssignments
+            ?.filter((e) => e.role === "DICH_VU_KH")
+            .map((e) => e.employee.fullName);
+          return names?.length ? names.join(", ") : "-";
+        },
+        editable: true,
+        cellEditorPopup: true,
+        cellEditor: EmployeeMultiSelectEditor,
+        cellEditorParams: {
+          role: "DICH_VU_KH" as EmployeeRole,
+          onSelectionChange: (ids: number[]) => {
+            pendingEmployeeSelection.current = { role: "DICH_VU_KH", ids };
+          },
         },
       },
       {
@@ -397,10 +468,19 @@ const DanhMucKhachHang = () => {
         sortable: false,
         filter: "agTextColumnFilter",
         valueGetter: (params) => {
-          const a = params.data?.employeeAssignments?.find(
-            (e) => e.role === "LAP_SO",
-          );
-          return a?.employee?.fullName ?? "-";
+          const names = params.data?.employeeAssignments
+            ?.filter((e) => e.role === "LAP_SO")
+            .map((e) => e.employee.fullName);
+          return names?.length ? names.join(", ") : "-";
+        },
+        editable: true,
+        cellEditorPopup: true,
+        cellEditor: EmployeeMultiSelectEditor,
+        cellEditorParams: {
+          role: "LAP_SO" as EmployeeRole,
+          onSelectionChange: (ids: number[]) => {
+            pendingEmployeeSelection.current = { role: "LAP_SO", ids };
+          },
         },
       },
       {
@@ -408,10 +488,19 @@ const DanhMucKhachHang = () => {
         sortable: false,
         filter: "agTextColumnFilter",
         valueGetter: (params) => {
-          const a = params.data?.employeeAssignments?.find(
-            (e) => e.role === "NHAP_SO_LIEU",
-          );
-          return a?.employee?.fullName ?? "-";
+          const names = params.data?.employeeAssignments
+            ?.filter((e) => e.role === "NHAP_SO_LIEU")
+            .map((e) => e.employee.fullName);
+          return names?.length ? names.join(", ") : "-";
+        },
+        editable: true,
+        cellEditorPopup: true,
+        cellEditor: EmployeeMultiSelectEditor,
+        cellEditorParams: {
+          role: "NHAP_SO_LIEU" as EmployeeRole,
+          onSelectionChange: (ids: number[]) => {
+            pendingEmployeeSelection.current = { role: "NHAP_SO_LIEU", ids };
+          },
         },
       },
     ],
@@ -484,6 +573,7 @@ const DanhMucKhachHang = () => {
           defaultColDef={DEFAULT_COL_DEF}
           autoSizeStrategy={AUTO_SIZE_STRATEGY}
           onCellValueChanged={handleCellValueChanged}
+          onCellEditingStopped={handleCellEditingStopped}
           quickFilterText={searchText}
           {...DEFAULT_GRID_OPTIONS}
         />
