@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
@@ -54,6 +54,14 @@ const AddEmployeeModal = ({ onClose, onSuccess }: AddEmployeeModalProps) => {
       setErrorMsg("Có lỗi xảy ra khi thêm nhân viên");
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
