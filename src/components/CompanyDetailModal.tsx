@@ -66,18 +66,19 @@ const MonthRow = ({
         />
       </td>
       <td className="px-4 py-2">
-        {isPaid ? (
-          <input
-            type="text"
-            value={localNote}
-            onChange={(e) => setLocalNote(e.target.value)}
-            onBlur={() => onNoteBlur(localNote)}
-            placeholder="Ghi chú..."
-            className="w-full border-solid box-border text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"
-          />
-        ) : (
-          <span className="text-sm text-gray-400">—</span>
-        )}
+        <input
+          type="text"
+          value={isPaid ? localNote : ""}
+          onChange={(e) => setLocalNote(e.target.value)}
+          onBlur={() => onNoteBlur(localNote)}
+          placeholder={isPaid ? "Ghi chú..." : "—"}
+          disabled={!isPaid}
+          className={`w-full border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none ${
+            isPaid
+              ? "border-gray-200 focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"
+              : "border-transparent bg-transparent text-gray-400 placeholder-gray-400 cursor-default"
+          }`}
+        />
       </td>
     </tr>
   );
