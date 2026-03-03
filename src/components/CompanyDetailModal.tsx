@@ -62,7 +62,7 @@ const MonthRow = ({
           checked={isPaid}
           onChange={onToggle}
           disabled={isLoading}
-          className="w-4 h-4 rounded border-gray-300 text-green-500 focus:ring-green-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-4 h-4 rounded border-gray-300 bg-white text-green-500 accent-green-500 focus:ring-green-500 [color-scheme:light] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
         />
       </td>
       <td className="px-4 py-2">
