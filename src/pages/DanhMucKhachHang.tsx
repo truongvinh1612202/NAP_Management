@@ -5,6 +5,7 @@ import {
   CellEditingStoppedEvent,
   CellValueChangedEvent,
   ColDef,
+  GetRowIdParams,
 } from "ag-grid-community";
 import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
@@ -329,6 +330,9 @@ const DanhMucKhachHang = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const pendingEmployeeSelection = useRef<{ role: EmployeeRole; ids: number[] } | null>(null);
 
+  const getRowId = (params: GetRowIdParams<CompanyWithAssignments>) =>
+    String(params.data.id);
+
   const handleCellValueChanged = async (
     event: CellValueChangedEvent<CompanyWithAssignments>,
   ) => {
@@ -572,6 +576,7 @@ const DanhMucKhachHang = () => {
           columnDefs={columnDefs}
           defaultColDef={DEFAULT_COL_DEF}
           autoSizeStrategy={AUTO_SIZE_STRATEGY}
+          getRowId={getRowId}
           onCellValueChanged={handleCellValueChanged}
           onCellEditingStopped={handleCellEditingStopped}
           quickFilterText={searchText}
