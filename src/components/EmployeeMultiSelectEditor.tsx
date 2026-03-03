@@ -69,13 +69,13 @@ const EmployeeMultiSelectEditor = forwardRef(
         className="bg-white border border-gray-200 rounded-lg shadow-lg w-64 max-h-72 overflow-hidden flex flex-col"
         tabIndex={0}
       >
-        <div className="p-2 border-b border-gray-100">
+        <div className="p-2">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm nhân viên..."
-            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
+            className="border-solid box-border w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
             autoFocus
           />
         </div>
