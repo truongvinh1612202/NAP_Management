@@ -11,7 +11,11 @@ import type {
 } from "../../generated/client";
 import { Search, Plus } from "lucide-react";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
-import { DEFAULT_GRID_OPTIONS, DEFAULT_COL_DEF } from "../utils/gridConfig";
+import {
+  DEFAULT_GRID_OPTIONS,
+  DEFAULT_COL_DEF,
+  AUTO_SIZE_STRATEGY_FILL,
+} from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
 
 // Employee with nested company assignments from the `employees` query
@@ -139,19 +143,19 @@ const DanhMucNhanVien = () => {
         cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
             <button
-              className="w-full h-5 px-0 bg-purple-500 text-white rounded hover:bg-purple-600 focus:outline-none flex items-center justify-center"
+              className="w-full h-5 px-0 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none flex items-center justify-center"
               tabIndex={0}
               aria-label={`Xem công ty phụ trách của ${params.data.fullName}`}
               onClick={() => setSelectedEmployeeForModal(params.data)}
             >
-              Công Ty
+              Chi tiết
             </button>
           </div>
         ),
         suppressHeaderMenuButton: true,
         sortable: false,
         filter: false,
-        maxWidth: 130,
+        maxWidth: 180,
         pinned: "right",
       },
       {
@@ -168,20 +172,6 @@ const DanhMucNhanVien = () => {
         filter: "agTextColumnFilter",
         editable: true,
         cellRenderer: (params: CellRendererParams) => params.value || "-",
-      },
-      {
-        headerName: "Số Công Ty",
-        sortable: false,
-        filter: "agNumberColumnFilter",
-        valueGetter: (params) => params.data?.companyAssignments?.length ?? 0,
-        cellRenderer: (params: { value: number }) =>
-          params.value > 0 ? (
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {params.value}
-            </span>
-          ) : (
-            <span className="text-gray-400">0</span>
-          ),
       },
     ],
     [],
@@ -256,6 +246,7 @@ const DanhMucNhanVien = () => {
           onCellValueChanged={handleCellValueChanged}
           quickFilterText={searchText}
           {...DEFAULT_GRID_OPTIONS}
+          autoSizeStrategy={AUTO_SIZE_STRATEGY_FILL}
         />
       </div>
 
