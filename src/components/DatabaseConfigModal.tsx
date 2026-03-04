@@ -41,6 +41,7 @@ export function DatabaseConfigModal({
       setFilePath(selected);
       setError(null);
       setTestResult(null);
+      await testConnection();
     }
   };
 
@@ -57,15 +58,13 @@ export function DatabaseConfigModal({
         filePath: filePath.trim(),
       });
       if (result && result.success) {
-        setTestResult("✅ Kết nối thành công!");
+        setTestResult("Kết nối thành công!");
       } else {
-        setError(
-          `❌ Kết nối thất bại: ${result?.error || "Lỗi không xác định"}`,
-        );
+        setError(`Kết nối thất bại: ${result?.error || "Lỗi không xác định"}`);
       }
     } catch (err) {
       setError(
-        `❌ Kiểm tra kết nối thất bại: ${err instanceof Error ? err.message : "Lỗi không xác định"}`,
+        `Kiểm tra kết nối thất bại: ${err instanceof Error ? err.message : "Lỗi không xác định"}`,
       );
     } finally {
       setIsLoading(false);
@@ -83,11 +82,9 @@ export function DatabaseConfigModal({
     try {
       const config: DatabaseConfig = { filePath: filePath.trim() };
       await window.appApi.saveDatabaseConfig(config);
-      setTestResult("✅ Cấu hình đã được lưu và áp dụng thành công!");
-      setTimeout(() => {
-        onSave(config);
-        onClose();
-      }, 1500);
+      setTestResult("Cấu hình đã được lưu và áp dụng thành công!");
+      onSave(config);
+      onClose();
     } catch (err) {
       setError(
         `Không thể lưu cấu hình: ${err instanceof Error ? err.message : "Lỗi không xác định"}`,
@@ -103,13 +100,13 @@ export function DatabaseConfigModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
         <h2 className="text-xl font-bold mb-4 text-gray-900">
-          Cấu hình Database (SQLite)
+          Cấu hình cơ sở dữ liệu
         </h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Đường dẫn tệp cơ sở dữ liệu
+              Đường dẫn tệp
             </label>
             <div className="flex gap-2">
               <input
@@ -128,12 +125,9 @@ export function DatabaseConfigModal({
                 disabled={isLoading}
                 className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-400 rounded-md hover:bg-gray-200 disabled:opacity-50 text-sm whitespace-nowrap"
               >
-                Chọn tệp...
+                Chọn tệp
               </button>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Nếu tệp chưa tồn tại, nó sẽ được tạo tự động khi lưu.
-            </p>
           </div>
 
           {error && (
@@ -147,16 +141,6 @@ export function DatabaseConfigModal({
               {testResult}
             </div>
           )}
-
-          <div className="flex space-x-2">
-            <button
-              onClick={testConnection}
-              disabled={isLoading || !filePath.trim()}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Đang kiểm tra..." : "Kiểm tra Kết Nối"}
-            </button>
-          </div>
 
           <div className="flex space-x-2 pt-4 border-t">
             <button

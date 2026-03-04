@@ -1,6 +1,13 @@
 import log from "electron-log";
 import { PrismaClient } from "../generated/client/index.js";
-import { dbUrl, mePath, qePath, schemaPath, isDev } from "./constants";
+import {
+  dbUrl,
+  mePath,
+  qePath,
+  schemaPath,
+  isDev,
+  saveDatabaseConfig,
+} from "./constants";
 import path from "path";
 import { fileURLToPath } from "node:url";
 import { fork } from "child_process";
@@ -14,11 +21,11 @@ log.info("ME Path", mePath);
 log.info("Is Development", isDev);
 
 // Verify query engine exists at startup
-if (fs.existsSync(qePath)) {
-  log.info("Query engine found at:", qePath);
-} else {
-  log.error("Query engine NOT found at:", qePath);
-}
+// if (fs.existsSync(qePath)) {
+//   log.info("Query engine found at:", qePath);
+// } else {
+//   log.error("Query engine NOT found at:", qePath);
+// }
 
 export let prisma = new PrismaClient({
   log: [
@@ -129,6 +136,15 @@ export async function ensureMigrationsApplied(): Promise<void> {
       command: ["migrate", "deploy", "--schema", schemaPath],
       dbUrl,
     });
+
+    if (dbUrl.startsWith("file:")) {
+      const rawFilePath = dbUrl.replace("file:", "").split("?")[0];
+      const absoluteFilePath = path.isAbsolute(rawFilePath)
+        ? rawFilePath
+        : path.resolve(path.dirname(schemaPath), rawFilePath);
+      saveDatabaseConfig({ filePath: absoluteFilePath });
+    }
+
     log.info("Database migrations applied successfully");
   } catch (error) {
     log.error("Failed to apply database migrations:", error);
