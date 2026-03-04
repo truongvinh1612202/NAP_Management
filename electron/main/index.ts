@@ -51,6 +51,19 @@ if (!app.requestSingleInstanceLock()) {
 let win: BrowserWindow | null = null;
 const preload = path.join(__dirname, "../preload/index.mjs");
 const indexHtml = path.join(RENDERER_DIST, "index.html");
+const DEFAULT_ZOOM_FACTOR = 1;
+
+function applyDefaultZoom(targetWindow: BrowserWindow) {
+  targetWindow.webContents.setZoomFactor(DEFAULT_ZOOM_FACTOR);
+
+  const reapplyZoom = () => {
+    targetWindow.webContents.setZoomFactor(DEFAULT_ZOOM_FACTOR);
+  };
+
+  targetWindow.webContents.on("did-finish-load", reapplyZoom);
+  targetWindow.webContents.on("did-navigate", reapplyZoom);
+  targetWindow.webContents.on("did-navigate-in-page", reapplyZoom);
+}
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -67,6 +80,8 @@ async function createWindow() {
       // contextIsolation: false,
     },
   });
+
+  applyDefaultZoom(win);
 
   if (VITE_DEV_SERVER_URL) {
     // #298
@@ -205,6 +220,8 @@ ipcMain.handle("open-win", (_, arg) => {
       contextIsolation: false,
     },
   });
+
+  applyDefaultZoom(childWindow);
 
   if (VITE_DEV_SERVER_URL) {
     childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`);

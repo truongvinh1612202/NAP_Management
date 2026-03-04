@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Users,
-  UserCheck,
-  Database,
-  Menu,
-  PanelLeftClose,
-} from "lucide-react";
+import { Users, UserCheck, Database, Menu, PanelLeftClose } from "lucide-react";
 
 interface NavigationItem {
   id: string;
@@ -50,7 +44,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
   return (
     <nav
       className={`h-full bg-white text-gray-800 flex-shrink-0 relative border-r border-gray-200 flex flex-col ${
-        isCollapsed ? "w-12 min-w-12" : "w-64 min-w-64"
+        isCollapsed ? "w-12 min-w-12" : "w-48 min-w-48"
       }`}
     >
       <div className="border-b border-gray-200 bg-gray-50">
@@ -112,7 +106,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
           >
             <Database size={18} />
           </span>
-          {!isCollapsed && <span>Cài Đặt Database</span>}
+          {!isCollapsed && <span>Cài Đặt</span>}
         </button>
       </div>
     </nav>
