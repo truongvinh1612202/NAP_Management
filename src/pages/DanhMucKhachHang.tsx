@@ -346,13 +346,13 @@ const DanhMucKhachHang = () => {
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('.ag-body-viewport') || target.closest('.ag-popup')) {
+      if (target.closest(".ag-body-viewport") || target.closest(".ag-popup")) {
         return;
       }
       gridRef.current?.api?.stopEditing();
     };
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, []);
 
   const getRowId = (params: GetRowIdParams<CompanyWithAssignments>) =>
@@ -600,6 +600,7 @@ const DanhMucKhachHang = () => {
       >
         <AgGridReact
           ref={gridRef}
+          getRowId={getRowId}
           rowData={companyList}
           columnDefs={columnDefs}
           defaultColDef={DEFAULT_COL_DEF}
