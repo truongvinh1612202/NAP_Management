@@ -4,6 +4,8 @@ import { DatabaseConfigModal } from "../components/DatabaseConfigModal";
 import DanhMucKhachHang from "./DanhMucKhachHang";
 import DanhMucNhanVien from "./DanhMucNhanVien";
 import PaymentList from "./PaymentList";
+import QuanLyTienThu from "./QuanLyTienThu";
+import ThongKePhieuThu from "./ThongKePhieuThu";
 import type { DatabaseConfig } from "../../electron/api";
 
 const Main = () => {
@@ -30,6 +32,10 @@ const Main = () => {
         return <DanhMucNhanVien />;
       case "payments":
         return <PaymentList />;
+      case "tien-thu":
+        return <QuanLyTienThu />;
+      case "thong-ke-phieu":
+        return <ThongKePhieuThu />;
       default:
         return null;
     }

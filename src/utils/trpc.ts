@@ -29,6 +29,8 @@ const trpcClient = createTRPCClient<AppRouter>({
         // Since all tRPC really needs is the JSON, and we already have the JSON deserialized,
         // construct a "fake" fetch Response object
         return {
+          ok: true,
+          status: 200,
           json: () => Promise.resolve(resp.body),
         };
       },

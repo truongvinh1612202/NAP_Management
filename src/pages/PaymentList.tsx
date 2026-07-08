@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { CellValueChangedEvent, ColDef } from "ag-grid-community";
@@ -12,6 +12,8 @@ import {
   CELL_RENDERERS,
 } from "../utils/gridConfig";
 import LoadingState from "@/components/LoadingState";
+import { toast } from "@/components/Toast";
+import { formatDateVN } from "@/utils/helper";
 
 type PaymentWithCompany = Payment & { company: Company };
 
@@ -31,6 +33,36 @@ const PaymentList = () => {
   const [filterCompanyId, setFilterCompanyId] = useState<number | undefined>();
   const [filterYear, setFilterYear] = useState<number | undefined>();
   const [filterMonth, setFilterMonth] = useState<number | undefined>();
+  const [availableMonths, setAvailableMonths] = useState<number[]>([]);
+
+  // Load filter from localStorage on mount
+  useEffect(() => {
+    const savedFilter = localStorage.getItem("paymentListFilter");
+    if (savedFilter) {
+      try {
+        const { year, months, primaryMonth } = JSON.parse(savedFilter);
+        setFilterYear(year);
+        setAvailableMonths(months);
+        
+        // ƯU TIÊN THÁNG VỪA THAO TÁC:
+        // Nếu có primaryMonth (tháng vừa chạm vào ở Modal), chọn ngay tháng đó
+        if (primaryMonth !== undefined) {
+          setFilterMonth(primaryMonth);
+        } else if (months && months.length > 0) {
+          setFilterMonth(months[0]);
+        }
+      } catch (e) {
+        console.error("Failed to parse saved filter:", e);
+      }
+    }
+  }, []);
+  
+  // Keep filterMonth in sync with availableMonths if it's not set
+  useEffect(() => {
+    if (availableMonths.length > 0 && filterMonth === undefined) {
+      setFilterMonth(availableMonths[0]);
+    }
+  }, [availableMonths, filterMonth]);
 
   // "Add payment" form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -46,6 +78,15 @@ const PaymentList = () => {
       month: filterMonth,
     }),
   );
+
+  // FRONTEND SAFETY FILTER: 
+  // Đảm bảo dữ liệu hiển thị luôn đúng với tháng được chọn, 
+  // tránh việc backend trả về nhầm theo ngày thu tiền.
+  const displayData = useMemo(() => {
+    if (!paymentList) return [];
+    if (filterMonth === undefined) return paymentList;
+    return paymentList.filter(p => p.month === filterMonth);
+  }, [paymentList, filterMonth]);
 
   const { data: companyList } = useQuery(trpc.companies.queryOptions());
 
@@ -67,8 +108,10 @@ const PaymentList = () => {
         data: { [colDef.field as keyof Payment]: data[colDef.field as keyof Payment] },
       });
       await invalidate();
+      toast.success("Đã cập nhật ghi chú");
     } catch (err) {
       console.error("updatePayment error:", err);
+      toast.error("Cập nhật thất bại. Vui lòng thử lại.");
     }
   };
 
@@ -76,8 +119,10 @@ const PaymentList = () => {
     try {
       await deletePayment.mutateAsync({ id });
       await invalidate();
+      toast.success("Đã xoá thanh toán");
     } catch (err) {
       console.error("deletePayment error:", err);
+      toast.error("Xoá thất bại. Vui lòng thử lại.");
     }
   };
 
@@ -93,8 +138,10 @@ const PaymentList = () => {
       await invalidate();
       setShowAddForm(false);
       setNewNote("");
+      toast.success("Đã thêm thanh toán mới");
     } catch (err) {
       console.error("createPayment error:", err);
+      toast.error("Thêm thanh toán thất bại. Vui lòng thử lại.");
     }
   };
 
@@ -164,6 +211,17 @@ const PaymentList = () => {
         sortable: true,
         filter: "agNumberColumnFilter",
         width: 100,
+      },
+      {
+        field: "collectionDate",
+        headerName: "Thời Gian Thu Tiền",
+        sortable: true,
+        filter: false,
+        flex: 1,
+        cellRenderer: (params: CellRendererParams) => {
+          if (!params.value) return "-";
+          return formatDateVN(params.value);
+        },
       },
       {
         field: "note",
@@ -249,7 +307,7 @@ const PaymentList = () => {
           aria-label="Lọc theo tháng"
         >
           <option value="">Tất cả tháng</option>
-          {MONTHS.map((m) => (
+          {(availableMonths.length > 0 ? availableMonths : MONTHS).map((m) => (
             <option key={m} value={m}>
               Tháng {m}
             </option>
@@ -271,10 +329,13 @@ const PaymentList = () => {
         </button>
       </div>
 
+
+
+
       {/* Grid */}
       <div className="w-auto h-[calc(100vh-120px)]">
         <AgGridReact
-          rowData={paymentList ?? []}
+          rowData={displayData}
           columnDefs={columnDefs}
           defaultColDef={DEFAULT_COL_DEF}
           onCellValueChanged={handleCellValueChanged}

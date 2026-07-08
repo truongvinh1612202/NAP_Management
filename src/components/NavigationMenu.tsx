@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, UserCheck, Database, Menu, PanelLeftClose } from "lucide-react";
+import { Users, UserCheck, Database, Menu, PanelLeftClose, DollarSign, BarChart3 } from "lucide-react";
 
 interface NavigationItem {
   id: string;
@@ -25,6 +25,18 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ onItemClick }) => {
       id: "employees",
       label: "Nhân Viên",
       icon: <UserCheck size={18} />,
+      active: false,
+    },
+    {
+      id: "tien-thu",
+      label: "Quản Lý Tiền Thu",
+      icon: <DollarSign size={18} />,
+      active: false,
+    },
+    {
+      id: "thong-ke-phieu",
+      label: "Thống Kê Phiếu",
+      icon: <BarChart3 size={18} />,
       active: false,
     },
   ]);

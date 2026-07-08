@@ -36,3 +36,16 @@ yarn.lock
 
 /generated
 /prisma/dev.db
+
+# Local runtime SQLite DB (real client data — NEVER commit)
+/prisma/prisma/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Scratch / working artifacts (not part of the source)
+/Book1.xlsx
+/build_output.txt
+/e2e_output.txt
+/Screenshot*.png

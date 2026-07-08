@@ -1,5 +1,6 @@
 import { GridOptions } from "ag-grid-community";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
+import { formatDateVN } from "./helper";
 
 /**
  * Auto-sizing strategy for grids
@@ -100,11 +101,10 @@ export const CELL_RENDERERS = {
     }).format(params.value);
   },
 
-  // Date renderer
+  // Date renderer — luôn dd/mm/yyyy (chuẩn Việt)
   date: (params: any) => {
     if (!params.value) return "-";
-    console.log("Date: ", new Date(params.value).toLocaleDateString("vi-VN"));
-    return new Date(params.value).toLocaleDateString("vi-VN");
+    return formatDateVN(params.value);
   },
 
   // Year renderer

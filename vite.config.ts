@@ -43,7 +43,7 @@ export default defineConfig(({ command }) => {
                   ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
                   '../generated/client/index.js',
                 ]
-                
+
               },
             },
           },

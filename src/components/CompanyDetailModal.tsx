@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { trpc } from "../utils/trpc";
-import { formatCurrencyVND } from "@/utils/helper";
+import { formatCurrencyVND, dayKeyToNoonIso, formatDateVN } from "@/utils/helper";
+import { toast } from "@/components/Toast";
 
 const ROLE_LABELS: Record<string, string> = {
   DICH_VU_KH: "NV Dịch Vụ KH",
@@ -25,34 +26,92 @@ const MONTH_NAMES = [
   "Tháng 12",
 ];
 
+// ─── Helper Functions ────────────────────────────────────────────────────────
+
+// Convert dd/mm/yyyy to ISO date string (YYYY-MM-DD)
+function parseDateVN(dateStr: string): { iso: string | null; month: number | null } {
+  if (!dateStr.trim()) return { iso: null, month: null };
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return { iso: null, month: null };
+  
+  const [day, month, year] = parts;
+  const d = parseInt(day, 10);
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+  
+  if (isNaN(d) || isNaN(m) || isNaN(y) || m < 1 || m > 12) {
+    return { iso: null, month: null };
+  }
+  
+  const iso = `${y.toString().padStart(4, "0")}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
+  return { iso, month: m };
+}
+
 // ─── MonthRow ─────────────────────────────────────────────────────────────────
 
 interface MonthRowProps {
   monthName: string;
+  month: number;
+  year: number;
   isPaid: boolean;
   note: string;
+  amount: number | null;
+  collectionDate: Date | null;
   isLoading: boolean;
   onToggle: () => void;
   onNoteBlur: (note: string) => void;
+  onAmountBlur: (amount: string) => void;
+  onDateBlur: (day: string) => void;
 }
 
 const MonthRow = ({
   monthName,
+  month,
+  year,
   isPaid,
   note,
+  amount,
+  collectionDate,
   isLoading,
   onToggle,
   onNoteBlur,
+  onAmountBlur,
+  onDateBlur,
 }: MonthRowProps) => {
   const [localNote, setLocalNote] = useState(note);
+  const [localAmount, setLocalAmount] = useState(amount ? amount.toString() : "");
+  const [localDateInput, setLocalDateInput] = useState(
+    collectionDate
+      ? (() => {
+          const date = new Date(collectionDate);
+          const d = date.getDate().toString().padStart(2, "0");
+          const m = (date.getMonth() + 1).toString().padStart(2, "0");
+          return `${d}/${m}`;
+        })()
+      : ""
+  );
 
-  // Sync note when external data changes (year switch, refetch, etc.)
+  // Sync fields when external data changes (year switch, refetch, etc.)
   useEffect(() => {
     setLocalNote(note);
-  }, [note]);
+    setLocalAmount(amount ? amount.toString() : "");
+    setLocalDateInput(
+      collectionDate
+        ? (() => {
+            const date = new Date(collectionDate);
+            const d = date.getDate().toString().padStart(2, "0");
+            const m = (date.getMonth() + 1).toString().padStart(2, "0");
+            return `${d}/${m}`;
+          })()
+        : ""
+    );
+  }, [note, amount, collectionDate]);
+
+  // Hiển thị ngày dd/mm/yyyy (chuẩn Việt)
+  const displayDate = formatDateVN(collectionDate);
 
   return (
-    <tr className={isPaid ? "bg-green-50" : "bg-white"}>
+    <tr className={isPaid ? "bg-green-50" : "bg-white align-top"}>
       <td className="px-4 py-1.5 text-sm text-gray-800 whitespace-nowrap">
         {monthName}
       </td>
@@ -67,13 +126,52 @@ const MonthRow = ({
       </td>
       <td className="px-4 py-1.5">
         <input
-          type="text"
+          type="number"
+          value={isPaid ? localAmount : ""}
+          onChange={(e) => setLocalAmount(e.target.value)}
+          onBlur={() => onAmountBlur(localAmount)}
+          placeholder={isPaid ? "Số tiền..." : "—"}
+          disabled={!isPaid}
+          min="0"
+          step="0.01"
+          className={`w-full border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none ${
+            isPaid
+              ? "border-gray-200 focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"
+              : "border-transparent bg-transparent text-gray-400 placeholder-gray-400 cursor-default"
+          }`}
+        />
+      </td>
+      <td className="px-4 py-1.5">
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            value={isPaid ? localDateInput : ""}
+            onChange={(e) => setLocalDateInput(e.target.value)}
+            onBlur={() => onDateBlur(localDateInput)}
+            placeholder={isPaid ? "dd/mm" : "—"}
+            disabled={!isPaid}
+            className={`w-16 border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none text-center ${
+              isPaid
+                ? "border-gray-200 focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"
+                : "border-transparent bg-transparent text-gray-400 placeholder-gray-400 cursor-default"
+            }`}
+          />
+          {displayDate && (
+            <span className="text-xs text-gray-500 ml-1">
+              ({displayDate})
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-1.5 min-w-64">
+        <textarea
           value={isPaid ? localNote : ""}
           onChange={(e) => setLocalNote(e.target.value)}
           onBlur={() => onNoteBlur(localNote)}
           placeholder={isPaid ? "Ghi chú..." : "—"}
           disabled={!isPaid}
-          className={`w-full border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none ${
+          rows={3}
+          className={`w-full border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none resize-none ${
             isPaid
               ? "border-gray-200 focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"
               : "border-transparent bg-transparent text-gray-400 placeholder-gray-400 cursor-default"
@@ -131,8 +229,37 @@ const CompanyDetailModal = ({
   const getPayment = (month: number) =>
     paymentsForYear.find((p) => p.month === month) ?? null;
 
+  useEffect(() => {
+    if (!company) return;
+    
+    const paidMonths = (company.payments ?? [])
+      .filter(p => p.year === selectedYear)
+      .map(p => p.month)
+      .filter((m, index, self) => self.indexOf(m) === index)
+      .sort((a, b) => a - b);
+    
+    // Lấy tháng vừa thao tác từ localStorage nếu có, hoặc mặc định là tháng đầu tiên
+    const existingFilter = JSON.parse(localStorage.getItem("paymentListFilter") || "{}");
+    const primaryMonth = existingFilter.primaryMonth || (paidMonths.length > 0 ? paidMonths[0] : undefined);
+
+    const filterData = {
+      year: selectedYear,
+      months: paidMonths,
+      primaryMonth: primaryMonth,
+    };
+    
+    localStorage.setItem("paymentListFilter", JSON.stringify(filterData));
+  }, [selectedYear, company?.payments]);
+
+  const setPrimaryMonth = (month: number) => {
+    const saved = JSON.parse(localStorage.getItem("paymentListFilter") || "{}");
+    localStorage.setItem("paymentListFilter", JSON.stringify({ ...saved, primaryMonth: month }));
+  };
+
   const handleToggle = async (month: number) => {
+    setPrimaryMonth(month);
     setLoadingMonths((prev) => new Set(prev).add(month));
+    const wasPaid = !!getPayment(month);
     try {
       const payment = getPayment(month);
       if (payment) {
@@ -143,9 +270,18 @@ const CompanyDetailModal = ({
           month,
           year: selectedYear,
           note: null,
+          amount: company?.serviceFee ?? null,
         });
       }
       await refetch();
+      toast.success(
+        wasPaid
+          ? `Đã bỏ phiếu tháng ${month}/${selectedYear}`
+          : `Đã thêm phiếu tháng ${month}/${selectedYear}`,
+      );
+    } catch (err) {
+      console.error("toggle payment error:", err);
+      toast.error(`Thao tác tháng ${month}/${selectedYear} thất bại. Vui lòng thử lại.`);
     } finally {
       setLoadingMonths((prev) => {
         const next = new Set(prev);
@@ -160,18 +296,102 @@ const CompanyDetailModal = ({
     if (!payment) return;
     const trimmed = note.trim();
     if (trimmed === (payment.note ?? "")) return;
-    await updatePayment.mutateAsync({
-      id: payment.id,
-      data: { note: trimmed || null },
-    });
-    await refetch();
+    try {
+      await updatePayment.mutateAsync({
+        id: payment.id,
+        data: { note: trimmed || null },
+      });
+      await refetch();
+      toast.success(`Đã cập nhật ghi chú tháng ${month}`);
+    } catch (err) {
+      console.error("updatePayment note error:", err);
+      toast.error(`Cập nhật ghi chú tháng ${month} thất bại. Vui lòng thử lại.`);
+    }
+  };
+
+  const handleAmountBlur = async (month: number, amountStr: string) => {
+    const payment = getPayment(month);
+    if (!payment) return;
+    const amount = amountStr.trim() ? parseFloat(amountStr) : null;
+    if (amount === payment.amount) return;
+    try {
+      await updatePayment.mutateAsync({
+        id: payment.id,
+        data: { amount },
+      });
+      await refetch();
+      toast.success(`Đã cập nhật số tiền tháng ${month}`);
+    } catch (err) {
+      console.error("updatePayment amount error:", err);
+      toast.error(`Cập nhật số tiền tháng ${month} thất bại. Vui lòng thử lại.`);
+    }
+  };
+
+  const handleDateBlur = async (month: number, dateInput: string) => {
+    setPrimaryMonth(month);
+    const payment = getPayment(month);
+    if (!payment) return;
+    
+    if (!dateInput.trim()) {
+      try {
+        await updatePayment.mutateAsync({
+          id: payment.id,
+          data: { collectionDate: null },
+        });
+        await refetch();
+        toast.success(`Đã xoá ngày thu tháng ${month}`);
+      } catch (err) {
+        console.error("updatePayment date error:", err);
+        toast.error(`Cập nhật ngày thu tháng ${month} thất bại. Vui lòng thử lại.`);
+      }
+      return;
+    }
+
+    // Parse dd/mm format
+    const parts = dateInput.split("/");
+    if (parts.length !== 2) return;
+
+    const day = parseInt(parts[0], 10);
+    const inputMonth = parseInt(parts[1], 10);
+
+    if (isNaN(day) || isNaN(inputMonth) || day < 1 || day > 31 || inputMonth < 1 || inputMonth > 12) {
+      return;
+    }
+
+    const dateStr = `${selectedYear.toString().padStart(4, "0")}-${inputMonth.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+    // Lưu ở mốc 12:00 UTC để không lệch ngày khi chạy trên máy khác múi giờ
+    const date = dayKeyToNoonIso(dateStr)!;
+    
+    const existingDate = payment.collectionDate
+      ? new Date(payment.collectionDate).toISOString().split("T")[0]
+      : null;
+    
+    if (date.split("T")[0] === existingDate) return;
+
+    try {
+      await updatePayment.mutateAsync({
+        id: payment.id,
+        data: { collectionDate: date },
+      });
+      await refetch();
+      toast.success(`Đã cập nhật ngày thu tháng ${month}`);
+    } catch (err) {
+      console.error("updatePayment date error:", err);
+      toast.error(`Cập nhật ngày thu tháng ${month} thất bại. Vui lòng thử lại.`);
+    }
   };
 
   const handleDelete = useCallback(async () => {
     if (!window.confirm("Bạn có chắc chắn muốn xoá công ty này?")) return;
-    await deleteCompany.mutateAsync({ id: companyId });
-    onDelete?.();
-    onClose();
+    try {
+      await deleteCompany.mutateAsync({ id: companyId });
+      toast.success("Đã xoá công ty");
+      onDelete?.();
+      onClose();
+    } catch (err) {
+      console.error("deleteCompany error:", err);
+      toast.error("Xoá công ty thất bại. Vui lòng thử lại.");
+    }
   }, [companyId, deleteCompany, onDelete, onClose]);
 
   const employeesByRole = {
@@ -197,7 +417,7 @@ const CompanyDetailModal = ({
       role="dialog"
     >
       <div
-        className="bg-white rounded-xl shadow-xl w-[960px] max-h-[90vh] flex flex-col"
+        className="bg-white rounded-xl shadow-xl w-[1200px] max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -317,6 +537,12 @@ const CompanyDetailModal = ({
                       Đã Thanh Toán
                     </th>
                     <th className="px-4 py-1.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Số Tiền
+                    </th>
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Thời Gian
+                    </th>
+                    <th className="px-4 py-1.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-64">
                       Ghi Chú
                     </th>
                   </tr>
@@ -328,17 +554,43 @@ const CompanyDetailModal = ({
                       <MonthRow
                         key={month}
                         monthName={MONTH_NAMES[month - 1]}
+                        month={month}
+                        year={selectedYear}
                         isPaid={!!payment}
                         note={payment?.note ?? ""}
+                        amount={payment?.amount ?? null}
+                        collectionDate={payment?.collectionDate ?? null}
                         isLoading={loadingMonths.has(month)}
                         onToggle={() => handleToggle(month)}
                         onNoteBlur={(note: string) =>
                           handleNoteBlur(month, note)
                         }
+                        onAmountBlur={(amount: string) =>
+                          handleAmountBlur(month, amount)
+                        }
+                        onDateBlur={(day: string) =>
+                          handleDateBlur(month, day)
+                        }
                       />
                     );
                   })}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-gray-300 font-semibold bg-gray-50">
+                    <td className="px-4 py-2 text-sm text-gray-800">Tổng Cộng</td>
+                    <td className="px-4 py-2 text-center text-sm text-gray-600">
+                      {paidCount}/12
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-900">
+                      {formatCurrencyVND(
+                        paymentsForYear.reduce((sum, p) => sum + (p.amount ?? 0), 0) || null
+                      )}
+                    </td>
+                    <td colSpan={2} className="px-4 py-2 text-sm text-gray-600">
+                      {paymentsForYear.filter((p) => p.collectionDate).length} tháng
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>

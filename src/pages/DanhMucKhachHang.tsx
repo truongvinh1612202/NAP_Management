@@ -14,9 +14,12 @@ import type {
   CompanyEmployee,
   Employee,
 } from "../../generated/client";
-import { Search, Plus, ChevronDown } from "lucide-react";
+import { Search, Plus, ChevronDown, Download, Upload, Building2 } from "lucide-react";
 import CompanyDetailModal from "../components/CompanyDetailModal";
+import BulkPaymentModal from "../components/BulkPaymentModal";
 import EmployeeMultiSelectEditor from "../components/EmployeeMultiSelectEditor";
+import ImportModal from "../components/ImportModal";
+import { exportToExcel } from "../utils/excelUtils";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -337,6 +340,8 @@ const DanhMucKhachHang = () => {
   );
   const [searchText, setSearchText] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const pendingEmployeeSelection = useRef<{
     role: EmployeeRole;
     ids: number[];
@@ -422,6 +427,15 @@ const DanhMucKhachHang = () => {
   const columnDefs: ColDef<CompanyWithAssignments>[] = useMemo(
     () => [
       {
+        headerName: "STT",
+        valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1,
+        sortable: false,
+        filter: false,
+        width: 60,
+        pinned: "left",
+        cellClass: "text-center font-semibold",
+      },
+      {
         headerName: "Chi tiết",
         cellRenderer: (params: CellRendererParams) => (
           <div className="flex items-center justify-center h-full w-full">
@@ -439,7 +453,7 @@ const DanhMucKhachHang = () => {
         sortable: false,
         filter: false,
         maxWidth: 110,
-        pinned: "right",
+        pinned: "left",
       },
       {
         field: "id",
@@ -567,7 +581,7 @@ const DanhMucKhachHang = () => {
   return (
     <div className="p-0">
       <div className="py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-4">
           <div className="relative w-96">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search size={18} className="text-gray-700" />
@@ -582,14 +596,67 @@ const DanhMucKhachHang = () => {
               aria-label="Tìm kiếm công ty"
             />
           </div>
-          <button
-            className="flex items-center justify-center flex-shrink-0 w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors"
-            tabIndex={0}
-            aria-label="Thêm công ty mới"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus size={20} className="text-gray-700" />
-          </button>
+          <div className="flex items-center gap-6 flex-1 justify-end">
+            <div className="flex flex-col items-end">
+              <p className="text-xs text-gray-500 mb-1">Tổng Phí Dịch Vụ</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {companyList
+                  ? (companyList.reduce(
+                      (sum, c) => sum + (c.serviceFee ?? 0),
+                      0
+                    ) ?? 0).toLocaleString("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                    })
+                  : "0 ₫"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-700 transition-colors"
+                tabIndex={0}
+                aria-label="Nhập dữ liệu từ Excel"
+                onClick={() => setShowImportModal(true)}
+                title="Nhập dữ liệu từ Excel"
+              >
+                <Upload size={18} />
+                <span>Nhập</span>
+              </button>
+              <button
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-700 transition-colors"
+                tabIndex={0}
+                aria-label="Xuất dữ liệu ra Excel"
+                onClick={() => {
+                  if (companyList) {
+                    exportToExcel(companyList);
+                  }
+                }}
+                title="Xuất dữ liệu ra Excel"
+              >
+                <Download size={18} />
+                <span>Xuất</span>
+              </button>
+              <button
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm text-white transition-colors font-medium"
+                tabIndex={0}
+                aria-label="Thu nhiều công ty cùng lúc"
+                onClick={() => setShowBulkModal(true)}
+                title="Thu nhiều công ty"
+                id="btn-thu-nhieu-cong-ty"
+              >
+                <Building2 size={18} />
+                <span>Thu nhiều công ty</span>
+              </button>
+              <button
+                className="flex items-center justify-center flex-shrink-0 w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors"
+                tabIndex={0}
+                aria-label="Thêm công ty mới"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus size={20} className="text-gray-700" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -623,6 +690,20 @@ const DanhMucKhachHang = () => {
       {showAddModal && (
         <AddCompanyModal
           onClose={() => setShowAddModal(false)}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {showBulkModal && (
+        <BulkPaymentModal
+          onClose={() => setShowBulkModal(false)}
           onSuccess={() => refetch()}
         />
       )}
