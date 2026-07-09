@@ -336,14 +336,13 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/*
         Modal: responsive sizing for different screen resolutions.
         Layout: header (shrink-0) | fields (shrink-0) | company-section (flex-1, min-h-0) | footer (shrink-0)
       */}
       <div
-        className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-h-[90vh] max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-2xl overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-h-[92vh] max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-3xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ── (shrink-0) */}
