@@ -54,12 +54,11 @@ const DatePickerVN = ({
   const [text, setText] = useState(keyToText(value));
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
-  const prevDigits = useRef("");
   const boxRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const composingRef = useRef(false); // đang gõ qua bộ gõ tiếng Việt (Unikey/EVKey)?
-  const caretRef = useRef<number | null>(null); // vị trí con trỏ cần khôi phục sau khi định dạng
+  const focusedRef = useRef(false); // ô đang focus (đang gõ) → không ghi đè text từ value
 
   const initial = value ? value.split("-").map((s) => parseInt(s, 10)) : null;
   const [viewYear, setViewYear] = useState<number>(initial ? initial[0] : year);
@@ -67,25 +66,17 @@ const DatePickerVN = ({
     initial ? initial[1] - 1 : new Date().getMonth(),
   );
 
-  // Đồng bộ khi value bên ngoài đổi
+  // Đồng bộ khi value bên ngoài đổi. KHÔNG ghi đè text khi đang gõ (focus) để tránh
+  // giật/nhảy con trỏ; lúc rời ô sẽ tự định dạng lại.
   useEffect(() => {
-    setText(keyToText(value));
     if (value) {
       const [y, m] = value.split("-").map((s) => parseInt(s, 10));
       setViewYear(y);
       setViewMonth(m - 1);
     }
+    if (focusedRef.current) return;
+    setText(keyToText(value));
   }, [value]);
-
-  // Khôi phục vị trí con trỏ sau khi định dạng (chỉ khi vừa gõ trực tiếp — caretRef
-  // được set trong formatFromInput; đồng bộ value/pick lịch không set nên không nhảy).
-  useLayoutEffect(() => {
-    if (caretRef.current != null && inputRef.current) {
-      const pos = caretRef.current;
-      inputRef.current.setSelectionRange(pos, pos);
-      caretRef.current = null;
-    }
-  }, [text]);
 
   // Tính vị trí popover (portal, tránh bị cắt bởi khung cuộn)
   useLayoutEffect(() => {
@@ -122,79 +113,58 @@ const DatePickerVN = ({
     };
   }, [open]);
 
-  // Định dạng chuỗi nhập: tự chèn "/" giữa ngày/tháng/năm, GIỮ vị trí con trỏ.
-  // `caret` = vị trí con trỏ hiện tại trong `raw` (để tính lại vị trí sau khi chèn "/").
-  const formatFromInput = (raw: string, caret: number) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 8);
-    const deleting = digits.length < prevDigits.current.length;
-    prevDigits.current = digits;
+  // Chỉ giữ chữ số và dấu "/". KHÔNG tự chèn "/", KHÔNG dời con trỏ khi đang gõ →
+  // tránh xung đột với bộ gõ tiếng Việt (Unikey/EVKey) làm chữ "nhảy loạn xạ" trên
+  // máy khác. Việc định dạng "dd/mm/yyyy" thực hiện khi rời ô (blur/Enter).
+  const sanitize = (s: string) => s.replace(/[^\d/]/g, "").slice(0, 10);
 
-    const dd = digits.slice(0, 2);
-    const mm = digits.slice(2, 4);
-    const yy = digits.slice(4, 8);
-
-    let out = dd;
-    if (dd.length === 2 && (mm.length > 0 || !deleting)) out += "/";
-    out += mm;
-    if (mm.length === 2 && (yy.length > 0 || !deleting)) out += "/";
-    out += yy;
-
-    // Con trỏ mới = ngay sau `digitsBeforeCaret` chữ số trong chuỗi đã định dạng.
-    const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
-    let newCaret = out.length;
-    let seen = 0;
-    for (let i = 0; i < out.length; i++) {
-      if (seen === digitsBeforeCaret) {
-        newCaret = i;
-        break;
-      }
-      if (out[i] >= "0" && out[i] <= "9") seen++;
-    }
-    // Nếu con trỏ rơi ngay trước dấu "/" (vừa gõ đủ ngày/tháng) → nhảy qua dấu "/"
-    if (out[newCaret] === "/") newCaret += 1;
-    caretRef.current = newCaret;
-
-    setText(out);
-
-    if (digits.length === 0) {
-      onChange("");
-    } else if (digits.length === 8) {
-      const d = parseInt(dd, 10);
-      const m = parseInt(mm, 10);
-      const y = parseInt(yy, 10);
-      if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000) {
-        onChange(partsToKey(d, m, y));
-      }
-    }
-  };
-
-  // onChange của ô input. Khi ĐANG gõ qua bộ gõ tiếng Việt (composition), KHÔNG
-  // định dạng lại (không chèn "/", không đụng con trỏ) — nếu ghi đè value giữa lúc
-  // composition sẽ làm lệch bộ đệm Unikey/EVKey → gõ nhảy loạn. Chỉ định dạng khi
-  // gõ trực tiếp, hoặc khi composition kết thúc (onCompositionEnd).
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    // Đang gõ qua bộ gõ IME → để nguyên chuỗi thô, KHÔNG đụng vào (không dời con trỏ,
+    // không lọc) để bộ đệm Unikey/EVKey không bị lệch.
     if (composingRef.current || (e.nativeEvent as InputEvent).isComposing) {
-      setText(e.target.value); // để nguyên chuỗi thô, không phá bộ gõ
+      setText(e.target.value);
       return;
     }
-    formatFromInput(e.target.value, e.target.selectionStart ?? e.target.value.length);
+    setText(sanitize(e.target.value));
   };
 
+  // Định dạng + kiểm tra khi rời ô. Chấp nhận cả gõ LIỀN "08072026" lẫn gõ tay có "/"
+  // như "8/7/2026" (ngày/tháng 1 chữ số cũng được). Thiếu năm → dùng năm mặc định.
   const commitOnBlur = () => {
-    const digits = text.replace(/\D/g, "").slice(0, 8);
-    if (digits.length === 0) {
+    focusedRef.current = false;
+    const t = text.trim();
+    if (t === "") {
       onChange("");
       return;
     }
-    // Cho phép dd/mm (dùng năm mặc định) hoặc dd/mm/yyyy
-    if (digits.length === 4 || digits.length === 8) {
-      const d = parseInt(digits.slice(0, 2), 10);
-      const m = parseInt(digits.slice(2, 4), 10);
-      const y = digits.length === 8 ? parseInt(digits.slice(4, 8), 10) : year;
-      if (d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000) {
-        onChange(partsToKey(d, m, y));
-        return;
+
+    let d = NaN;
+    let m = NaN;
+    let y = NaN;
+    if (t.includes("/")) {
+      const [ds, ms, ys] = t.split("/");
+      d = parseInt(ds, 10);
+      m = parseInt(ms, 10);
+      y = ys && ys.length > 0 ? parseInt(ys, 10) : year;
+    } else {
+      const digits = t.replace(/\D/g, "");
+      if (digits.length === 8) {
+        d = parseInt(digits.slice(0, 2), 10);
+        m = parseInt(digits.slice(2, 4), 10);
+        y = parseInt(digits.slice(4, 8), 10);
+      } else if (digits.length === 4) {
+        d = parseInt(digits.slice(0, 2), 10);
+        m = parseInt(digits.slice(2, 4), 10);
+        y = year; // dd/mm → năm mặc định
       }
+    }
+
+    if (
+      Number.isFinite(d) && Number.isFinite(m) && Number.isFinite(y) &&
+      d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000
+    ) {
+      onChange(partsToKey(d, m, y));
+      return;
     }
     setText(keyToText(value)); // không hợp lệ → khôi phục
   };
@@ -256,14 +226,16 @@ const DatePickerVN = ({
             composingRef.current = true;
           }}
           onCompositionEnd={(e) => {
-            // Bộ gõ đã hoàn tất → giờ định dạng lại an toàn (không phá bộ đệm nữa)
+            // Bộ gõ hoàn tất → chỉ lọc ký tự hợp lệ, KHÔNG định dạng/dời con trỏ.
             composingRef.current = false;
-            const el = e.currentTarget;
-            formatFromInput(el.value, el.selectionStart ?? el.value.length);
+            setText(sanitize(e.currentTarget.value));
           }}
           onBlur={commitOnBlur}
           // Bấm vào ô đang có ngày cũ → bôi chọn hết để gõ mới thay thế sạch
-          onFocus={(e) => e.currentTarget.select()}
+          onFocus={(e) => {
+            focusedRef.current = true;
+            e.currentTarget.select();
+          }}
           // KHÔNG mở lịch khi focus: tránh popover (portal, position:fixed) đè lên ô
           // nhập trên máy có tỷ lệ hiển thị/độ phân giải khác → bấm vào ô lại trúng
           // lịch, không gõ được. Muốn chọn lịch thì bấm nút biểu tượng lịch bên trái.

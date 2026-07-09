@@ -49,3 +49,7 @@ yarn.lock
 /build_output.txt
 /e2e_output.txt
 /Screenshot*.png
+# e2e test database (tự seed)
+test/.e2e.db
+test/.e2e.db-*
+test/.e2e-userdata/

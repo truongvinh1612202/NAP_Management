@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "../utils/trpc";
-import { X, Search, Square, Building2, CalendarCheck2 } from "lucide-react";
+import { X, Search, Square, Building2, CalendarCheck2, Plus, CalendarPlus } from "lucide-react";
 import DatePickerVN from "@/components/DatePickerVN";
 import { toast } from "@/components/Toast";
 import { formatCurrencyVND, dayKeyToNoonIso } from "@/utils/helper";
@@ -17,18 +17,40 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i);
 
+// 1 dòng thu = 1 công ty ở 1 kỳ (tháng/năm). 1 phiếu gồm nhiều dòng → có thể nhiều kỳ.
+interface LineItem {
+  companyId: number;
+  month: number;
+  year: number;
+}
+
+const periodKey = (companyId: number, month: number, year: number) =>
+  `${companyId}-${month}-${year}`;
+const periodLabel = (month: number, year: number) =>
+  `T${String(month).padStart(2, "0")}/${year}`;
+
+// Khi có `targetBatch` → modal chạy ở chế độ "Thêm công ty vào phiếu có sẵn":
+// gắn dòng mới vào batchId đó; `existingItems` để chặn chọn trùng (công ty × kỳ) đã có.
+interface TargetBatch {
+  batchId: number;
+  defaultMonth: number; // gợi ý "kỳ đang chọn" ban đầu (kỳ đại diện của phiếu)
+  defaultYear: number;
+  collectionDate: string | null; // yyyy-mm-dd
+  enteredById: number | null;
+  existingItems: LineItem[]; // các dòng đã có trong phiếu
+}
+
 interface BulkPaymentModalProps {
   onClose: () => void;
   onSuccess?: () => void;
+  targetBatch?: TargetBatch;
 }
 
 interface ResultSummary {
   createdCount: number;
-  skippedCount: number;
+  skipped: { name: string; period: string }[];
   failedCount: number;
-  skippedNames: string[];
-  month: number;
-  year: number;
+  periods: string[]; // các kỳ đã tạo, hiển thị ở header kết quả
   batchId: number | null;
 }
 
@@ -42,11 +64,6 @@ function todayYYYYMMDD(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function formatDateToDDMMYYYY(isoDate: string): string {
-  const [yyyy, mm, dd] = isoDate.split("-");
-  return `${dd}/${mm}/${yyyy}`;
-}
-
 // "yyyy-mm-dd" → ISO ở mốc 12:00 UTC (chống lệch ngày do múi giờ trên máy khác).
 function parseISOToTimestamp(isoDate: string): string | null {
   return dayKeyToNoonIso(isoDate);
@@ -54,23 +71,51 @@ function parseISOToTimestamp(isoDate: string): string | null {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
+const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalProps) => {
   const queryClient = useQueryClient();
   const today = new Date();
+  const isAddMode = targetBatch != null; // thêm vào phiếu có sẵn
 
-  const [collectionDate, setCollectionDate] = useState(todayYYYYMMDD());
+  const [collectionDate, setCollectionDate] = useState(
+    targetBatch?.collectionDate || todayYYYYMMDD(),
+  );
   const [dateError, setDateError] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
-  const [enteredById, setEnteredById] = useState<number | "">(""); // người nhập
+  // "Kỳ đang chọn" — kỳ mặc định khi tick công ty lần đầu.
+  const [selectedMonth, setSelectedMonth] = useState(
+    targetBatch?.defaultMonth ?? today.getMonth() + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState(targetBatch?.defaultYear ?? CURRENT_YEAR);
+  const [enteredById, setEnteredById] = useState<number | "">(
+    targetBatch?.enteredById ?? "",
+  ); // người nhập
   const [note, setNote] = useState(""); // ghi chú phiếu
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [items, setItems] = useState<LineItem[]>([]); // danh sách dòng (công ty × kỳ)
   const [searchText, setSearchText] = useState("");
   const [result, setResult] = useState<ResultSummary | null>(null);
+  // Công ty đang mở ô chọn kỳ (khi tick lại công ty đã có dòng).
+  const [periodPickerFor, setPeriodPickerFor] = useState<number | null>(null);
+  const [pickerMonth, setPickerMonth] = useState(selectedMonth);
+  const [pickerYear, setPickerYear] = useState(selectedYear);
 
   const { data: companyList } = useQuery(trpc.companies.queryOptions());
   const { data: employeeList } = useQuery(trpc.employees.queryOptions());
   const bulkCreate = useMutation(trpc.bulkCreatePayments.mutationOptions());
+
+  const companyById = useMemo(
+    () => new Map((companyList ?? []).map((c) => [c.id, c])),
+    [companyList],
+  );
+
+  // Kỳ đã có sẵn trong phiếu (chế độ thêm) — để chặn chọn trùng.
+  const existingKeys = useMemo(
+    () =>
+      new Set(
+        (targetBatch?.existingItems ?? []).map((it) =>
+          periodKey(it.companyId, it.month, it.year),
+        ),
+      ),
+    [targetBatch],
+  );
 
   const filteredCompanies = useMemo(() => {
     if (!companyList) return [];
@@ -81,70 +126,139 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
     );
   }, [companyList, searchText]);
 
-  // Thứ tự đã chọn (1, 2, 3…) theo đúng trình tự bấm — Set giữ nguyên thứ tự thêm vào,
-  // trùng với thứ tự phiếu sẽ được tạo (bulkCreatePayments lặp theo companyIds).
-  const selectionOrder = useMemo(() => {
-    const map = new Map<number, number>();
-    Array.from(selectedIds).forEach((id, i) => map.set(id, i + 1));
-    return map;
-  }, [selectedIds]);
+  // (công ty, kỳ) đã bị chiếm = đã có trong dòng đang chọn HOẶC đã tồn tại trong phiếu.
+  const isTaken = (companyId: number, month: number, year: number) =>
+    existingKeys.has(periodKey(companyId, month, year)) ||
+    items.some((it) => it.companyId === companyId && it.month === month && it.year === year);
+
+  const isTakenIn = (list: LineItem[], companyId: number, month: number, year: number) =>
+    existingKeys.has(periodKey(companyId, month, year)) ||
+    list.some((it) => it.companyId === companyId && it.month === month && it.year === year);
+
+  // Số kỳ đã CHỌN cho công ty (trong phiếu đang dựng) và số kỳ đã CÓ sẵn (chế độ thêm).
+  const selectedCountFor = (id: number) => items.filter((it) => it.companyId === id).length;
+  const existingCountFor = (id: number) =>
+    (targetBatch?.existingItems ?? []).filter((it) => it.companyId === id).length;
 
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (periodPickerFor != null) setPeriodPickerFor(null);
+        else onClose();
+      }
+    };
     document.addEventListener("keydown", fn);
     return () => document.removeEventListener("keydown", fn);
-  }, [onClose]);
+  }, [onClose, periodPickerFor]);
 
-  const toggleCompany = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const addItem = (companyId: number, month: number, year: number) => {
+    setItems((prev) =>
+      isTakenIn(prev, companyId, month, year)
+        ? prev
+        : [...prev, { companyId, month, year }],
+    );
   };
 
-  const selectAll = () => setSelectedIds(new Set(filteredCompanies.map((c) => c.id)));
-  const clearAll = () => setSelectedIds(new Set());
-  const isAllSelected = filteredCompanies.length > 0 && filteredCompanies.every((c) => selectedIds.has(c.id));
+  const removeItem = (index: number) =>
+    setItems((prev) => prev.filter((_, i) => i !== index));
+
+  // Tick 1 công ty: lần đầu → thêm ở kỳ đang chọn; nếu đã có dòng (hoặc kỳ đang chọn đã
+  // bị chiếm) → mở ô chọn kỳ để chọn kỳ khác.
+  const handlePickCompany = (companyId: number) => {
+    const hasItems = selectedCountFor(companyId) > 0;
+    const currentTaken = isTaken(companyId, selectedMonth, selectedYear);
+    if (!hasItems && !currentTaken) {
+      addItem(companyId, selectedMonth, selectedYear);
+      return;
+    }
+    // Mở ô chọn kỳ; mặc định = kỳ đang chọn (nếu trống) hoặc kỳ chưa bị chiếm gần nhất.
+    let m = selectedMonth;
+    let y = selectedYear;
+    if (isTaken(companyId, m, y)) {
+      const free = MONTHS.find((mm) => !isTaken(companyId, mm, selectedYear));
+      if (free) m = free;
+    }
+    setPickerMonth(m);
+    setPickerYear(y);
+    setPeriodPickerFor(companyId);
+  };
+
+  const confirmPeriodPick = () => {
+    if (periodPickerFor == null) return;
+    if (isTaken(periodPickerFor, pickerMonth, pickerYear)) {
+      toast.error(`Kỳ ${periodLabel(pickerMonth, pickerYear)} đã có cho công ty này`);
+      return;
+    }
+    addItem(periodPickerFor, pickerMonth, pickerYear);
+    setPeriodPickerFor(null);
+  };
+
+  // Chọn tất cả (kỳ đang chọn) cho mọi công ty đang lọc chưa có kỳ đó; nếu đã đủ → xóa hết.
+  const allHaveCurrent =
+    filteredCompanies.length > 0 &&
+    filteredCompanies.every((c) => isTaken(c.id, selectedMonth, selectedYear));
+
+  // Thêm dòng ở kỳ đang chọn cho MỌI công ty đang khớp tìm kiếm (chưa có kỳ đó).
+  const addAllCurrent = () => {
+    setItems((prev) => {
+      const additions = filteredCompanies
+        .filter((c) => !isTakenIn(prev, c.id, selectedMonth, selectedYear))
+        .map((c) => ({ companyId: c.id, month: selectedMonth, year: selectedYear }));
+      return [...prev, ...additions];
+    });
+  };
 
   const handleDateChange = (val: string) => {
     setCollectionDate(val);
     setDateError("");
   };
 
+  // Tổng tạm tính = tổng serviceFee của các dòng.
+  const provisionalTotal = useMemo(
+    () =>
+      items.reduce((sum, it) => sum + (companyById.get(it.companyId)?.serviceFee ?? 0), 0),
+    [items, companyById],
+  );
+
+  const distinctCompanyCount = useMemo(
+    () => new Set(items.map((it) => it.companyId)).size,
+    [items],
+  );
+
   const handleSubmit = async () => {
     if (!collectionDate) { setDateError("Vui lòng chọn ngày thu"); return; }
     const isoDate = parseISOToTimestamp(collectionDate);
     if (!isoDate) { setDateError("Ngày không hợp lệ"); return; }
-    if (selectedIds.size === 0) return;
+    if (items.length === 0) return;
 
     try {
       const res = await bulkCreate.mutateAsync({
-        companyIds: Array.from(selectedIds),
-        month: selectedMonth,
-        year: selectedYear,
+        items,
         collectionDate: isoDate,
         note: note.trim() || null,
         enteredById: enteredById === "" ? null : enteredById,
+        ...(isAddMode ? { batchId: targetBatch.batchId } : {}),
       });
 
-      const nameMap = new Map(companyList?.map((c) => [c.id, c.companyName]) ?? []);
       setResult({
-        createdCount: res.created.length,
-        skippedCount: res.skipped.length,
-        failedCount: res.failed.length,
-        skippedNames: res.skipped.map((id) => nameMap.get(id) ?? `ID ${id}`),
-        month: selectedMonth,
-        year: selectedYear,
+        createdCount: res.createdCount,
+        skipped: res.skipped.map((s) => ({
+          name: companyById.get(s.companyId)?.companyName ?? `ID ${s.companyId}`,
+          period: periodLabel(s.month, s.year),
+        })),
+        failedCount: res.failedCount,
+        periods: res.periods,
         batchId: res.batchId,
       });
 
       await queryClient.invalidateQueries({ queryKey: [["payments"]] });
       await queryClient.invalidateQueries({ queryKey: [["companiesWithPayments"]] });
 
-      if (res.created.length > 0) {
+      if (res.createdCount > 0) {
         toast.success(
-          `Đã thu ${res.created.length} công ty cho T${selectedMonth}/${selectedYear}`,
+          isAddMode
+            ? `Đã thêm ${res.createdCount} dòng vào phiếu #${targetBatch.batchId}`
+            : `Đã thu ${res.createdCount} dòng (${res.periods.join(", ")})`,
         );
       }
       onSuccess?.();
@@ -169,10 +283,12 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
           <div className="text-center">
             <h3 className="text-base sm:text-lg font-bold text-gray-900">Hoàn thành!</h3>
             <p className="text-gray-500 text-xs sm:text-sm mt-0.5">
-              Tháng <span className="font-semibold text-gray-800">{result.month}/{result.year}</span>
+              {result.periods.length > 0 && (
+                <span className="font-semibold text-gray-800">{result.periods.join(", ")}</span>
+              )}
               {result.batchId != null && (
                 <>
-                  {" · "}
+                  {result.periods.length > 0 && " · "}
                   <span className="font-semibold text-gray-800">Phiếu #{result.batchId}</span>
                 </>
               )}
@@ -181,7 +297,7 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
           <div className="w-full grid grid-cols-3 gap-2 sm:gap-3">
             {[
               { label: "Đã tạo", count: result.createdCount, color: "green" },
-              { label: "Bỏ qua", count: result.skippedCount, color: "yellow" },
+              { label: "Bỏ qua", count: result.skipped.length, color: "yellow" },
               { label: "Lỗi",    count: result.failedCount,   color: "red"   },
             ].map(({ label, count, color }) => (
               <div
@@ -193,12 +309,14 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
               </div>
             ))}
           </div>
-          {result.skippedNames.length > 0 && (
+          {result.skipped.length > 0 && (
             <div className="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-yellow-800 mb-1.5">Công ty bỏ qua (đã có dữ liệu):</p>
+              <p className="text-xs font-semibold text-yellow-800 mb-1.5">Dòng bỏ qua (đã có dữ liệu):</p>
               <ul className="space-y-0.5 max-h-28 overflow-y-auto">
-                {result.skippedNames.map((name) => (
-                  <li key={name} className="text-xs text-yellow-700">• {name}</li>
+                {result.skipped.map((s, i) => (
+                  <li key={`${s.name}-${s.period}-${i}`} className="text-xs text-yellow-700">
+                    • {s.name} · {s.period}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -211,7 +329,8 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
     );
   }
 
-  const canSubmit = selectedIds.size > 0 && collectionDate.length === 10 && !dateError;
+  const canSubmit = items.length > 0 && collectionDate.length === 10 && !dateError;
+  const isSearching = searchText.trim().length > 0; // tìm-trước-rồi-chọn: chỉ hiện list khi đang tìm
 
   // ── Main form ─────────────────────────────────────────────────────────────────
   return (
@@ -224,10 +343,6 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
         Layout: header (shrink-0) | fields (shrink-0) | company-section (flex-1, min-h-0) | footer (shrink-0)
       */}
       <div
-        // Modal cao theo nội dung nhưng tối đa 90vh. Danh sách công ty có min-h
-        // (đảm bảo luôn ≥3 dòng) + flex-1 để giãn thêm khi còn chỗ; nếu tràn thì
-        // cuộn trong danh sách. Không dùng chiều cao cố định để tránh footer đè lên
-        // list trên màn hình nhỏ.
         className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-h-[90vh] max-w-md sm:max-w-xl md:max-w-2xl lg:max-w-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -238,7 +353,14 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
               <Building2 size={18} className="text-white" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-extrabold text-gray-900 leading-tight">Thu Nhiều Công Ty</h2>
+              <h2 className="text-base font-extrabold text-gray-900 leading-tight">
+                {isAddMode ? "Thêm Công Ty Vào Phiếu" : "Thu Nhiều Công Ty"}
+              </h2>
+              {isAddMode && (
+                <p className="text-xs font-semibold text-gray-500 leading-tight truncate">
+                  Phiếu #{targetBatch.batchId} · có thể thu nhiều kỳ (T/Q)
+                </p>
+              )}
             </div>
           </div>
           <button onClick={onClose}
@@ -249,7 +371,7 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
 
         {/* ── Form fields ── (shrink-0) — gom gọn để list công ty rộng hơn */}
         <div className="px-4 sm:px-6 py-2 border-b border-gray-100 shrink-0 space-y-2">
-          {/* Hàng 1: Ngày thu · Tháng · Năm (gom phần chọn thời gian) */}
+          {/* Hàng 1: Ngày thu · Tháng · Năm (kỳ đang chọn) */}
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
             {/* Ngày thu */}
             <div className="min-w-0">
@@ -266,33 +388,33 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
               {dateError && <p className="text-xs text-red-500 mt-0.5 font-bold">⚠ {dateError}</p>}
             </div>
 
-            {/* Tháng */}
+            {/* Tháng (kỳ đang chọn) */}
             <div className="min-w-0">
               <label className="block text-xs font-semibold text-gray-600 mb-0.5">
-                Tháng <span className="text-red-500">*</span>
+                Kỳ · Tháng <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-200 bg-white text-gray-900 hover:border-gray-400 transition-all shadow-sm cursor-pointer"
                 id="bulk-month"
-                aria-label="Tháng"
+                aria-label="Tháng của kỳ đang chọn"
               >
                 {MONTHS.map((m) => <option key={m} value={m}>Tháng {m}</option>)}
               </select>
             </div>
 
-            {/* Năm */}
+            {/* Năm (kỳ đang chọn) */}
             <div className="min-w-0">
               <label className="block text-xs font-semibold text-gray-600 mb-0.5">
-                Năm <span className="text-red-500">*</span>
+                Kỳ · Năm <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="w-full min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-200 bg-white text-gray-900 hover:border-gray-400 transition-all shadow-sm cursor-pointer"
                 id="bulk-year"
-                aria-label="Năm"
+                aria-label="Năm của kỳ đang chọn"
               >
                 {YEARS.map((y) => <option key={y} value={y}>Năm {y}</option>)}
               </select>
@@ -337,52 +459,71 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
           </div>
         </div>
 
-        {/* ── Company section ── (flex-1, takes remaining height; overflow-hidden
-            để list không bao giờ đè lên footer trên màn hình nhỏ) */}
+        {/* ── Company section ── (flex-1, takes remaining height) */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden px-4 sm:px-6 py-3">
           {/* Header row */}
           <div className="flex items-center justify-between mb-2 shrink-0 gap-2 flex-wrap">
             <span className="text-sm font-bold text-gray-600 flex items-center gap-2">
               Chọn công ty <span className="text-red-500">*</span>
-              {selectedIds.size > 0 && (
+              {items.length > 0 && (
                 <span className="px-2 py-0.5 bg-green-600 text-white rounded-full text-xs font-black shadow-sm">
-                  đã chọn {selectedIds.size}
+                  {items.length} dòng
                 </span>
               )}
             </span>
-            <button
-              type="button"
-              onClick={isAllSelected ? clearAll : selectAll}
-              className="text-sm text-green-600 hover:text-green-800 font-bold focus:outline-none border-b-2 border-transparent hover:border-green-600 transition-all"
-            >
-              {isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
-            </button>
+            {/* Chọn tất cả CHỈ áp cho kết quả đang tìm (khi list hiển thị) */}
+            {isSearching && !allHaveCurrent && (
+              <button
+                type="button"
+                onClick={addAllCurrent}
+                className="text-sm text-green-600 hover:text-green-800 font-bold focus:outline-none border-b-2 border-transparent hover:border-green-600 transition-all"
+              >
+                {`Chọn tất cả kết quả · ${periodLabel(selectedMonth, selectedYear)}`}
+              </button>
+            )}
           </div>
 
-          {/* Đã chọn theo thứ tự nhập — xem lại & bỏ chọn nhanh */}
-          {selectedIds.size > 0 && (
-            <div className="mb-1.5 shrink-0">
-              <p className="text-xs font-semibold text-gray-500 mb-1">
-                Đã chọn theo thứ tự nhập:
-              </p>
-              <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto p-1.5 bg-green-50/60 border border-green-100 rounded-lg">
-                {Array.from(selectedIds).map((id, i) => {
-                  const c = companyList?.find((x) => x.id === id);
+          {/* Danh sách DÒNG đã chọn (công ty × kỳ) — gỡ từng dòng. Khi CHƯA tìm →
+              giãn cao (flex-1) để dễ soát; khi đang tìm → thu gọn nhường chỗ cho list. */}
+          {items.length > 0 && (
+            <div className={`${isSearching ? "shrink-0" : "flex-1 min-h-0"} flex flex-col mb-1.5`}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold text-gray-500">
+                  Các dòng sẽ thu (công ty · kỳ):
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setItems([])}
+                  className="text-xs font-bold text-red-500 hover:text-red-700 focus:outline-none"
+                >
+                  Xóa hết
+                </button>
+              </div>
+              <div
+                className={`flex flex-wrap content-start gap-1.5 ${
+                  isSearching ? "max-h-24" : "flex-1 min-h-0"
+                } overflow-y-auto p-1.5 bg-green-50/60 border border-green-100 rounded-lg`}
+              >
+                {items.map((it, i) => {
+                  const c = companyById.get(it.companyId);
                   if (!c) return null;
                   return (
                     <span
-                      key={id}
+                      key={`${periodKey(it.companyId, it.month, it.year)}-${i}`}
                       className="inline-flex items-center gap-1.5 pl-1 pr-1.5 py-0.5 bg-white border border-green-200 rounded-full text-xs font-semibold text-gray-700 shadow-sm"
                     >
                       <span className="w-5 h-5 shrink-0 rounded-full bg-green-600 text-white text-[10px] font-black flex items-center justify-center leading-none">
                         {i + 1}
                       </span>
-                      <span className="truncate max-w-[160px]">{c.companyName}</span>
+                      <span className="truncate max-w-[140px]">{c.companyName}</span>
+                      <span className="px-1 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold whitespace-nowrap">
+                        {periodLabel(it.month, it.year)}
+                      </span>
                       <button
                         type="button"
-                        onClick={() => toggleCompany(id)}
+                        onClick={() => removeItem(i)}
                         className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
-                        title="Bỏ chọn"
+                        title="Gỡ dòng"
                       >
                         <X size={13} />
                       </button>
@@ -393,7 +534,51 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
             </div>
           )}
 
-          {/* Search — gõ tên rồi nhấn Enter để chọn nhanh công ty đầu tiên */}
+          {/* Ô chọn kỳ (khi tick lại công ty đã có dòng) */}
+          {periodPickerFor != null && (
+            <div className="mb-2 shrink-0 flex items-center gap-2 flex-wrap p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-xs font-bold text-blue-800 truncate max-w-[160px]">
+                <CalendarPlus size={13} className="inline mr-1 -mt-0.5" />
+                Thêm kỳ cho: {companyById.get(periodPickerFor)?.companyName}
+              </span>
+              <select
+                value={pickerMonth}
+                onChange={(e) => setPickerMonth(Number(e.target.value))}
+                className="border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white cursor-pointer"
+                aria-label="Tháng cần thêm"
+              >
+                {MONTHS.map((m) => (
+                  <option key={m} value={m} disabled={isTaken(periodPickerFor, m, pickerYear)}>
+                    Tháng {m}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={pickerYear}
+                onChange={(e) => setPickerYear(Number(e.target.value))}
+                className="border border-gray-300 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white cursor-pointer"
+                aria-label="Năm cần thêm"
+              >
+                {YEARS.map((y) => <option key={y} value={y}>Năm {y}</option>)}
+              </select>
+              <button
+                type="button"
+                onClick={confirmPeriodPick}
+                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1"
+              >
+                <Plus size={13} /> Thêm kỳ
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriodPickerFor(null)}
+                className="px-2 py-1 text-xs font-semibold text-gray-500 hover:text-gray-800"
+              >
+                Hủy
+              </button>
+            </div>
+          )}
+
+          {/* Search — gõ tên rồi nhấn Enter để chọn nhanh công ty đầu tiên (ở kỳ đang chọn) */}
           <div className="relative mb-2 shrink-0 max-w-full">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
@@ -403,75 +588,97 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  const next = filteredCompanies.find((c) => !selectedIds.has(c.id));
+                  const next = filteredCompanies.find(
+                    (c) => !isTaken(c.id, selectedMonth, selectedYear),
+                  );
                   if (next) {
-                    toggleCompany(next.id);
+                    addItem(next.id, selectedMonth, selectedYear);
                     setSearchText("");
                   }
                 }
               }}
-              placeholder="Tìm công ty, mã số thuế... (Enter để chọn nhanh)"
+              placeholder="Gõ tên công ty, MST… (Enter = thêm nhanh ở kỳ đang chọn)"
               className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-200 bg-white text-gray-900 placeholder-gray-400 hover:border-gray-400 transition-all shadow-sm"
               id="bulk-search"
             />
           </div>
 
-          {/* min-h-[156px] đảm bảo LUÔN thấy ít nhất ~3 công ty, kể cả trên màn nhỏ
-              (1600x900 @125% ≈ 1280x720 CSS) và khi đã chọn nhiều. Chip "đã chọn"
-              bị giới hạn chiều cao + cuộn riêng nên không lấn danh sách. */}
+          {/* Danh sách công ty CHỈ hiện khi đang tìm (tìm-trước-rồi-chọn). Chưa tìm →
+              ẩn list, nhường chỗ cho khung "dòng đã chọn" ở trên. */}
+          {!isSearching ? (
+            // Chưa tìm: nếu chưa có dòng nào thì gợi ý; nếu có rồi thì không chiếm chỗ
+            // (khung "dòng đã chọn" đã flex-1 ở trên).
+            items.length === 0 ? (
+              <div className="flex-1 min-h-[120px] flex flex-col items-center justify-center gap-2 text-center border border-dashed border-gray-300 rounded-lg bg-gray-50/40 px-4">
+                <Search size={26} className="text-gray-300" />
+                <p className="text-sm font-semibold text-gray-400">
+                  Gõ tên công ty / MST để tìm và chọn
+                </p>
+                <p className="text-xs text-gray-400">
+                  Mẹo: gõ tên rồi nhấn <span className="font-bold">Enter</span> để thêm nhanh ở kỳ đang chọn
+                </p>
+              </div>
+            ) : null
+          ) : (
           <div className="flex-1 min-h-[156px] overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 shadow-inner bg-gray-50/30">
             {!companyList || companyList.length === 0 ? (
               <div className="p-4 text-center text-gray-400 font-medium text-sm">Đang tải...</div>
-            ) : searchText.trim() && filteredCompanies.length === 0 ? (
+            ) : filteredCompanies.length === 0 ? (
               <div className="p-4 text-center">
                 <p className="text-gray-400 font-medium text-sm">Không tìm thấy công ty</p>
               </div>
             ) : (
               filteredCompanies.map((company) => {
-                const checked = selectedIds.has(company.id);
+                const count = selectedCountFor(company.id);
+                const existCount = existingCountFor(company.id);
                 return (
-                  <label
+                  <button
+                    type="button"
                     key={company.id}
-                    // Chiều cao HÀNG cố định 52px → tính toán "≥3 dòng" chính xác,
-                    // không bị giãn do line-height. Tên/MST cắt gọn 1 dòng (truncate).
-                    className={`flex items-center gap-2.5 px-3 h-[52px] cursor-pointer transition-colors ${
-                      checked ? "bg-green-50/80 hover:bg-green-50" : "bg-white hover:bg-gray-50"
+                    onClick={() => handlePickCompany(company.id)}
+                    className={`w-full text-left flex items-center gap-2.5 px-3 h-[52px] cursor-pointer transition-colors ${
+                      count > 0 ? "bg-green-50/80 hover:bg-green-50" : "bg-white hover:bg-gray-50"
                     }`}
+                    title={count > 0 ? "Bấm để thêm kỳ khác" : "Bấm để thu ở kỳ đang chọn"}
                   >
-                    <input type="checkbox" checked={checked}
-                      onChange={() => toggleCompany(company.id)} className="sr-only" />
-                    {checked ? (
+                    {count > 0 ? (
                       <span
                         className="w-6 h-6 shrink-0 rounded-md bg-green-600 text-white text-xs font-black flex items-center justify-center leading-none shadow-sm"
-                        title={`Thứ tự nhập: ${selectionOrder.get(company.id)}`}
+                        title={`${count} kỳ đã chọn`}
                       >
-                        {selectionOrder.get(company.id)}
+                        {count}
                       </span>
                     ) : (
                       <Square size={20} className="text-gray-300 shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate leading-tight">{company.companyName}</p>
-                      <p className="text-[11px] text-gray-500 font-medium truncate leading-tight">{company.taxId}</p>
+                      <p className="text-[11px] text-gray-500 font-medium truncate leading-tight">
+                        {company.taxId}
+                        {existCount > 0 && (
+                          <span className="ml-1 text-blue-600">· đã có {existCount} kỳ trong phiếu</span>
+                        )}
+                      </p>
                     </div>
                     {company.serviceFee != null && (
                       <span className="text-sm font-bold text-gray-700 shrink-0 bg-white px-2 py-0.5 rounded-md border border-gray-200 shadow-sm whitespace-nowrap">
                         {formatCurrencyVND(company.serviceFee)}
                       </span>
                     )}
-                  </label>
+                  </button>
                 );
               })
             )}
           </div>
+          )}
         </div>
 
         {/* ── Footer ── (shrink-0) */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex items-center justify-between flex-wrap sm:flex-nowrap shrink-0 gap-3 bg-gray-50/80 rounded-b-xl">
           <p className="text-sm text-gray-600 font-bold w-full sm:w-auto truncate">
-            {selectedIds.size === 0
-              ? "Chưa chọn công ty nào"
-              : `Đã chọn ${selectedIds.size} công ty · Kỳ T${String(selectedMonth).padStart(2, "0")}/${selectedYear}`}
+            {items.length === 0
+              ? "Chưa chọn dòng nào"
+              : `${items.length} dòng · ${distinctCompanyCount} công ty · ${formatCurrencyVND(provisionalTotal || null)}`}
           </p>
           <div className="flex gap-2 shrink-0 w-full sm:w-auto">
             <button
@@ -494,7 +701,10 @@ const BulkPaymentModal = ({ onClose, onSuccess }: BulkPaymentModalProps) => {
               ) : (
                 <>
                   <CalendarCheck2 size={18} />
-                  <span>Thu tiền{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}</span>
+                  <span>
+                    {isAddMode ? "Thêm vào phiếu" : "Thu tiền"}
+                    {items.length > 0 ? ` (${items.length})` : ""}
+                  </span>
                 </>
               )}
             </button>

@@ -280,29 +280,41 @@ export const appRouter = t.router({
     }),
 
   // ─── Bulk Payment ─────────────────────────────────────────────────────────
-  // Tạo 1 "phiếu thu" (PaymentBatch) gom nhiều công ty. Mỗi payment tạo ra được
-  // gắn batchId của phiếu → sau này tách/gom theo phiếu ở "Thống Kê Phiếu".
+  // Tạo 1 "phiếu thu" (PaymentBatch) gom nhiều dòng thu. Mỗi dòng = (công ty × kỳ),
+  // 1 phiếu có thể gồm NHIỀU kỳ (T/Q) — cùng 1 công ty xuất hiện ở nhiều kỳ khác nhau.
+  // Mỗi dòng tạo ra 1 Payment gắn batchId của phiếu.
+  // Nếu truyền `batchId` → THÊM dòng vào phiếu đã có thay vì tạo phiếu mới.
   bulkCreatePayments: t.procedure
     .input(
       z.object({
-        companyIds: z.array(z.number()).min(1),
-        month: z.number().int().min(1).max(12),
-        year: z.number().int().min(2000),
+        // Danh sách dòng thu: mỗi dòng là 1 công ty ở 1 kỳ (tháng/năm) cụ thể.
+        items: z
+          .array(
+            z.object({
+              companyId: z.number(),
+              month: z.number().int().min(1).max(12),
+              year: z.number().int().min(2000),
+            })
+          )
+          .min(1),
         collectionDate: z.string().datetime().nullable().optional(),
         note: z.string().nullable().optional(),
         enteredById: z.number().nullable().optional(), // người nhập (nhân viên)
+        batchId: z.number().optional(), // có → thêm vào phiếu này thay vì tạo mới
       })
     )
     .mutation(async ({ input }) => {
       const results: {
-        created: number[];
-        skipped: number[];
-        failed: number[];
+        createdCount: number;
+        skipped: { companyId: number; month: number; year: number }[];
+        failedCount: number;
+        periods: string[]; // các kỳ "T{mm}/{yyyy}" đã tạo được (cho header kết quả)
         batchId: number | null;
       } = {
-        created: [],
+        createdCount: 0,
         skipped: [],
-        failed: [],
+        failedCount: 0,
+        periods: [],
         batchId: null,
       };
 
@@ -310,56 +322,74 @@ export const appRouter = t.router({
         ? new Date(input.collectionDate)
         : null;
 
-      // Tạo phiếu trước để lấy id gắn cho các payment.
-      const batch = await prisma.paymentBatch.create({
-        data: {
-          month: input.month,
-          year: input.year,
-          collectionDate,
-          note: input.note || null,
-          enteredById: input.enteredById ?? null,
-        },
-      });
+      // Chế độ thêm vào phiếu có sẵn: lấy phiếu; chế độ tạo mới: tạo phiếu trước để
+      // lấy id gắn cho các payment. Kỳ đại diện của phiếu = kỳ của dòng đầu tiên.
+      const isExisting = input.batchId != null;
+      const batch = isExisting
+        ? await prisma.paymentBatch.findUnique({ where: { id: input.batchId! } })
+        : await prisma.paymentBatch.create({
+            data: {
+              month: input.items[0].month,
+              year: input.items[0].year,
+              collectionDate,
+              note: input.note || null,
+              enteredById: input.enteredById ?? null,
+            },
+          });
+
+      if (!batch) throw new Error("Không tìm thấy phiếu thu để thêm công ty.");
       results.batchId = batch.id;
 
-      for (const companyId of input.companyIds) {
+      // Cache serviceFee để không truy vấn lặp cùng 1 công ty ở nhiều kỳ.
+      const feeCache = new Map<number, number | null>();
+      const periodSet = new Set<string>();
+
+      for (const item of input.items) {
+        const { companyId, month, year } = item;
         try {
           // Skip if a payment already exists for this company/month/year
           const existing = await prisma.payment.findFirst({
-            where: { companyId, month: input.month, year: input.year },
+            where: { companyId, month, year },
           });
 
           if (existing) {
-            results.skipped.push(companyId);
+            results.skipped.push({ companyId, month, year });
             continue;
           }
 
-          // Pre-fill amount from company's serviceFee
-          const company = await prisma.company.findUnique({
-            where: { id: companyId },
-            select: { serviceFee: true },
-          });
+          // Pre-fill amount from company's serviceFee (cache theo công ty)
+          if (!feeCache.has(companyId)) {
+            const company = await prisma.company.findUnique({
+              where: { id: companyId },
+              select: { serviceFee: true },
+            });
+            feeCache.set(companyId, company?.serviceFee ?? null);
+          }
 
           await prisma.payment.create({
             data: {
               companyId,
-              month: input.month,
-              year: input.year,
+              month,
+              year,
               collectionDate,
-              amount: company?.serviceFee ?? null,
+              amount: feeCache.get(companyId) ?? null,
               note: input.note || null,
               batchId: batch.id,
             },
           });
 
-          results.created.push(companyId);
+          results.createdCount += 1;
+          periodSet.add(`T${String(month).padStart(2, "0")}/${year}`);
         } catch {
-          results.failed.push(companyId);
+          results.failedCount += 1;
         }
       }
 
-      // Không tạo ra payment nào (mọi công ty đều đã có phiếu) → bỏ phiếu rỗng.
-      if (results.created.length === 0) {
+      results.periods = Array.from(periodSet).sort();
+
+      // Không tạo ra payment nào (mọi dòng đều đã có) → bỏ phiếu rỗng, NHƯNG chỉ xóa
+      // phiếu do lần gọi này tạo ra, không đụng phiếu có sẵn.
+      if (results.createdCount === 0 && !isExisting) {
         await prisma.paymentBatch.delete({ where: { id: batch.id } });
         results.batchId = null;
       }

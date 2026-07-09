@@ -1,26 +1,12 @@
 import { useMemo, useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "../utils/trpc";
-import { Search, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, X, Trash2 } from "lucide-react";
+import { Search, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, X, Trash2, Plus } from "lucide-react";
 import LoadingState from "@/components/LoadingState";
 import { formatCurrencyVND, dayKeyToNoonIso } from "@/utils/helper";
 import DatePickerVN from "@/components/DatePickerVN";
 import { toast } from "@/components/Toast";
-
-interface PaymentSummary {
-  companyId: number;
-  companyName: string;
-  taxId: string;
-  latestPaymentId: number | null; // id phiếu mới nhất (để sửa inline); null nếu chưa có phiếu
-  latestMonth: number;
-  latestYear: number;
-  latestDate: Date | null;
-  latestNote: string | null;
-  latestAmount: number | null; // Số tiền của phiếu mới nhất (chỉ xem)
-  latestTimestamp: number; // For real-time sorting
-  latestEntryDate: Date | null; // Ngày nhập gần nhất (collectionDate lớn nhất)
-  latestEntryTimestamp: number; // 0 nếu chưa có ngày nhập
-}
+import BulkPaymentModal from "@/components/BulkPaymentModal";
 
 // Thông tin phiếu (từ PaymentBatch) cần để gom theo NGƯỜI NHẬP
 interface BatchInfo {
@@ -54,6 +40,22 @@ interface PhieuGroup {
   periods: string[]; // các kỳ T/Q khác nhau, vd ["T01/2026","T02/2026"]
   notes: string[]; // các ghi chú khác nhau (nếu có)
   sortKey: number; // min(paymentId) để giữ thứ tự tạo; nhóm cũ/none xếp cuối
+  // Phiếu đại diện (batch có paymentId nhỏ nhất) để "Thêm công ty vào phiếu".
+  batchId: number | null; // null với nhóm cũ/không rõ → không cho thêm
+  batchMonth: number; // kỳ của phiếu đại diện
+  batchYear: number;
+  enteredById: number | null; // người nhập của phiếu đại diện
+  companyIds: number[]; // các công ty đã có trong nhóm (để loại khỏi danh sách thêm)
+}
+
+// Phiếu đích khi bấm "Thêm công ty vào phiếu" (khớp prop targetBatch của BulkPaymentModal)
+interface AddTarget {
+  batchId: number;
+  defaultMonth: number; // kỳ đại diện của phiếu → gợi ý "kỳ đang chọn"
+  defaultYear: number;
+  collectionDate: string | null;
+  enteredById: number | null;
+  existingItems: { companyId: number; month: number; year: number }[]; // dòng đã có trong phiếu
 }
 
 // Chuẩn hoá 1 Date về khoá ngày yyyy-mm-dd (theo giờ địa phương)
@@ -282,6 +284,7 @@ const ThongKePhieuThu = () => {
   const [filterDate, setFilterDate] = useState<string>(""); // khoá yyyy-mm-dd, rỗng = không lọc
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(30000); // 30 seconds
+  const [addTarget, setAddTarget] = useState<AddTarget | null>(null); // phiếu đang "thêm công ty"
 
   const fieldLabel = (data: Record<string, unknown>): string => {
     if ("amount" in data) return "số tiền thu";
@@ -349,112 +352,78 @@ const ThongKePhieuThu = () => {
     return () => clearInterval(interval);
   }, [autoRefreshInterval, refetch]);
 
-  // Process and sort payment summaries
-  const paymentSummaries = useMemo(() => {
-    if (!companyList) return [];
-
-    const summaries: PaymentSummary[] = companyList
-      // Chỉ giữ công ty ĐÃ THU: có ít nhất 1 phiếu đã điền số tiền (amount != null).
-      // Giúp danh sách gọn, tìm kiếm nhẹ, tránh hiển thị quá nhiều.
-      .filter((company) => company.payments?.some((p) => p.amount != null))
-      .map((company) => {
-        const payments = company.payments;
-        if (!payments || payments.length === 0) {
-          return {
-            companyId: company.id,
-            companyName: company.companyName,
-            taxId: company.taxId,
-            latestPaymentId: null,
-            latestMonth: 0,
-            latestYear: 0,
-            latestDate: null,
-            latestNote: null,
-            latestAmount: null,
-            latestTimestamp: 0,
-            latestEntryDate: null,
-            latestEntryTimestamp: 0,
-          };
-        }
-
-        // Get latest payment
-        const latest = payments.reduce((prev, current) => {
-          if (current.year > prev.year) return current;
-          if (current.year === prev.year && current.month > prev.month) return current;
-          return prev;
-        });
-
-        // Ngày nhập gần nhất = collectionDate lớn nhất trong TẤT CẢ phiếu của công ty
-        const entryTimestamps = payments
-          .map((p) =>
-            p.collectionDate ? new Date(p.collectionDate).getTime() : null,
-          )
-          .filter((t): t is number => t !== null);
-        const latestEntryTimestamp = entryTimestamps.length
-          ? Math.max(...entryTimestamps)
-          : 0;
-
-        return {
+  // Danh sách phiếu thu (mỗi payment = 1 dòng = công ty × kỳ). Không gộp per-company →
+  // công ty có nhiều kỳ (T/Q) trong 1 phiếu sẽ hiện ĐỦ các dòng.
+  const paymentRows = useMemo(() => {
+    if (!companyList) return [] as DayPayment[];
+    const q = searchText.trim().toLowerCase();
+    const rows: DayPayment[] = [];
+    for (const company of companyList) {
+      if (
+        q &&
+        !company.companyName.toLowerCase().includes(q) &&
+        !company.taxId.toLowerCase().includes(q)
+      ) {
+        continue;
+      }
+      for (const p of company.payments) {
+        const b = p.batch;
+        rows.push({
+          paymentId: p.id,
           companyId: company.id,
           companyName: company.companyName,
           taxId: company.taxId,
-          latestPaymentId: latest.id,
-          latestMonth: latest.month,
-          latestYear: latest.year,
-          latestDate: latest.collectionDate,
-          latestNote: latest.note,
-          latestAmount: latest.amount ?? null,
-          latestTimestamp: new Date(
-            latest.collectionDate || `${latest.year}-${latest.month}-01`
-          ).getTime(),
-          latestEntryDate: latestEntryTimestamp
-            ? new Date(latestEntryTimestamp)
+          month: p.month,
+          year: p.year,
+          amount: p.amount ?? null,
+          note: p.note,
+          collectionDate: p.collectionDate,
+          batchId: p.batchId ?? null,
+          batch: b
+            ? {
+                enteredById: b.enteredById ?? null,
+                enteredByName: b.enteredBy?.fullName ?? null,
+                note: b.note,
+              }
             : null,
-          latestEntryTimestamp,
-        };
-      })
-      .filter((summary) => {
-        if (!searchText.trim()) return true;
-        const q = searchText.toLowerCase();
-        return (
-          summary.companyName.toLowerCase().includes(q) ||
-          summary.taxId.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => {
-        if (sortType === "latest") {
-          // Sort by latest timestamp, then by month/year, newest first
-          if (b.latestYear !== a.latestYear) return b.latestYear - a.latestYear;
-          if (b.latestMonth !== a.latestMonth) return b.latestMonth - a.latestMonth;
-          return a.companyName.localeCompare(b.companyName);
-        } else if (sortType === "month-year") {
-          // Sort by month/year descending, newest first
-          if (b.latestYear !== a.latestYear) return b.latestYear - a.latestYear;
-          if (b.latestMonth !== a.latestMonth) return b.latestMonth - a.latestMonth;
-          return a.companyName.localeCompare(b.companyName);
-        } else if (sortType === "date") {
-          // Sort theo ngày nhập (mới nhất trước); công ty chưa có ngày nhập xếp cuối
-          if (b.latestEntryTimestamp !== a.latestEntryTimestamp)
-            return b.latestEntryTimestamp - a.latestEntryTimestamp;
-          return a.companyName.localeCompare(b.companyName);
-        } else {
-          // Sort by name
-          return a.companyName.localeCompare(b.companyName);
-        }
-      });
+        });
+      }
+    }
 
-    return summaries;
+    const ts = (d: Date | null) => (d ? new Date(d).getTime() : 0);
+    rows.sort((a, b) => {
+      if (sortType === "latest") {
+        // Mới nhất = dòng THÊM SAU CÙNG (id lớn nhất) lên đầu, rồi giảm dần.
+        return b.paymentId - a.paymentId;
+      } else if (sortType === "month-year") {
+        if (b.year !== a.year) return b.year - a.year;
+        if (b.month !== a.month) return b.month - a.month;
+        return a.companyName.localeCompare(b.companyName);
+      } else if (sortType === "date") {
+        // Ngày thu mới nhất trước; chưa có ngày xếp cuối; phụ: thứ tự nhập (id desc)
+        const tb = ts(b.collectionDate);
+        const ta = ts(a.collectionDate);
+        if (tb !== ta) return tb - ta;
+        return b.paymentId - a.paymentId;
+      } else {
+        // Tên A-Z; phụ: thứ tự nhập (id desc)
+        return a.companyName.localeCompare(b.companyName) || b.paymentId - a.paymentId;
+      }
+    });
+
+    return rows;
   }, [companyList, searchText, sortType]);
 
-  // Đếm số công ty theo ngày nhập (trên toàn bộ danh sách đã lọc), sort ngày giảm dần
+  // Đếm số phiếu theo ngày thu (trên toàn danh sách đã lọc), sort ngày giảm dần
   const dateCounts = useMemo(() => {
     const map = new Map<string, number>();
-    for (const s of paymentSummaries) {
-      const key = dateKeyOf(s.latestEntryDate);
+    for (const r of paymentRows) {
+      const key = dateKeyOf(r.collectionDate);
       if (!key) continue;
       map.set(key, (map.get(key) ?? 0) + 1);
     }
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  }, [paymentSummaries]);
+  }, [paymentRows]);
 
   const dateCountMap = useMemo(() => new Map(dateCounts), [dateCounts]);
 
@@ -533,11 +502,28 @@ const ThongKePhieuThu = () => {
           key === "ungrouped" || key === "person-none"
             ? Number.MAX_SAFE_INTEGER
             : row.paymentId;
-        g = { key, label, isOld, rows: [], total: 0, periods: [], notes: [], sortKey: base };
+        // paymentsOnDate đã sắp theo paymentId tăng dần → row đầu tiên của nhóm là
+        // phiếu đại diện (batch có paymentId nhỏ nhất) để "Thêm công ty vào phiếu".
+        g = {
+          key,
+          label,
+          isOld,
+          rows: [],
+          total: 0,
+          periods: [],
+          notes: [],
+          sortKey: base,
+          batchId: row.batchId,
+          batchMonth: row.month,
+          batchYear: row.year,
+          enteredById: row.batch?.enteredById ?? null,
+          companyIds: [],
+        };
         map.set(key, g);
       }
       g.rows.push(row);
       g.total += row.amount ?? 0;
+      if (!g.companyIds.includes(row.companyId)) g.companyIds.push(row.companyId);
       if (key.startsWith("person-") && row.paymentId < g.sortKey) g.sortKey = row.paymentId;
 
       const period = `T${String(row.month).padStart(2, "0")}/${row.year}`;
@@ -560,19 +546,17 @@ const ThongKePhieuThu = () => {
     });
 
   // Pagination
-  const totalPages = Math.ceil(paymentSummaries.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(paymentRows.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedSummaries = paymentSummaries.slice(startIndex, endIndex);
+  const paginatedRows = paymentRows.slice(startIndex, endIndex);
 
   // Id các phiếu ĐANG HIỂN THỊ ở khung nhìn hiện tại (để "chọn tất cả" + tránh
   // lỡ xóa dòng ở trang/bộ lọc khác đang ẩn).
   const visibleIds = useMemo(() => {
     if (filterDate) return paymentsOnDate.map((r) => r.paymentId);
-    return paginatedSummaries
-      .filter((s) => s.latestYear > 0 && s.latestPaymentId != null)
-      .map((s) => s.latestPaymentId as number);
-  }, [filterDate, paymentsOnDate, paginatedSummaries]);
+    return paginatedRows.map((r) => r.paymentId);
+  }, [filterDate, paymentsOnDate, paginatedRows]);
 
   const allVisibleSelected =
     visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
@@ -599,7 +583,7 @@ const ThongKePhieuThu = () => {
     return (
       <LoadingState
         title="Thống Kê Phiếu Thu"
-        subtitle="Theo dõi phiếu thu mới nhất của từng công ty"
+        subtitle="Danh sách phiếu thu — mỗi kỳ (T/Q) một dòng, mới nhất lên đầu"
         message="Đang tải dữ liệu..."
       />
     );
@@ -610,7 +594,7 @@ const ThongKePhieuThu = () => {
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Thống Kê Phiếu Thu</h1>
-          <p className="text-gray-600 mt-2">Theo dõi phiếu thu mới nhất của từng công ty</p>
+          <p className="text-gray-600 mt-2">Danh sách phiếu thu — mỗi kỳ (T/Q) một dòng, mới nhất lên đầu</p>
         </div>
         <div className="flex justify-center items-center h-64">
           <div className="text-red-500 text-lg">
@@ -630,7 +614,7 @@ const ThongKePhieuThu = () => {
         {/* Title */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Thống Kê Phiếu Thu</h1>
-          <p className="text-gray-600 mt-1">Theo dõi phiếu thu mới nhất của từng công ty</p>
+          <p className="text-gray-600 mt-1">Danh sách phiếu thu — mỗi kỳ (T/Q) một dòng, mới nhất lên đầu</p>
         </div>
 
         {/* Search - Full Width */}
@@ -814,6 +798,31 @@ const ThongKePhieuThu = () => {
                         <span className="text-sm font-black text-green-600 whitespace-nowrap">
                           {formatCurrencyVND(group.total || null)}
                         </span>
+                        {/* Thêm công ty thiếu vào ĐÚNG phiếu này (chỉ phiếu thật) */}
+                        {group.batchId != null && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAddTarget({
+                                batchId: group.batchId!,
+                                defaultMonth: group.batchMonth,
+                                defaultYear: group.batchYear,
+                                collectionDate: filterDate || null,
+                                enteredById: group.enteredById,
+                                existingItems: group.rows.map((r) => ({
+                                  companyId: r.companyId,
+                                  month: r.month,
+                                  year: r.year,
+                                })),
+                              })
+                            }
+                            className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all whitespace-nowrap shadow-sm"
+                            title="Thêm công ty còn thiếu vào phiếu này"
+                          >
+                            <Plus size={14} />
+                            Thêm công ty
+                          </button>
+                        )}
                       </div>
 
                       {/* Tiêu đề cột + danh sách dòng trong phiếu */}
@@ -856,9 +865,9 @@ const ThongKePhieuThu = () => {
               </div>
             )}
           </>
-        ) : paymentSummaries.length === 0 ? (
+        ) : paymentRows.length === 0 ? (
           <div className="flex justify-center items-center h-64">
-            <p className="text-gray-500 text-lg">Không tìm thấy công ty nào</p>
+            <p className="text-gray-500 text-lg">Chưa có phiếu thu nào</p>
           </div>
         ) : (
           <>
@@ -882,76 +891,42 @@ const ThongKePhieuThu = () => {
               <span />
             </div>
             <div className="space-y-1.5">
-            {paginatedSummaries.map((summary, index) => {
-              const hasPayment = summary.latestYear > 0;
-              const isLatest = startIndex + index === 0 && hasPayment;
+            {paginatedRows.map((row, index) => {
+              const isLatest = startIndex + index === 0;
 
-              // Dòng phân cách theo ngày nhập (chỉ khi đang sort theo ngày)
-              const curKey = dateKeyOf(summary.latestEntryDate);
+              // Dòng phân cách theo ngày thu (chỉ khi đang sort theo ngày)
+              const curKey = dateKeyOf(row.collectionDate);
               const prevKey =
-                index > 0
-                  ? dateKeyOf(paginatedSummaries[index - 1].latestEntryDate)
-                  : null;
+                index > 0 ? dateKeyOf(paginatedRows[index - 1].collectionDate) : null;
               const showDateDivider =
                 sortType === "date" && (index === 0 || curKey !== prevKey);
 
               return (
-                <Fragment key={summary.companyId}>
+                <Fragment key={row.paymentId}>
                 {showDateDivider && (
                   <div className="flex items-center gap-2 pt-2 pb-1 first:pt-0">
                     <span className="text-sm font-bold text-gray-700">
-                      {curKey ? `📅 ${formatDateKey(curKey)}` : "📅 Chưa có ngày nhập"}
+                      {curKey ? `📅 ${formatDateKey(curKey)}` : "📅 Chưa có ngày thu"}
                     </span>
                     {curKey && (
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                        {dateCountMap.get(curKey) ?? 0} công ty
+                        {dateCountMap.get(curKey) ?? 0} phiếu
                       </span>
                     )}
                     <div className="flex-1 h-px bg-gray-200" />
                   </div>
                 )}
-                {hasPayment && summary.latestPaymentId != null ? (
-                  // Công ty đã có phiếu — hàng bảng gọn, bấm để mở panel sửa (giống chế độ lọc theo ngày)
-                  <DayPaymentRow
-                    row={{
-                      paymentId: summary.latestPaymentId,
-                      companyId: summary.companyId,
-                      companyName: summary.companyName,
-                      taxId: summary.taxId,
-                      month: summary.latestMonth,
-                      year: summary.latestYear,
-                      amount: summary.latestAmount,
-                      note: summary.latestNote,
-                      collectionDate: summary.latestDate,
-                      batchId: null,
-                      batch: null,
-                    }}
-                    index={startIndex + index}
-                    fallbackYear={currentYear}
-                    onSave={handleSavePaymentField}
-                    onDelete={handleDeletePayment}
-                    selected={selectedIds.has(summary.latestPaymentId)}
-                    onToggleSelect={toggleSelect}
-                    isLatest={isLatest}
-                  />
-                ) : (
-                  // Công ty chưa có phiếu — hàng mờ, không sửa
-                  <div
-                    className={`${DAY_GRID_COLS} px-2.5 sm:px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50`}
-                  >
-                    <span />
-                    <span className="text-sm font-bold text-gray-400 text-center">
-                      {startIndex + index + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-bold text-gray-500 truncate">{summary.companyName}</span>
-                      <span className="block text-xs text-gray-400 truncate">{summary.taxId}</span>
-                    </span>
-                    <span className="text-right text-sm text-gray-400">—</span>
-                    <span className="text-center text-[11px] italic text-gray-400">Chưa có</span>
-                    <span />
-                  </div>
-                )}
+                {/* Mỗi payment = 1 dòng (công ty × kỳ); bấm để mở panel sửa inline */}
+                <DayPaymentRow
+                  row={row}
+                  index={startIndex + index}
+                  fallbackYear={currentYear}
+                  onSave={handleSavePaymentField}
+                  onDelete={handleDeletePayment}
+                  selected={selectedIds.has(row.paymentId)}
+                  onToggleSelect={toggleSelect}
+                  isLatest={isLatest}
+                />
                 </Fragment>
               );
             })}
@@ -962,7 +937,7 @@ const ThongKePhieuThu = () => {
             {totalPages > 1 && (
               <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <p className="text-xs text-gray-500">
-                  Hiển thị <span className="font-bold">{startIndex + 1}-{Math.min(endIndex, paymentSummaries.length)}</span> / <span className="font-bold">{paymentSummaries.length}</span>
+                  Hiển thị <span className="font-bold">{startIndex + 1}-{Math.min(endIndex, paymentRows.length)}</span> / <span className="font-bold">{paymentRows.length}</span>
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -1006,6 +981,15 @@ const ThongKePhieuThu = () => {
         )}
         </div>
       </div>
+
+      {/* Modal thêm công ty thiếu vào phiếu đã có (tái dùng BulkPaymentModal) */}
+      {addTarget && (
+        <BulkPaymentModal
+          targetBatch={addTarget}
+          onClose={() => setAddTarget(null)}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 };

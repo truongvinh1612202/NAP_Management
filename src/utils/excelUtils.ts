@@ -53,22 +53,40 @@ export async function parseExcelFile(file: File): Promise<ExcelImportRow[]> {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
         // Parse header row to find column indices
-        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+        const rawRows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
 
-        const importRows: ExcelImportRow[] = rows
-          .filter((row) => row["Mã số thuế"] || row["MST"]) // Filter out empty rows
+        // Header trong file có thể dư khoảng trắng (vd " Phí DV ") → chuẩn hoá key
+        // bằng cách trim để tra cứu chắc chắn, không bị phụ thuộc dấu cách.
+        const norm = (row: Record<string, any>): Record<string, any> => {
+          const out: Record<string, any> = {};
+          for (const k of Object.keys(row)) out[k.trim()] = row[k];
+          return out;
+        };
+        const pick = (row: Record<string, any>, keys: string[]): any => {
+          for (const k of keys) {
+            const v = row[k];
+            if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+          }
+          return undefined;
+        };
+        // Phí DV có thể là số (2500000) hoặc chuỗi có ngăn cách ("2.500.000" / "2,500,000").
+        const parseMoney = (v: any): number => {
+          if (typeof v === "number") return v;
+          const s = String(v ?? "").replace(/[^\d]/g, ""); // giữ lại chữ số
+          return s ? parseInt(s, 10) : 0;
+        };
+
+        const importRows: ExcelImportRow[] = rawRows
+          .map(norm)
+          .filter((row) => pick(row, ["Mã số thuế", "MST"])) // bỏ dòng trống
           .map((row) => ({
-            stt: row["STT"] || row["stt"] || "",
-            mst: String(row["Mã số thuế"] || row["MST"] || "").trim(),
-            tenCty: String(row["Tên công ty"] || row["Tên CTY"] || "").trim(),
-            phiDv: parseFloat(
-              String(row["Phí DV"] || row["Phí dịch vụ"] || "0")
-                .replace(/,/g, "")
-                .trim()
-            ) || 0,
-            dvkh: String(row["DVKH"] || row["DV KH"] || "").trim() || undefined,
-            nsl: String(row["NSL"] || row["Nhập số liệu"] || "").trim() || undefined,
-            ls: String(row["LS"] || row["Lập sổ"] || "").trim() || undefined,
+            stt: pick(row, ["STT", "stt"]) ?? "",
+            mst: String(pick(row, ["Mã số thuế", "MST"]) ?? "").trim(),
+            tenCty: String(pick(row, ["Tên công ty", "Tên CTY", "Tên DN"]) ?? "").trim(),
+            phiDv: parseMoney(pick(row, ["Phí DV", "Phí dịch vụ", "Phi DV"])),
+            dvkh: String(pick(row, ["DVKH", "DV KH"]) ?? "").trim() || undefined,
+            nsl: String(pick(row, ["NSL", "Nhập số liệu"]) ?? "").trim() || undefined,
+            ls: String(pick(row, ["LS", "Lập sổ"]) ?? "").trim() || undefined,
           }));
 
         resolve(importRows);
