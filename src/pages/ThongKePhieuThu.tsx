@@ -5,6 +5,7 @@ import { Search, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, X, Trash2, P
 import LoadingState from "@/components/LoadingState";
 import { formatCurrencyVND, dayKeyToNoonIso } from "@/utils/helper";
 import DatePickerVN from "@/components/DatePickerVN";
+import MoneyInput from "@/components/MoneyInput";
 import { toast } from "@/components/Toast";
 import BulkPaymentModal from "@/components/BulkPaymentModal";
 
@@ -211,11 +212,9 @@ const DayPaymentRow = ({ row, index, fallbackYear, onSave, onDelete, selected, o
               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                 Số tiền thu
               </label>
-              <input
-                type="number"
-                min="0"
+              <MoneyInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(raw) => setAmount(raw)}
                 onBlur={handleAmountBlur}
                 placeholder="Nhập số tiền..."
                 className={inputBase}
@@ -343,14 +342,19 @@ const ThongKePhieuThu = () => {
 
   const ITEMS_PER_PAGE = 10;
 
-  // Auto-refresh data
+  // Auto-refresh data — nhưng HOÃN khi người dùng đang thao tác nhập liệu (đang focus
+  // ô input/select/textarea, hoặc đang mở modal thêm công ty). Nếu không, cứ 30s
+  // refetch một lần sẽ re-render giữa chừng làm ô NGÀY/SỐ TIỀN "đứng lại, không gõ được".
   useEffect(() => {
     const interval = setInterval(() => {
+      if (addTarget) return; // đang mở modal → đừng làm gián đoạn
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return; // đang gõ
       refetch();
     }, autoRefreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefreshInterval, refetch]);
+  }, [autoRefreshInterval, refetch, addTarget]);
 
   // Danh sách phiếu thu (mỗi payment = 1 dòng = công ty × kỳ). Không gộp per-company →
   // công ty có nhiều kỳ (T/Q) trong 1 phiếu sẽ hiện ĐỦ các dòng.

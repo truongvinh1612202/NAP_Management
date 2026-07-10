@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { trpc } from "../utils/trpc";
 import { formatCurrencyVND, dayKeyToNoonIso, formatDateVN } from "@/utils/helper";
+import MoneyInput from "@/components/MoneyInput";
 import { toast } from "@/components/Toast";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -125,15 +126,12 @@ const MonthRow = ({
         />
       </td>
       <td className="px-4 py-1.5">
-        <input
-          type="number"
+        <MoneyInput
           value={isPaid ? localAmount : ""}
-          onChange={(e) => setLocalAmount(e.target.value)}
+          onChange={(raw) => setLocalAmount(raw)}
           onBlur={() => onAmountBlur(localAmount)}
           placeholder={isPaid ? "Số tiền..." : "—"}
           disabled={!isPaid}
-          min="0"
-          step="0.01"
           className={`w-full border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none ${
             isPaid
               ? "border-gray-200 focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"

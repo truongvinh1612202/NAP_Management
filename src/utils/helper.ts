@@ -6,6 +6,28 @@ export const formatCurrencyVND = (value: number | null): string => {
   }).format(value);
 };
 
+// ─── Nhập số tiền: nhóm 3 chữ số bằng dấu "." (chuẩn Việt) ────────────────────
+// Nhận chuỗi bất kỳ, giữ lại CHỮ SỐ, bỏ số 0 vô nghĩa ở đầu, rồi chèn "." mỗi 3
+// chữ số từ phải sang. Ví dụ: "4000000" → "4.000.000", "" → "". Dùng cho ô nhập
+// tiền (hiển thị có dấu chấm cho dễ đọc, state vẫn lưu chuỗi chữ số thuần).
+export const groupDigits = (raw: string): string => {
+  const digits = String(raw).replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+// Chỉ giữ chữ số (bỏ dấu chấm, khoảng trắng…) — nghịch đảo của groupDigits.
+export const onlyDigits = (raw: string): string =>
+  String(raw).replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+
+// ─── Chuẩn hoá chuỗi để tìm kiếm KHÔNG DẤU ────────────────────────────────────
+// "Công Ty Đông" → "cong ty dong". Cho phép gõ không dấu vẫn khớp tên có dấu.
+export const normalizeVN = (s: string): string =>
+  String(s)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
+
 // ─── Ngày thu (collection date) — chuẩn hoá chống lệch múi giờ ─────────────────
 // Ngày thu là 1 NGÀY LỊCH (không có giờ). Ta luôn lưu ở mốc 12:00 UTC (giữa trưa).
 // Lý do: 12:00 UTC ± bất kỳ offset thực tế nào (UTC-11..UTC+11) vẫn rơi vào ĐÚNG

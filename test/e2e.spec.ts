@@ -194,9 +194,19 @@ if (process.platform === 'linux') {
       expect(company.length).toBeGreaterThan(0)
 
       await firstRow.click() // mở panel sửa
-      const amountInput = page.locator('input[type="number"]').first()
+      // Ô "Số tiền thu" nay là MoneyInput (type=text, hiển thị dấu "." ngăn cách)
+      const amountInput = page.getByPlaceholder('Nhập số tiền...').first()
       await amountInput.waitFor({ timeout: 10_000 })
       await amountInput.fill(AMOUNT)
+      // Sau khi nhập, ô phải tự định dạng có dấu "." ngăn cách (MoneyInput)
+      await page.waitForFunction(
+        (v) =>
+          (document.querySelector(
+            'input[placeholder="Nhập số tiền..."]',
+          ) as HTMLInputElement | null)?.value === v,
+        AMOUNT_TXT,
+        { timeout: 5_000 },
+      )
       await amountInput.press('Tab') // rời ô → updatePayment + invalidate
 
       // Số tiền đã định dạng phải xuất hiện trong danh sách Thống Kê

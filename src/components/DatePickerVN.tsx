@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -51,14 +50,15 @@ const DatePickerVN = ({
 }: DatePickerVNProps) => {
   const year = fallbackYear ?? new Date().getFullYear();
 
-  const [text, setText] = useState(keyToText(value));
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const boxRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
+  // Ô nhập để UNCONTROLLED (KHÔNG bind prop value). React sẽ KHÔNG ghi đè thuộc tính
+  // .value của ô → không đua với con trỏ và KHÔNG phá bộ gõ tiếng Việt (Unikey/EVKey),
+  // nên không còn tình trạng "lúc gõ được lúc không, phải thoát app". Ta chỉ ĐỌC .value
+  // khi rời ô để parse, và GHI lại .value (qua ref) khi value ngoài đổi mà ô không focus.
   const inputRef = useRef<HTMLInputElement>(null);
-  const composingRef = useRef(false); // đang gõ qua bộ gõ tiếng Việt (Unikey/EVKey)?
-  const focusedRef = useRef(false); // ô đang focus (đang gõ) → không ghi đè text từ value
 
   const initial = value ? value.split("-").map((s) => parseInt(s, 10)) : null;
   const [viewYear, setViewYear] = useState<number>(initial ? initial[0] : year);
@@ -66,16 +66,16 @@ const DatePickerVN = ({
     initial ? initial[1] - 1 : new Date().getMonth(),
   );
 
-  // Đồng bộ khi value bên ngoài đổi. KHÔNG ghi đè text khi đang gõ (focus) để tránh
-  // giật/nhảy con trỏ; lúc rời ô sẽ tự định dạng lại.
+  // Đồng bộ khi value bên ngoài đổi (chọn lịch, lưu xong, refetch…). Cập nhật hiển thị
+  // qua ref và CHỈ khi ô không đang được gõ (không phải activeElement).
   useEffect(() => {
     if (value) {
       const [y, m] = value.split("-").map((s) => parseInt(s, 10));
       setViewYear(y);
       setViewMonth(m - 1);
     }
-    if (focusedRef.current) return;
-    setText(keyToText(value));
+    const el = inputRef.current;
+    if (el && document.activeElement !== el) el.value = keyToText(value);
   }, [value]);
 
   // Tính vị trí popover (portal, tránh bị cắt bởi khung cuộn)
@@ -113,27 +113,14 @@ const DatePickerVN = ({
     };
   }, [open]);
 
-  // Chỉ giữ chữ số và dấu "/". KHÔNG tự chèn "/", KHÔNG dời con trỏ khi đang gõ →
-  // tránh xung đột với bộ gõ tiếng Việt (Unikey/EVKey) làm chữ "nhảy loạn xạ" trên
-  // máy khác. Việc định dạng "dd/mm/yyyy" thực hiện khi rời ô (blur/Enter).
-  const sanitize = (s: string) => s.replace(/[^\d/]/g, "").slice(0, 10);
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    // Đang gõ qua bộ gõ IME → để nguyên chuỗi thô, KHÔNG đụng vào (không dời con trỏ,
-    // không lọc) để bộ đệm Unikey/EVKey không bị lệch.
-    if (composingRef.current || (e.nativeEvent as InputEvent).isComposing) {
-      setText(e.target.value);
-      return;
-    }
-    setText(sanitize(e.target.value));
-  };
-
-  // Định dạng + kiểm tra khi rời ô. Chấp nhận cả gõ LIỀN "08072026" lẫn gõ tay có "/"
-  // như "8/7/2026" (ngày/tháng 1 chữ số cũng được). Thiếu năm → dùng năm mặc định.
+  // Định dạng + kiểm tra khi rời ô. Đọc thẳng .value của ô (uncontrolled). Chấp nhận cả
+  // gõ LIỀN "08072026" lẫn gõ tay có "/" như "8/7/2026" (ngày/tháng 1 chữ số cũng được).
+  // Thiếu năm → dùng năm mặc định.
   const commitOnBlur = () => {
-    focusedRef.current = false;
-    const t = text.trim();
+    const el = inputRef.current;
+    const t = (el?.value ?? "").trim();
     if (t === "") {
+      if (el) el.value = "";
       onChange("");
       return;
     }
@@ -163,10 +150,12 @@ const DatePickerVN = ({
       Number.isFinite(d) && Number.isFinite(m) && Number.isFinite(y) &&
       d >= 1 && d <= 31 && m >= 1 && m <= 12 && y >= 2000
     ) {
-      onChange(partsToKey(d, m, y));
+      const key = partsToKey(d, m, y);
+      if (el) el.value = keyToText(key);
+      onChange(key);
       return;
     }
-    setText(keyToText(value)); // không hợp lệ → khôi phục
+    if (el) el.value = keyToText(value); // không hợp lệ → khôi phục
   };
 
   const pickDay = (d: number) => {
@@ -220,22 +209,10 @@ const DatePickerVN = ({
           ref={inputRef}
           type="text"
           inputMode="numeric"
-          value={text}
-          onChange={handleInputChange}
-          onCompositionStart={() => {
-            composingRef.current = true;
-          }}
-          onCompositionEnd={(e) => {
-            // Bộ gõ hoàn tất → chỉ lọc ký tự hợp lệ, KHÔNG định dạng/dời con trỏ.
-            composingRef.current = false;
-            setText(sanitize(e.currentTarget.value));
-          }}
+          defaultValue={keyToText(value)}
           onBlur={commitOnBlur}
           // Bấm vào ô đang có ngày cũ → bôi chọn hết để gõ mới thay thế sạch
-          onFocus={(e) => {
-            focusedRef.current = true;
-            e.currentTarget.select();
-          }}
+          onFocus={(e) => e.currentTarget.select()}
           // KHÔNG mở lịch khi focus: tránh popover (portal, position:fixed) đè lên ô
           // nhập trên máy có tỷ lệ hiển thị/độ phân giải khác → bấm vào ô lại trúng
           // lịch, không gõ được. Muốn chọn lịch thì bấm nút biểu tượng lịch bên trái.

@@ -51,7 +51,9 @@ if (!app.requestSingleInstanceLock()) {
 let win: BrowserWindow | null = null;
 const preload = path.join(__dirname, "../preload/index.mjs");
 const indexHtml = path.join(RENDERER_DIST, "index.html");
-const DEFAULT_ZOOM_FACTOR = 1;
+// Zoom mặc định 80% (tương đương bấm Ctrl+"-" hai lần từ 100%): giao diện mặc định
+// đang hiển thị quá to trên máy khách → thu nhỏ 2 nấc cho dễ nhìn toàn bộ.
+const DEFAULT_ZOOM_FACTOR = 0.8;
 
 function applyDefaultZoom(targetWindow: BrowserWindow) {
   targetWindow.webContents.setZoomFactor(DEFAULT_ZOOM_FACTOR);

@@ -19,6 +19,7 @@ import CompanyDetailModal from "../components/CompanyDetailModal";
 import BulkPaymentModal from "../components/BulkPaymentModal";
 import EmployeeMultiSelectEditor from "../components/EmployeeMultiSelectEditor";
 import ImportModal from "../components/ImportModal";
+import MoneyInput from "../components/MoneyInput";
 import { exportToExcel } from "../utils/excelUtils";
 import {
   DEFAULT_GRID_OPTIONS,
@@ -254,15 +255,13 @@ const AddCompanyModal = ({ onClose, onSuccess }: AddCompanyModalProps) => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phí Dịch Vụ
             </label>
-            <input
-              type="number"
+            <MoneyInput
               value={form.serviceFee}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, serviceFee: e.target.value }))
+              onChange={(raw) =>
+                setForm((f) => ({ ...f, serviceFee: raw }))
               }
               className="border-solid w-full box-border px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 text-gray-900"
               placeholder="Nhập phí dịch vụ (tùy chọn)"
-              min="0"
             />
           </div>
 

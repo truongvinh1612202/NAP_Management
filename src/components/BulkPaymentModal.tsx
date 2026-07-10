@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "../utils/trpc";
 import { X, Search, Square, Building2, CalendarCheck2, Plus, CalendarPlus } from "lucide-react";
 import DatePickerVN from "@/components/DatePickerVN";
 import { toast } from "@/components/Toast";
-import { formatCurrencyVND, dayKeyToNoonIso } from "@/utils/helper";
+import { formatCurrencyVND, dayKeyToNoonIso, normalizeVN } from "@/utils/helper";
 
 // Class tĩnh cho ô thống kê kết quả (Tailwind không sinh class từ chuỗi động)
 const STAT_STYLES: Record<string, { box: string; num: string; label: string }> = {
@@ -97,6 +97,11 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
   const [pickerMonth, setPickerMonth] = useState(selectedMonth);
   const [pickerYear, setPickerYear] = useState(selectedYear);
 
+  // Ô tìm công ty để UNCONTROLLED (không bind value) → React KHÔNG ghi đè thuộc tính
+  // .value của ô, nên bộ gõ tiếng Việt (Unikey/EVKey) không bị lệch buffer ("nhảy chữ").
+  // Ta chỉ ĐỌC value của ô vào state `searchText` để phục vụ lọc/hiển thị danh sách.
+  const searchRef = useRef<HTMLInputElement>(null);
+
   const { data: companyList } = useQuery(trpc.companies.queryOptions());
   const { data: employeeList } = useQuery(trpc.employees.queryOptions());
   const bulkCreate = useMutation(trpc.bulkCreatePayments.mutationOptions());
@@ -117,12 +122,13 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
     [targetBatch],
   );
 
+  // Lọc KHÔNG DẤU: gõ "cong ty" vẫn khớp "Công Ty" (chuẩn hoá cả 2 phía qua normalizeVN).
   const filteredCompanies = useMemo(() => {
     if (!companyList) return [];
-    const q = searchText.trim().toLowerCase();
+    const q = normalizeVN(searchText.trim());
     if (!q) return companyList;
     return companyList.filter(
-      (c) => c.companyName.toLowerCase().includes(q) || c.taxId.toLowerCase().includes(q)
+      (c) => normalizeVN(c.companyName).includes(q) || normalizeVN(c.taxId).includes(q)
     );
   }, [companyList, searchText]);
 
@@ -342,7 +348,7 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
         Layout: header (shrink-0) | fields (shrink-0) | company-section (flex-1, min-h-0) | footer (shrink-0)
       */}
       <div
-        className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-h-[92vh] max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-3xl overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl flex flex-col w-full max-h-[94vh] max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-4xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ── (shrink-0) */}
@@ -581,11 +587,12 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
           <div className="relative mb-2 shrink-0 max-w-full">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
+              ref={searchRef}
               type="text"
-              value={searchText}
+              defaultValue=""
               onChange={(e) => setSearchText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   const next = filteredCompanies.find(
                     (c) => !isTaken(c.id, selectedMonth, selectedYear),
@@ -593,6 +600,7 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
                   if (next) {
                     addItem(next.id, selectedMonth, selectedYear);
                     setSearchText("");
+                    if (searchRef.current) searchRef.current.value = "";
                   }
                 }
               }}
@@ -619,7 +627,7 @@ const BulkPaymentModal = ({ onClose, onSuccess, targetBatch }: BulkPaymentModalP
               </div>
             ) : null
           ) : (
-          <div className="flex-1 min-h-[156px] overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 shadow-inner bg-gray-50/30">
+          <div className="flex-1 min-h-[300px] overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 shadow-inner bg-gray-50/30">
             {!companyList || companyList.length === 0 ? (
               <div className="p-4 text-center text-gray-400 font-medium text-sm">Đang tải...</div>
             ) : filteredCompanies.length === 0 ? (
