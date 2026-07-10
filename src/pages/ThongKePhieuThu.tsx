@@ -7,6 +7,7 @@ import { formatCurrencyVND, dayKeyToNoonIso } from "@/utils/helper";
 import DatePickerVN from "@/components/DatePickerVN";
 import MoneyInput from "@/components/MoneyInput";
 import { toast } from "@/components/Toast";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import BulkPaymentModal from "@/components/BulkPaymentModal";
 
 // Thông tin phiếu (từ PaymentBatch) cần để gom theo NGƯỜI NHẬP
@@ -310,7 +311,7 @@ const ThongKePhieuThu = () => {
 
   // Xóa 1 phiếu thu (có hỏi xác nhận). Dùng chung cho cả 2 chế độ hiển thị.
   const handleDeletePayment = async (paymentId: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa phiếu thu này?")) return;
+    if (!(await confirmDialog("Bạn có chắc chắn muốn xóa phiếu thu này?", { title: "Xóa phiếu thu" }))) return;
     try {
       await deletePayment.mutateAsync({ id: paymentId });
       await invalidate();
@@ -326,7 +327,7 @@ const ThongKePhieuThu = () => {
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ${ids.length} phiếu thu đã chọn?`))
+    if (!(await confirmDialog(`Bạn có chắc chắn muốn xóa ${ids.length} phiếu thu đã chọn?`, { title: "Xóa hàng loạt" })))
       return;
     try {
       await deletePayments.mutateAsync({ ids });

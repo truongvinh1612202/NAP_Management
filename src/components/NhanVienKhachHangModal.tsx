@@ -11,6 +11,7 @@ import type {
 } from "../../generated/client";
 import { AG_GRID_LOCALE_VN } from "@ag-grid-community/locale";
 import { CELL_RENDERERS } from "../utils/gridConfig";
+import { confirmDialog } from "./ConfirmDialog";
 
 type EmployeeWithAssignments = Employee & {
   companyAssignments: (CompanyEmployee & { company: Company })[];
@@ -136,7 +137,7 @@ const NhanVienKhachHangModal: React.FC<NhanVienKhachHangModalProps> = ({
 
   const handleDelete = useCallback(async () => {
     if (!employee) return;
-    if (!window.confirm("Bạn có chắc chắn muốn xoá nhân viên này?")) return;
+    if (!(await confirmDialog("Bạn có chắc chắn muốn xoá nhân viên này?", { title: "Xóa nhân viên" }))) return;
     await deleteEmployee.mutateAsync({ id: employee.id });
     onDelete?.();
     onClose();

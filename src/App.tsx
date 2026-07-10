@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./utils/trpc";
 import Main from "./pages/Main";
 import { Toaster } from "./components/Toast";
+import { ConfirmHost } from "./components/ConfirmDialog";
 import "./App.css";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         </Routes>
       </Router>
       <Toaster />
+      <ConfirmHost />
     </QueryClientProvider>
   );
 }

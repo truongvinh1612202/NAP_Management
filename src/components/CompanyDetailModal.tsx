@@ -5,6 +5,7 @@ import { trpc } from "../utils/trpc";
 import { formatCurrencyVND, dayKeyToNoonIso, formatDateVN } from "@/utils/helper";
 import MoneyInput from "@/components/MoneyInput";
 import { toast } from "@/components/Toast";
+import { confirmDialog } from "@/components/ConfirmDialog";
 
 const ROLE_LABELS: Record<string, string> = {
   DICH_VU_KH: "NV Dịch Vụ KH",
@@ -380,7 +381,7 @@ const CompanyDetailModal = ({
   };
 
   const handleDelete = useCallback(async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn xoá công ty này?")) return;
+    if (!(await confirmDialog("Bạn có chắc chắn muốn xoá công ty này?", { title: "Xóa công ty" }))) return;
     try {
       await deleteCompany.mutateAsync({ id: companyId });
       toast.success("Đã xoá công ty");

@@ -227,7 +227,9 @@ if (process.platform === 'linux') {
       // Phiếu vừa sửa vẫn là dòng đầu (sort "mới nhất" = id giảm dần)
       const firstRow = page.locator('[role="button"][aria-expanded]').first()
       await firstRow.waitFor({ timeout: 20_000 })
-      await firstRow.getByRole('button', { name: 'Xóa phiếu thu' }).click() // confirm tự accept
+      await firstRow.getByRole('button', { name: 'Xóa phiếu thu' }).click()
+      // Hộp xác nhận IN-APP (thay window.confirm) → bấm nút "Xóa"
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Xóa', exact: true }).click()
       await waitGone(AMOUNT_TXT)
       expect(await page.getByText(AMOUNT_TXT, { exact: false }).count()).toBe(0)
     }, 60_000)
