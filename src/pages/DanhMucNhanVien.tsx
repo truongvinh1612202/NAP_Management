@@ -9,8 +9,10 @@ import type {
   CompanyEmployee,
   Company,
 } from "../../generated/client";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Download } from "lucide-react";
 import NhanVienKhachHangModal from "../components/NhanVienKhachHangModal";
+import { exportNhanVienChiTiet } from "../utils/excelUtils";
+import { toast } from "@/components/Toast";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -125,11 +127,29 @@ const DanhMucNhanVien = () => {
   } = useQuery(trpc.employees.queryOptions());
 
   const updateEmployee = useMutation(trpc.updateEmployee.mutationOptions());
+  // Dữ liệu công ty + phiếu thu (để xuất Excel chi tiết theo nhân viên)
+  const { data: companyList } = useQuery(trpc.companiesWithPayments.queryOptions());
 
+  const now = new Date();
   const [selectedEmployeeForModal, setSelectedEmployeeForModal] =
     useState<EmployeeWithAssignments | null>(null);
   const [searchText, setSearchText] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [exportMonth, setExportMonth] = useState<number | "all">(now.getMonth() + 1);
+  const [exportYear, setExportYear] = useState<number>(now.getFullYear());
+
+  const handleExportAll = () => {
+    if (!companyList || !employeeList || employeeList.length === 0) {
+      toast.error("Chưa có dữ liệu để xuất");
+      return;
+    }
+    exportNhanVienChiTiet(companyList, employeeList, exportMonth, exportYear);
+    toast.success(
+      `Đã xuất Excel ${employeeList.length} nhân viên (${
+        exportMonth === "all" ? `cả năm ${exportYear}` : `T${exportMonth}/${exportYear}`
+      })`,
+    );
+  };
 
   const handleCellValueChanged = async (
     event: CellValueChangedEvent<EmployeeWithAssignments>,
@@ -216,10 +236,10 @@ const DanhMucNhanVien = () => {
   }
 
   return (
-    <div className="p-0">
-      <div className="py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="relative w-96">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="py-4 px-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="relative w-96 max-w-full">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search size={18} className="text-gray-700" />
             </div>
@@ -233,19 +253,64 @@ const DanhMucNhanVien = () => {
               aria-label="Tìm kiếm nhân viên"
             />
           </div>
-          <button
-            className="flex items-center justify-center flex-shrink-0 w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors"
-            tabIndex={0}
-            aria-label="Thêm nhân viên mới"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus size={20} className="text-gray-700" />
-          </button>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Chọn kỳ xuất Excel */}
+            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+              <select
+                value={exportMonth === "all" ? "all" : String(exportMonth)}
+                onChange={(e) =>
+                  setExportMonth(e.target.value === "all" ? "all" : parseInt(e.target.value))
+                }
+                className="px-3 py-2 text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer border-r border-gray-200 hover:text-blue-600"
+                aria-label="Kỳ xuất Excel — tháng"
+                title="Kỳ xuất Excel"
+              >
+                <option value="all">Cả năm</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>
+                    Tháng {m}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={exportYear}
+                onChange={(e) => setExportYear(parseInt(e.target.value))}
+                className="px-3 py-2 text-sm font-bold text-gray-700 bg-transparent focus:outline-none cursor-pointer hover:text-blue-600"
+                aria-label="Kỳ xuất Excel — năm"
+              >
+                {Array.from({ length: 10 }, (_, i) => now.getFullYear() - i).map((y) => (
+                  <option key={y} value={y}>
+                    Năm {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Nút xuất Excel tất cả nhân viên */}
+            <button
+              onClick={handleExportAll}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all"
+              title="Xuất Excel: mỗi nhân viên 1 sheet"
+            >
+              <Download size={18} />
+              <span>Xuất Excel</span>
+            </button>
+
+            <button
+              className="flex items-center justify-center flex-shrink-0 w-10 h-10 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors"
+              tabIndex={0}
+              aria-label="Thêm nhân viên mới"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={20} className="text-gray-700" />
+            </button>
+          </div>
         </div>
       </div>
 
       <div
-        className="w-auto h-[calc(100vh-73px)]"
+        className="flex-1 min-h-0 w-auto"
         tabIndex={0}
         aria-label="Bảng nhân viên"
       >

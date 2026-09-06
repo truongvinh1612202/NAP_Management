@@ -260,9 +260,9 @@ const PaymentList = () => {
   }
 
   return (
-    <div className="p-0">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="py-3 px-4 border-b border-gray-200 flex items-center gap-3 flex-wrap">
+      <div className="py-3 px-4 border-b border-gray-200 flex items-center gap-3 flex-wrap shrink-0">
         {/* Company filter */}
         <select
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -333,7 +333,7 @@ const PaymentList = () => {
 
 
       {/* Grid */}
-      <div className="w-auto h-[calc(100vh-120px)]">
+      <div className="flex-1 min-h-0 w-auto">
         <AgGridReact
           rowData={displayData}
           columnDefs={columnDefs}

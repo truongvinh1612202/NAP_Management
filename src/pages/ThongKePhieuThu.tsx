@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, Fragment } from "react";
+import { useMemo, useState, useEffect, useCallback, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "../utils/trpc";
 import { Search, RefreshCw, ChevronLeft, ChevronRight, ChevronDown, X, Trash2, Plus } from "lucide-react";
@@ -10,11 +10,12 @@ import { toast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import BulkPaymentModal from "@/components/BulkPaymentModal";
 
-// Thông tin phiếu (từ PaymentBatch) cần để gom theo NGƯỜI NHẬP
+// Thông tin phiếu (từ PaymentBatch) cần để gom theo TỪNG PHIẾU (batch)
 interface BatchInfo {
   enteredById: number | null;
   enteredByName: string | null;
   note: string | null;
+  createdAt: Date | null; // giờ tạo phiếu — để phân biệt 2 phiếu cùng ngày/cùng người
 }
 
 // Một phiếu (payment) kèm thông tin công ty, dùng cho chế độ lọc theo ngày
@@ -32,21 +33,23 @@ interface DayPayment {
   batch: BatchInfo | null;
 }
 
-// Một nhóm hiển thị = 1 phiếu = toàn bộ dòng thu của cùng 1 NGƯỜI NHẬP trong ngày
+// Một nhóm hiển thị = 1 PHIẾU (PaymentBatch) = toàn bộ dòng thu của cùng 1 lần nhập.
+// Hai lần nhập khác nhau (2 batch) dù cùng ngày + cùng người nhập → 2 nhóm riêng.
 interface PhieuGroup {
-  key: string; // "person-<id>" | "person-none" | "ungrouped"
+  key: string; // "batch-<batchId>" | "ungrouped"
   label: string; // tên người nhập | "Chưa rõ người nhập" | "Chưa gán phiếu (dữ liệu cũ)"
   isOld: boolean; // true = dòng không thuộc phiếu nào (dữ liệu cũ)
   rows: DayPayment[];
   total: number; // tổng tiền
   periods: string[]; // các kỳ T/Q khác nhau, vd ["T01/2026","T02/2026"]
   notes: string[]; // các ghi chú khác nhau (nếu có)
-  sortKey: number; // min(paymentId) để giữ thứ tự tạo; nhóm cũ/none xếp cuối
-  // Phiếu đại diện (batch có paymentId nhỏ nhất) để "Thêm công ty vào phiếu".
-  batchId: number | null; // null với nhóm cũ/không rõ → không cho thêm
+  sortKey: number; // min(paymentId) để giữ thứ tự tạo; nhóm cũ xếp cuối
+  // Phiếu đại diện (dòng có paymentId nhỏ nhất) để "Thêm công ty vào phiếu".
+  batchId: number | null; // null với nhóm cũ → không cho thêm
   batchMonth: number; // kỳ của phiếu đại diện
   batchYear: number;
-  enteredById: number | null; // người nhập của phiếu đại diện
+  batchCreatedAt: Date | null; // giờ tạo phiếu (hiện ở header để phân biệt)
+  enteredById: number | null; // người nhập của phiếu
   companyIds: number[]; // các công ty đã có trong nhóm (để loại khỏi danh sách thêm)
 }
 
@@ -74,9 +77,106 @@ const formatDateKey = (key: string): string => {
   return `${dd}/${m}/${y}`;
 };
 
+// Giờ tạo phiếu dạng HH:mm (để phân biệt 2 phiếu cùng ngày/cùng người nhập)
+const formatTimeHm = (d: Date | null): string => {
+  if (!d) return "";
+  const dt = new Date(d);
+  return `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+};
+
+// Danh sách trang RÚT GỌN: [1, …, c-1, c, c+1, …, total] — tránh render hàng trăm nút
+// số trang gây tràn ngang khi dữ liệu nhiều.
+const pageWindow = (current: number, total: number): (number | "…")[] => {
+  const pages = new Set<number>([1, total, current, current - 1, current + 1]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (p - prev > 1) out.push("…");
+    out.push(p);
+    prev = p;
+  }
+  return out;
+};
+
 
 // Chuyển khoá "yyyy-mm-dd" thành ISO ở mốc 12:00 UTC (tránh lệch ngày do múi giờ)
 const dateKeyToIso = (key: string): string => dayKeyToNoonIso(key)!;
+
+// ─── PeriodEditor: chọn Kỳ (Tháng T01–T12 + Năm) bằng 2 <select> ───────────────
+// Dùng <select> (không gõ tự do) để tránh lỗi bộ gõ tiếng Việt. Chỉ dùng trong panel
+// mở rộng: đổi select là lưu ngay (onCommit). `resetKey` đổi → remount để trả về giá
+// trị gốc (khi bị chặn trùng kỳ).
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+interface PeriodEditorProps {
+  month: number;
+  year: number;
+  fallbackYear: number;
+  onCommit: (month: number, year: number) => void;
+  selectClassName?: string;
+}
+
+const PeriodEditor = ({
+  month,
+  year,
+  fallbackYear,
+  onCommit,
+  selectClassName,
+}: PeriodEditorProps) => {
+  const [m, setM] = useState(month);
+  const [y, setY] = useState(year);
+  useEffect(() => {
+    setM(month);
+    setY(year);
+  }, [month, year]);
+
+  const baseYears = Array.from({ length: 7 }, (_, i) => fallbackYear - 5 + i);
+  const yearOpts = baseYears.includes(y)
+    ? baseYears
+    : [...baseYears, y].sort((a, b) => a - b);
+
+  const cls =
+    selectClassName ??
+    "border border-emerald-400 rounded px-1 py-1 text-sm bg-white focus:outline-none cursor-pointer";
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <select
+        value={m}
+        onChange={(e) => {
+          const nm = Number(e.target.value);
+          setM(nm);
+          onCommit(nm, y);
+        }}
+        className={cls}
+        aria-label="Chọn tháng"
+      >
+        {MONTH_OPTIONS.map((mm) => (
+          <option key={mm} value={mm}>
+            T{String(mm).padStart(2, "0")}
+          </option>
+        ))}
+      </select>
+      <select
+        value={y}
+        onChange={(e) => {
+          const ny = Number(e.target.value);
+          setY(ny);
+          onCommit(m, ny);
+        }}
+        className={cls}
+        aria-label="Chọn năm"
+      >
+        {yearOpts.map((yy) => (
+          <option key={yy} value={yy}>
+            {yy}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+};
 
 // ─── DayPaymentRow: 1 phiếu trong chế độ lọc theo ngày, cho sửa inline ──────────
 interface DayPaymentRowProps {
@@ -88,6 +188,9 @@ interface DayPaymentRowProps {
   selected?: boolean; // ô tick đang được chọn
   onToggleSelect?: (paymentId: number) => void; // hiện ô tick bên trái nếu có
   isLatest?: boolean; // hiện nhãn "Mới nhất" (dùng ở danh sách tổng)
+  // true nếu công ty của dòng này ĐÃ có phiếu ở (month,year) khác dòng hiện tại →
+  // dùng để chặn đổi kỳ trùng (Payment unique companyId+month+year).
+  isPeriodTaken?: (companyId: number, month: number, year: number, exceptPaymentId: number) => boolean;
 }
 
 // Khung lưới cột dùng chung cho tiêu đề + từng hàng (giống bảng kê Book1.xlsx)
@@ -95,15 +198,30 @@ interface DayPaymentRowProps {
 const DAY_GRID_COLS =
   "grid grid-cols-[28px_36px_1fr_104px_52px_64px] sm:grid-cols-[32px_48px_1fr_150px_72px_76px] items-center gap-2";
 
-const DayPaymentRow = ({ row, index, fallbackYear, onSave, onDelete, selected, onToggleSelect, isLatest }: DayPaymentRowProps) => {
+const DayPaymentRow = ({ row, index, fallbackYear, onSave, onDelete, selected, onToggleSelect, isLatest, isPeriodTaken }: DayPaymentRowProps) => {
   const [expanded, setExpanded] = useState(false);
   const [amount, setAmount] = useState(row.amount != null ? String(row.amount) : "");
   const [note, setNote] = useState(row.note ?? "");
+  const [periodResetKey, setPeriodResetKey] = useState(0); // bump → remount editor Kỳ ở panel về kỳ gốc (khi trùng)
 
   useEffect(() => {
     setAmount(row.amount != null ? String(row.amount) : "");
     setNote(row.note ?? "");
   }, [row.amount, row.note]);
+
+  // Lưu kỳ mới. Trả về true nếu đã lưu; false nếu bị chặn (trùng kỳ / không đổi).
+  const commitPeriod = (month: number, year: number): boolean => {
+    if (month === row.month && year === row.year) return false; // không đổi
+    if (isPeriodTaken?.(row.companyId, month, year, row.paymentId)) {
+      toast.error(
+        `${row.companyName} đã có phiếu kỳ T${String(month).padStart(2, "0")}/${year}`,
+      );
+      setPeriodResetKey((k) => k + 1); // trả select về kỳ gốc
+      return false;
+    }
+    onSave(row.paymentId, { month, year });
+    return true;
+  };
 
   const handleAmountBlur = () => {
     const parsed = amount.trim() === "" ? null : Number(amount);
@@ -208,7 +326,7 @@ const DayPaymentRow = ({ row, index, fallbackYear, onSave, onDelete, selected, o
       {/* Panel chỉnh sửa — chỉ hiện khi bấm vào công ty */}
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50/70 px-3 sm:px-4 py-3">
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)] gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_minmax(0,1.5fr)] gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                 Số tiền thu
@@ -231,6 +349,19 @@ const DayPaymentRow = ({ row, index, fallbackYear, onSave, onDelete, selected, o
                 fallbackYear={fallbackYear}
                 className="w-full"
                 inputClassName="w-full pr-3 py-2.5 focus:outline-none text-gray-800 text-sm font-medium bg-transparent placeholder-gray-400"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                Kỳ (T/Q)
+              </label>
+              <PeriodEditor
+                key={periodResetKey}
+                month={row.month}
+                year={row.year}
+                fallbackYear={fallbackYear}
+                onCommit={(m, y) => commitPeriod(m, y)}
+                selectClassName="border border-gray-200 rounded-lg px-2 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 text-gray-800 cursor-pointer"
               />
             </div>
             <div>
@@ -265,6 +396,27 @@ const ThongKePhieuThu = () => {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: [["companiesWithPayments"]] });
 
+  // Bản đồ kỳ đã dùng theo công ty: companyId → ("month-year" → paymentId). Dùng để
+  // chặn đổi kỳ trùng (Payment @@unique[companyId,month,year]) ngay trên client.
+  const periodsByCompany = useMemo(() => {
+    const map = new Map<number, Map<string, number>>();
+    if (!companyList) return map;
+    for (const c of companyList) {
+      const inner = new Map<string, number>();
+      for (const p of c.payments) inner.set(`${p.month}-${p.year}`, p.id);
+      map.set(c.id, inner);
+    }
+    return map;
+  }, [companyList]);
+
+  const isPeriodTaken = useCallback(
+    (companyId: number, month: number, year: number, exceptPaymentId: number) => {
+      const pid = periodsByCompany.get(companyId)?.get(`${month}-${year}`);
+      return pid != null && pid !== exceptPaymentId;
+    },
+    [periodsByCompany],
+  );
+
   // Tick chọn nhiều phiếu để xóa 1 lượt (key = paymentId)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const toggleSelect = (id: number) =>
@@ -287,6 +439,7 @@ const ThongKePhieuThu = () => {
   const [addTarget, setAddTarget] = useState<AddTarget | null>(null); // phiếu đang "thêm công ty"
 
   const fieldLabel = (data: Record<string, unknown>): string => {
+    if ("month" in data || "year" in data) return "kỳ (T/Q)";
     if ("amount" in data) return "số tiền thu";
     if ("collectionDate" in data) return "ngày thu";
     if ("note" in data) return "ghi chú";
@@ -304,7 +457,13 @@ const ThongKePhieuThu = () => {
       toast.success(`Đã cập nhật ${label}`);
     } catch (err) {
       console.error("updatePayment error:", err);
-      toast.error(`Cập nhật ${label} thất bại. Vui lòng thử lại.`);
+      // Trùng kỳ (mỗi công ty chỉ 1 phiếu/kỳ) → thông báo rõ nghĩa
+      const msg = err instanceof Error ? err.message : "";
+      if (/unique constraint/i.test(msg)) {
+        toast.error("Kỳ này đã tồn tại cho công ty (mỗi công ty chỉ 1 phiếu/kỳ).");
+      } else {
+        toast.error(`Cập nhật ${label} thất bại. Vui lòng thử lại.`);
+      }
       await invalidate();
     }
   };
@@ -389,6 +548,7 @@ const ThongKePhieuThu = () => {
                 enteredById: b.enteredById ?? null,
                 enteredByName: b.enteredBy?.fullName ?? null,
                 note: b.note,
+                createdAt: b.createdAt ?? null,
               }
             : null,
         });
@@ -464,6 +624,7 @@ const ThongKePhieuThu = () => {
                 enteredById: b.enteredById ?? null,
                 enteredByName: b.enteredBy?.fullName ?? null,
                 note: b.note,
+                createdAt: b.createdAt ?? null,
               }
             : null,
         });
@@ -479,36 +640,34 @@ const ThongKePhieuThu = () => {
     [paymentsOnDate],
   );
 
-  // Gom các dòng trong ngày thành từng PHIẾU theo NGƯỜI NHẬP: cùng 1 người nhập
-  // (dù nhập nhiều lần, nhiều tháng) → 1 phiếu. Dòng chưa rõ người nhập / dữ liệu
-  // cũ gom vào nhóm riêng, xếp cuối.
+  // Gom các dòng trong ngày thành từng PHIẾU theo BATCH: mỗi lần "Thu nhiều công ty"
+  // / import = 1 PaymentBatch = 1 phiếu riêng. Hai lần nhập khác nhau (dù cùng ngày,
+  // cùng người nhập) → 2 phiếu tách biệt. Dòng dữ liệu cũ (không có batch) gom vào
+  // nhóm riêng, xếp cuối.
   const phieuGroups = useMemo<PhieuGroup[]>(() => {
     const map = new Map<string, PhieuGroup>();
     for (const row of paymentsOnDate) {
       let key: string;
       let label: string;
       let isOld = false;
-      if (row.batch == null) {
+      if (row.batch == null || row.batchId == null) {
         key = "ungrouped";
         label = "Chưa gán phiếu (dữ liệu cũ)";
         isOld = true;
-      } else if (row.batch.enteredById == null) {
-        key = "person-none";
-        label = "Chưa rõ người nhập";
       } else {
-        key = `person-${row.batch.enteredById}`;
-        label = row.batch.enteredByName ?? `NV #${row.batch.enteredById}`;
+        key = `batch-${row.batchId}`;
+        label =
+          row.batch.enteredById == null
+            ? "Chưa rõ người nhập"
+            : row.batch.enteredByName ?? `NV #${row.batch.enteredById}`;
       }
 
       let g = map.get(key);
       if (!g) {
-        // Nhóm "người nhập" sắp theo thứ tự tạo (paymentId nhỏ nhất); nhóm none/cũ cuối
-        const base =
-          key === "ungrouped" || key === "person-none"
-            ? Number.MAX_SAFE_INTEGER
-            : row.paymentId;
+        // Nhóm phiếu thật sắp theo thứ tự tạo (paymentId nhỏ nhất); nhóm cũ xuống cuối
+        const base = isOld ? Number.MAX_SAFE_INTEGER : row.paymentId;
         // paymentsOnDate đã sắp theo paymentId tăng dần → row đầu tiên của nhóm là
-        // phiếu đại diện (batch có paymentId nhỏ nhất) để "Thêm công ty vào phiếu".
+        // phiếu đại diện để "Thêm công ty vào phiếu".
         g = {
           key,
           label,
@@ -521,6 +680,7 @@ const ThongKePhieuThu = () => {
           batchId: row.batchId,
           batchMonth: row.month,
           batchYear: row.year,
+          batchCreatedAt: row.batch?.createdAt ?? null,
           enteredById: row.batch?.enteredById ?? null,
           companyIds: [],
         };
@@ -529,7 +689,7 @@ const ThongKePhieuThu = () => {
       g.rows.push(row);
       g.total += row.amount ?? 0;
       if (!g.companyIds.includes(row.companyId)) g.companyIds.push(row.companyId);
-      if (key.startsWith("person-") && row.paymentId < g.sortKey) g.sortKey = row.paymentId;
+      if (!isOld && row.paymentId < g.sortKey) g.sortKey = row.paymentId;
 
       const period = `T${String(row.month).padStart(2, "0")}/${row.year}`;
       if (!g.periods.includes(period)) g.periods.push(period);
@@ -611,7 +771,7 @@ const ThongKePhieuThu = () => {
   }
 
   return (
-    <div className="p-0 h-screen flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
       {/* Header Section */}
       <div className="bg-white border-b border-gray-200 px-6 py-6 flex-shrink-0">
         {/* Canh giữa, giới hạn bề ngang cho dễ đọc trên màn lớn (24"/1920px) */}
@@ -782,6 +942,16 @@ const ThongKePhieuThu = () => {
                         >
                           {group.isOld ? group.label : `👤 ${group.label}`}
                         </span>
+                        {!group.isOld && group.batchId != null && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-bold rounded-md whitespace-nowrap">
+                            Phiếu #{group.batchId}
+                            {group.batchCreatedAt && (
+                              <span className="ml-1 font-semibold text-gray-400">
+                                · {formatTimeHm(group.batchCreatedAt)}
+                              </span>
+                            )}
+                          </span>
+                        )}
                         {!group.isOld &&
                           group.periods.map((p) => (
                             <span
@@ -860,6 +1030,7 @@ const ThongKePhieuThu = () => {
                               onDelete={handleDeletePayment}
                               selected={selectedIds.has(row.paymentId)}
                               onToggleSelect={toggleSelect}
+                              isPeriodTaken={isPeriodTaken}
                             />
                           ))}
                         </div>
@@ -931,6 +1102,7 @@ const ThongKePhieuThu = () => {
                   selected={selectedIds.has(row.paymentId)}
                   onToggleSelect={toggleSelect}
                   isLatest={isLatest}
+                  isPeriodTaken={isPeriodTaken}
                 />
                 </Fragment>
               );
@@ -941,7 +1113,7 @@ const ThongKePhieuThu = () => {
             {/* Pagination Controls - At Bottom of List */}
             {totalPages > 1 && (
               <div className="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-gray-500">
                   Hiển thị <span className="font-bold">{startIndex + 1}-{Math.min(endIndex, paymentRows.length)}</span> / <span className="font-bold">{paymentRows.length}</span>
                 </p>
 
@@ -949,35 +1121,46 @@ const ThongKePhieuThu = () => {
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="p-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                     title="Trang trước"
                   >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={20} />
+                    <span className="hidden sm:inline">Trước</span>
                   </button>
 
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
-                          currentPage === page
-                            ? "bg-blue-600 text-white"
-                            : "border border-gray-300 text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-1.5">
+                    {pageWindow(currentPage, totalPages).map((it, idx) =>
+                      it === "…" ? (
+                        <span
+                          key={`e${idx}`}
+                          className="px-1.5 text-gray-400 font-bold select-none"
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={it}
+                          onClick={() => setCurrentPage(it)}
+                          className={`min-w-[40px] px-3.5 py-2 rounded-lg text-sm font-bold transition-all ${
+                            currentPage === it
+                              ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                              : "border border-gray-300 text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          {it}
+                        </button>
+                      ),
+                    )}
                   </div>
 
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="p-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                     title="Trang sau"
                   >
-                    <ChevronRight size={16} />
+                    <span className="hidden sm:inline">Sau</span>
+                    <ChevronRight size={20} />
                   </button>
                 </div>
               </div>

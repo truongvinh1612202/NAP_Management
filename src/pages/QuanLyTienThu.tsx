@@ -10,7 +10,11 @@ import "ag-grid-enterprise";
 import { trpc } from "../utils/trpc";
 import type { Company, CompanyEmployee, Employee } from "../../generated/client";
 import { Search, Download } from "lucide-react";
-import { exportTienThuPivot, exportTienThuList } from "../utils/excelUtils";
+import {
+  exportTienThuPivot,
+  exportTienThuList,
+  exportTienThuByEmployee,
+} from "../utils/excelUtils";
 import {
   DEFAULT_GRID_OPTIONS,
   DEFAULT_COL_DEF,
@@ -60,6 +64,7 @@ const QuanLyTienThu = () => {
   const { data: companyList, isLoading, error } = useQuery(
     trpc.companiesWithPayments.queryOptions()
   );
+  const { data: employeeList } = useQuery(trpc.employees.queryOptions());
 
   const updatePayment = useMutation(trpc.updatePayment.mutationOptions());
 
@@ -67,6 +72,10 @@ const QuanLyTienThu = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [filterMonth, setFilterMonth] = useState<number | "">("");
   const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear());
+  // Nhân viên thu (người nhập phiếu) cho chức năng "Bảng kê theo NV"
+  const [exportEmployeeId, setExportEmployeeId] = useState<number | "">("");
+  // Popover chọn nhân viên chỉ hiện sau khi bấm nút "Bảng kê theo NV"
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
 
 
   // Flatten payment data with company info
@@ -300,14 +309,13 @@ const QuanLyTienThu = () => {
   }
 
   return (
-    <div className="p-0">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header Section */}
-      <div className="bg-gray-50 border-b border-gray-200">
-        <div className="p-6 space-y-6">
+      <div className="bg-gray-50 border-b border-gray-200 shrink-0">
+        <div className="p-4 space-y-3">
           {/* Title */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quản Lý Tiền Thu</h1>
-            <p className="text-gray-600 mt-1">Thống kê tiền thu từ các công ty</p>
+            <h1 className="text-xl font-bold text-gray-900">Quản Lý Tiền Thu</h1>
           </div>
 
           {/* Filters + Action Buttons */}
@@ -398,27 +406,95 @@ const QuanLyTienThu = () => {
                 <Download size={18} />
                 <span>Danh sách thu</span>
               </button>
+
+              {/* Export bảng kê năm THEO NHÂN VIÊN THU — bấm nút mới hiện ô chọn NV */}
+              <div className="relative">
+                <button
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100 text-sm font-bold text-white transition-all shadow-md shadow-emerald-100"
+                  onClick={() => setShowEmployeePicker((v) => !v)}
+                  title="Xuất bảng kê năm gồm các công ty do 1 nhân viên thu"
+                >
+                  <Download size={18} />
+                  <span>Bảng kê theo NV</span>
+                </button>
+
+                {showEmployeePicker && (
+                  <>
+                    {/* Nền trong suốt để bấm ra ngoài là đóng */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowEmployeePicker(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 z-50 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 space-y-3">
+                      <p className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                        Chọn nhân viên thu · Năm {filterYear}
+                      </p>
+                      <select
+                        value={exportEmployeeId}
+                        onChange={(e) =>
+                          setExportEmployeeId(
+                            e.target.value === "" ? "" : parseInt(e.target.value),
+                          )
+                        }
+                        autoFocus
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-200 bg-white cursor-pointer"
+                      >
+                        <option value="">— Chọn nhân viên —</option>
+                        {employeeList?.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.fullName}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-100 text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={exportEmployeeId === ""}
+                        onClick={() => {
+                          if (exportEmployeeId === "" || !companyList) {
+                            toast.error("Vui lòng chọn nhân viên thu.");
+                            return;
+                          }
+                          const emp = employeeList?.find((e) => e.id === exportEmployeeId);
+                          const count = exportTienThuByEmployee(
+                            companyList,
+                            exportEmployeeId,
+                            emp?.fullName ?? `NV ${exportEmployeeId}`,
+                            filterYear,
+                            searchText,
+                          );
+                          if (count === 0) {
+                            toast.error(
+                              `${emp?.fullName ?? "Nhân viên"} chưa thu công ty nào trong năm ${filterYear}.`,
+                            );
+                          } else {
+                            toast.success(
+                              `Đã xuất bảng kê ${count} công ty do ${emp?.fullName ?? "NV"} thu (năm ${filterYear}).`,
+                            );
+                            setShowEmployeePicker(false);
+                          }
+                        }}
+                      >
+                        <Download size={16} />
+                        <span>Xuất Excel</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-            <div className="bg-gradient-to-br from-white to-green-50/30 rounded-3xl p-8 border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-green-100 group">
-              <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3 group-hover:text-green-600 transition-colors">Tổng Tiền Thu</p>
-              <p className="text-4xl font-black text-green-600 tracking-tight">
-                {(stats.totalAmount ?? 0).toLocaleString("vi-VN", {
-                  style: "currency",
-                  currency: "VND",
-                })}
-              </p>
+          {/* Statistics — gọn để nhường chỗ cho bảng bên dưới */}
+          <div className="flex items-stretch gap-3 flex-wrap">
+            <div className="bg-white rounded-xl px-4 py-2 border border-gray-200 shadow-sm flex items-baseline gap-2">
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Tổng Tiền Thu</span>
+              <span className="text-xl font-black text-green-600">
+                {(stats.totalAmount ?? 0).toLocaleString("vi-VN", { style: "currency", currency: "VND" })}
+              </span>
             </div>
-
-            <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-3xl p-8 border border-gray-100 shadow-sm transition-all hover:shadow-md hover:border-blue-100 group">
-              <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-3 group-hover:text-blue-600 transition-colors">Số Công Ty</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-blue-600 tracking-tight">{stats.totalRecords}</p>
-                <span className="text-sm font-bold text-blue-400 uppercase tracking-widest">Đơn vị</span>
-              </div>
+            <div className="bg-white rounded-xl px-4 py-2 border border-gray-200 shadow-sm flex items-baseline gap-2">
+              <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Số Công Ty</span>
+              <span className="text-xl font-black text-blue-600">{stats.totalRecords}</span>
             </div>
           </div>
         </div>
@@ -426,7 +502,7 @@ const QuanLyTienThu = () => {
 
       {/* Grid */}
       <div
-        className="w-auto h-[calc(100vh-380px)]"
+        className="flex-1 min-h-0 w-auto"
         tabIndex={0}
         aria-label="Bảng tiền thu"
       >
@@ -440,6 +516,7 @@ const QuanLyTienThu = () => {
           quickFilterText={searchText}
           onCellValueChanged={handleCellValueChanged}
           {...DEFAULT_GRID_OPTIONS}
+          pagination={false}
         />
       </div>
 

@@ -14,11 +14,12 @@ import type {
   CompanyEmployee,
   Employee,
 } from "../../generated/client";
-import { Search, Plus, ChevronDown, Download, Upload, Building2 } from "lucide-react";
+import { Search, Plus, ChevronDown, Download, Upload, Building2, FileSpreadsheet } from "lucide-react";
 import CompanyDetailModal from "../components/CompanyDetailModal";
 import BulkPaymentModal from "../components/BulkPaymentModal";
 import EmployeeMultiSelectEditor from "../components/EmployeeMultiSelectEditor";
 import ImportModal from "../components/ImportModal";
+import ImportPaymentsModal from "../components/ImportPaymentsModal";
 import MoneyInput from "../components/MoneyInput";
 import { exportToExcel } from "../utils/excelUtils";
 import {
@@ -340,6 +341,7 @@ const DanhMucKhachHang = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showImportPaymentsModal, setShowImportPaymentsModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const pendingEmployeeSelection = useRef<{
     role: EmployeeRole;
@@ -578,10 +580,10 @@ const DanhMucKhachHang = () => {
   }
 
   return (
-    <div className="p-0">
-      <div className="py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between px-4">
-          <div className="relative w-96">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between px-4 flex-wrap gap-3">
+          <div className="relative w-96 max-w-full">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search size={18} className="text-gray-700" />
             </div>
@@ -595,7 +597,7 @@ const DanhMucKhachHang = () => {
               aria-label="Tìm kiếm công ty"
             />
           </div>
-          <div className="flex items-center gap-6 flex-1 justify-end">
+          <div className="flex items-center gap-4 flex-1 justify-end flex-wrap">
             <div className="flex flex-col items-end">
               <p className="text-xs text-gray-500 mb-1">Tổng Phí Dịch Vụ</p>
               <p className="text-lg font-semibold text-gray-900">
@@ -636,6 +638,17 @@ const DanhMucKhachHang = () => {
                 <span>Xuất</span>
               </button>
               <button
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-white transition-colors font-medium"
+                tabIndex={0}
+                aria-label="Nhập phiếu thu từ Excel"
+                onClick={() => setShowImportPaymentsModal(true)}
+                title="Nhập phiếu thu hàng loạt từ file Excel"
+                id="btn-nhap-phieu-excel"
+              >
+                <FileSpreadsheet size={18} />
+                <span>Nhập phiếu từ Excel</span>
+              </button>
+              <button
                 className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm text-white transition-colors font-medium"
                 tabIndex={0}
                 aria-label="Thu nhiều công ty cùng lúc"
@@ -660,7 +673,7 @@ const DanhMucKhachHang = () => {
       </div>
 
       <div
-        className="w-auto h-[calc(100vh-73px)]"
+        className="flex-1 min-h-0 w-auto"
         tabIndex={0}
         aria-label="Bảng công ty"
       >
@@ -675,6 +688,7 @@ const DanhMucKhachHang = () => {
           onCellEditingStopped={handleCellEditingStopped}
           quickFilterText={searchText}
           {...DEFAULT_GRID_OPTIONS}
+          pagination={false}
         />
       </div>
 
@@ -696,6 +710,13 @@ const DanhMucKhachHang = () => {
       {showImportModal && (
         <ImportModal
           onClose={() => setShowImportModal(false)}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {showImportPaymentsModal && (
+        <ImportPaymentsModal
+          onClose={() => setShowImportPaymentsModal(false)}
           onSuccess={() => refetch()}
         />
       )}

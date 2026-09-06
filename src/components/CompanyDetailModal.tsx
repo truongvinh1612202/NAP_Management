@@ -2,10 +2,22 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { trpc } from "../utils/trpc";
-import { formatCurrencyVND, dayKeyToNoonIso, formatDateVN } from "@/utils/helper";
+import { formatCurrencyVND, dayKeyToNoonIso } from "@/utils/helper";
 import MoneyInput from "@/components/MoneyInput";
+import DatePickerVN from "@/components/DatePickerVN";
 import { toast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
+
+// ISO/Date → khoá "yyyy-mm-dd" (dùng cho DatePickerVN). Ngày lưu ở 12:00 UTC nên
+// đọc theo giờ địa phương vẫn ra đúng ngày lịch trên mọi máy.
+const isoToDateKey = (d: Date | string | null): string => {
+  if (!d) return "";
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+};
 
 const ROLE_LABELS: Record<string, string> = {
   DICH_VU_KH: "NV Dịch Vụ KH",
@@ -82,35 +94,12 @@ const MonthRow = ({
 }: MonthRowProps) => {
   const [localNote, setLocalNote] = useState(note);
   const [localAmount, setLocalAmount] = useState(amount ? amount.toString() : "");
-  const [localDateInput, setLocalDateInput] = useState(
-    collectionDate
-      ? (() => {
-          const date = new Date(collectionDate);
-          const d = date.getDate().toString().padStart(2, "0");
-          const m = (date.getMonth() + 1).toString().padStart(2, "0");
-          return `${d}/${m}`;
-        })()
-      : ""
-  );
 
   // Sync fields when external data changes (year switch, refetch, etc.)
   useEffect(() => {
     setLocalNote(note);
     setLocalAmount(amount ? amount.toString() : "");
-    setLocalDateInput(
-      collectionDate
-        ? (() => {
-            const date = new Date(collectionDate);
-            const d = date.getDate().toString().padStart(2, "0");
-            const m = (date.getMonth() + 1).toString().padStart(2, "0");
-            return `${d}/${m}`;
-          })()
-        : ""
-    );
-  }, [note, amount, collectionDate]);
-
-  // Hiển thị ngày dd/mm/yyyy (chuẩn Việt)
-  const displayDate = formatDateVN(collectionDate);
+  }, [note, amount]);
 
   return (
     <tr className={isPaid ? "bg-green-50" : "bg-white align-top"}>
@@ -141,26 +130,18 @@ const MonthRow = ({
         />
       </td>
       <td className="px-4 py-1.5">
-        <div className="flex items-center gap-1">
-          <input
-            type="text"
-            value={isPaid ? localDateInput : ""}
-            onChange={(e) => setLocalDateInput(e.target.value)}
-            onBlur={() => onDateBlur(localDateInput)}
-            placeholder={isPaid ? "dd/mm" : "—"}
-            disabled={!isPaid}
-            className={`w-16 border-solid box-border text-sm border rounded px-2 py-1 focus:outline-none text-center ${
-              isPaid
-                ? "border-gray-200 focus:ring-1 focus:ring-green-400 bg-white text-gray-700 placeholder-gray-400"
-                : "border-transparent bg-transparent text-gray-400 placeholder-gray-400 cursor-default"
-            }`}
+        {isPaid ? (
+          <DatePickerVN
+            value={isoToDateKey(collectionDate)}
+            onChange={(key) => onDateBlur(key)}
+            fallbackYear={year}
+            className="w-36"
+            inputClassName="w-full pr-2 py-1 focus:outline-none text-sm text-gray-700 bg-transparent placeholder-gray-400"
+            placeholder="dd/mm/yyyy"
           />
-          {displayDate && (
-            <span className="text-xs text-gray-500 ml-1">
-              ({displayDate})
-            </span>
-          )}
-        </div>
+        ) : (
+          <span className="text-sm text-gray-400 pl-2">—</span>
+        )}
       </td>
       <td className="px-4 py-1.5 min-w-64">
         <textarea
@@ -326,12 +307,12 @@ const CompanyDetailModal = ({
     }
   };
 
-  const handleDateBlur = async (month: number, dateInput: string) => {
+  const handleDateBlur = async (month: number, dateKey: string) => {
     setPrimaryMonth(month);
     const payment = getPayment(month);
     if (!payment) return;
-    
-    if (!dateInput.trim()) {
+
+    if (!dateKey.trim()) {
       try {
         await updatePayment.mutateAsync({
           id: payment.id,
@@ -346,25 +327,14 @@ const CompanyDetailModal = ({
       return;
     }
 
-    // Parse dd/mm format
-    const parts = dateInput.split("/");
-    if (parts.length !== 2) return;
+    // dateKey = "yyyy-mm-dd" (từ DatePickerVN). Lưu ở mốc 12:00 UTC để không lệch ngày.
+    const date = dayKeyToNoonIso(dateKey);
+    if (!date) return;
 
-    const day = parseInt(parts[0], 10);
-    const inputMonth = parseInt(parts[1], 10);
-
-    if (isNaN(day) || isNaN(inputMonth) || day < 1 || day > 31 || inputMonth < 1 || inputMonth > 12) {
-      return;
-    }
-
-    const dateStr = `${selectedYear.toString().padStart(4, "0")}-${inputMonth.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-    // Lưu ở mốc 12:00 UTC để không lệch ngày khi chạy trên máy khác múi giờ
-    const date = dayKeyToNoonIso(dateStr)!;
-    
     const existingDate = payment.collectionDate
       ? new Date(payment.collectionDate).toISOString().split("T")[0]
       : null;
-    
+
     if (date.split("T")[0] === existingDate) return;
 
     try {

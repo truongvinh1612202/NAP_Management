@@ -5,6 +5,7 @@ import DanhMucKhachHang from "./DanhMucKhachHang";
 import DanhMucNhanVien from "./DanhMucNhanVien";
 import PaymentList from "./PaymentList";
 import QuanLyTienThu from "./QuanLyTienThu";
+import QuanLyPhiDichVu from "./QuanLyPhiDichVu";
 import ThongKePhieuThu from "./ThongKePhieuThu";
 import type { DatabaseConfig } from "../../electron/api";
 
@@ -34,6 +35,8 @@ const Main = () => {
         return <PaymentList />;
       case "tien-thu":
         return <QuanLyTienThu />;
+      case "phi-dich-vu":
+        return <QuanLyPhiDichVu />;
       case "thong-ke-phieu":
         return <ThongKePhieuThu />;
       default:
@@ -42,7 +45,7 @@ const Main = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 w-[100vw]">
+    <div className="flex h-screen bg-gray-100 w-full overflow-hidden">
       <NavigationMenu onItemClick={handleMenuItemClick} />
 
       <div className="flex-1 overflow-auto px-3">{renderContent()}</div>

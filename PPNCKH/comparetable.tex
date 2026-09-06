@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{Compositional evaluation of the hard-negative LoRA against the frozen
+PixArt-$\alpha$ baseline. Scores are mean $\pm$ standard deviation over three
+seeds on 100 held-out CLEVR-style prompts. Higher is better for both metrics.}
+\label{tab:comp-results}
+\begin{tabular}{lcc}
+\hline
+\textbf{Method} & \textbf{Attr. Binding} & \textbf{CLIP Similarity} \\
+\hline
+PixArt-$\alpha$ (baseline) & \textbf{0.488 $\pm$ 0.007} & \textbf{0.389 $\pm$ 0.004} \\
+Ours (hard-neg LoRA, $r$=16) & 0.427 $\pm$ 0.011 & 0.262 $\pm$ 0.003 \\
+\hline
+\end{tabular}
+
+\vspace{2pt}
+{\footnotesize\raggedright\textit{We measured two metrics directly---Attribute
+Binding (BLIP-VQA attribute-binding accuracy) and CLIP Similarity. The LoRA
+adapter is \emph{worse} than the frozen baseline on both ($-12.5\%$ and
+$-32.6\%$ relative), i.e. the intervention does not improve compositional
+binding. External baselines (SDXL, DALL-E~3) and additional compositional
+metrics were not evaluated in this study and are left for future work.}\par}
+\end{table}

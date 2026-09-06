@@ -1,0 +1,50 @@
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=1.0cm and 1.2cm,
+    step_box/.style={draw, rectangle, rounded corners=4pt, minimum width=3.8cm, minimum height=3.5cm, align=left, fill=gray!3, thick, dotted},
+    inner_box/.style={draw, rectangle, rounded corners=2pt, minimum width=3.2cm, minimum height=0.6cm, align=center, fill=blue!5, font=\footnotesize},
+    freeze_box/.style={draw, rectangle, rounded corners=2pt, minimum width=3.2cm, minimum height=0.6cm, align=center, fill=red!10, draw=red!70, font=\footnotesize, thick},
+    lora_box/.style={draw, rectangle, rounded corners=2pt, minimum width=3.2cm, minimum height=0.6cm, align=center, fill=orange!10, draw=orange, font=\footnotesize, thick},
+    attn_box/.style={draw, rectangle, rounded corners=2pt, minimum width=3.2cm, minimum height=0.6cm, align=center, fill=green!10, draw=green!60!black, font=\footnotesize, thick},
+    arrow/.style={-{Stealth[scale=1.0]}, thick},
+    label_font/.style={font=\small\bfseries, color=black!80}
+]
+
+    % STEP 1
+    \node (step1) [step_box] {};
+    \node [above=0.1cm of step1.north, label_font, anchor=south] {Step 1: Structural Freeze};
+    \node (s1_input) [inner_box, at={($(step1.north)+(0,-0.6)$)}] {Input Latent Patches $x$};
+    \node (s1_freeze) [freeze_box, below=0.5cm of s1_input] {Frozen Base Weights $W_0$ \\ $\nabla_{\theta_{W_0}} \mathcal{L} = 0$};
+    \node (s1_out) [inner_box, below=0.5cm of s1_freeze] {Isolated Feature Tensor};
+    \draw [arrow] (s1_input) -- (s1_freeze);
+    \draw [arrow] (s1_freeze) -- (s1_out);
+
+    % STEP 2
+    \node (step2) [step_box, right=of step1] {};
+    \node [above=0.1cm of step2.north, label_font, anchor=south] {Step 2: LoRA Injection};
+    \node (s2_input) [inner_box, at={($(step2.north)+(0,-0.6)$)}] {Parallel Data Splitting};
+    \node (s2_loraA) [lora_box, below=0.3cm of s2_input, minimum height=0.5cm] {Matrix $A$ (Gaussian Init)};
+    \node (s2_loraB) [lora_box, below=0.2cm of s2_loraA, minimum height=0.5cm] {Matrix $B$ (Zero Init)};
+    \node (s2_merge) [inner_box, below=0.3cm of s2_loraB] {Forward: $W_0 x + \frac{\alpha}{r}BAx$};
+    \draw [arrow] (s2_input) -- (s2_loraA);
+    \draw [arrow] (s2_loraA) -- (s2_loraB);
+    \draw [arrow] (s2_loraB) -- (s2_merge);
+
+    % STEP 3
+    \node (step3) [step_box, right=of step2] {};
+    \node [above=0.1cm of step3.north, label_font, anchor=south] {Step 3: Attention Alignment};
+    \node (s3_text) [inner_box, at={($(step3.north)+(0,-0.6)$)}, fill=purple!5, draw=purple!40] {T5 Text Embeddings $c$};
+    \node (s3_attn) [attn_box, below=0.5cm of s3_text] {Cross-Attention Mapping \\ $Q K^T \rightarrow \text{Softmax}$};
+    \node (s3_out) [inner_box, below=0.5cm of s3_attn] {Composition-Aware Latents};
+    \draw [arrow] (s3_text) -- (s3_attn);
+    \draw [arrow] (s3_attn) -- (s3_out);
+
+    % CONNECTIONS
+    \draw [arrow, dashed, line width=1pt, blue!60] (step1.east) -- (step2.west);
+    \draw [arrow, dashed, line width=1pt, blue!60] (step2.east) -- (step3.west);
+
+\end{tikzpicture}
+\caption{Overall modular pipeline of our proposed methodology. The framework execution flows sequentially from left to right, transitioning from structural parameter isolation (Step 1) and parallel rank decomposition weight formulation (Step 2) to multi-modal text-conditioned attribute alignment within the attention blocks (Step 3).}
+\label{fig:proposed_step_pipeline}
+\end{figure}

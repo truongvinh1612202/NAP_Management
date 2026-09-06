@@ -294,6 +294,10 @@ export const appRouter = t.router({
               companyId: z.number(),
               month: z.number().int().min(1).max(12),
               year: z.number().int().min(2000),
+              // Số tiền theo từng dòng (dùng khi import Excel). Null/thiếu → lấy serviceFee.
+              amount: z.number().nullable().optional(),
+              // Ghi chú theo từng dòng. Thiếu → dùng ghi chú cấp phiếu (input.note).
+              note: z.string().nullable().optional(),
             })
           )
           .min(1),
@@ -372,8 +376,9 @@ export const appRouter = t.router({
               month,
               year,
               collectionDate,
-              amount: feeCache.get(companyId) ?? null,
-              note: input.note || null,
+              // Ưu tiên số tiền theo dòng (import Excel); nếu không có → serviceFee.
+              amount: item.amount ?? feeCache.get(companyId) ?? null,
+              note: item.note ?? input.note ?? null,
               batchId: batch.id,
             },
           });

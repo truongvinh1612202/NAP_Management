@@ -1,0 +1,50 @@
+\begin{figure}[!t]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.5cm,
+    box/.style={draw, rectangle, rounded corners=2pt, minimum width=2.2cm, minimum height=0.7cm, align=center, fill=blue!5, thick},
+    lorabox/.style={draw, rectangle, rounded corners=2pt, minimum width=1.8cm, minimum height=0.5cm, align=center, fill=orange!10, draw=orange, thick},
+    circle_node/.style={draw, circle, minimum size=0.5cm, fill=gray!20, thick, inner sep=0pt},
+    arrow/.style={-{Stealth[scale=1.0]}, thick}
+]
+
+    % --- Inputs ---
+    \node (img_in) [align=center] {Visual Patches \\ $x \in \mathbb{R}^{N \times d}$};
+    \node (text_in) [right=3.5cm of img_in, align=center] {T5 Text Embeddings \\ $c \in \mathbb{R}^{L \times d_{text}}$};
+
+    % --- Base Linear Projections ---
+    \node (base_w) [below=1.2cm of img_in, box] {Frozen Base Weights \\ $W_0 \in \mathbb{R}^{d \times k}$};
+    
+    % --- Parallel LoRA Branch ---
+    \node (lora_a) [right=0.8cm of base_w, lorabox, yshift=0.4cm] {Matrix $A$ (Rank $r$)};
+    \node (lora_b) [below=0.4cm of lora_a, lorabox] {Matrix $B$ (Rank $r$)};
+    \node (scale) [below=0.4cm of lora_b, draw, circle, inner sep=1pt, scale=0.8, fill=orange!5, draw=orange] {$\times \frac{\alpha}{r}$};
+
+    % --- Summation and Scaling Nodes ---
+    \node (plus) [below=2.2cm of base_w, circle_node] {$+$};
+
+    % --- Attention Block ---
+    \node (cross_attn) [below=1.0cm of plus, box, minimum width=5.5cm, fill=green!5, draw=green!60!black] {Multi-Head Cross-Attention Block \\ ($\text{Softmax}(Q K^T / \sqrt{d_k}) V$)};
+    
+    % --- Output ---
+    \node (output) [below=1.0cm of cross_attn, align=center] {Updated Latents \\ $h \in \mathbb{R}^{N \times d}$};
+
+    % --- Drawing Arrows and Connections ---
+    \draw [arrow] (img_in) -- (base_w);
+    \draw [arrow] (img_in.south) -- ++(0,-0.4) -| (lora_a.north);
+    \draw [arrow] (text_in) |- (cross_attn.east);
+    \draw [arrow] (lora_a) -- (lora_b);
+    \draw [arrow] (lora_b) -- (scale);
+    \draw [arrow] (base_w) -- (plus);
+    \draw [arrow] (scale.south) |- (plus.east);
+    \draw [arrow] (plus) -- (cross_attn.north -| plus);
+    \draw [arrow] (cross_attn) -- (output);
+
+    % Background Labels/Grouping
+    \draw[dashed, gray] ($(lora_a.north west)+(-0.2,0.2)$) rectangle ($(scale.south east)+(0.2,-0.2)$);
+    \node[orange, font=\scriptsize] at ($(lora_a.north east)+(0.6,0.1)$) {Trainable LoRA};
+
+\end{tikzpicture}
+\caption{Architectural pipeline of the proposed integration. Trainable low-rank matrix pairs ($A$ and $B$) bypass the frozen projection layers within the PixArt-$\alpha$ cross-attention framework to dynamically optimize textual-visual composition logic.}
+\label{fig:lora_dit_structure}
+\end{figure}

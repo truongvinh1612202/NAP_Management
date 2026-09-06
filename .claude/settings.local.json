@@ -4,7 +4,29 @@
       "Bash(wc -l:*)",
       "Bash(/usr/local/bin/node node_modules/.bin/tsc:*)",
       "Bash(npx tsc --noEmit --pretty)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(python -m py_compile pixart_lora_compositional_kaggle.py)",
+      "Bash(git ls-remote *)",
+      "Bash(gh api *)",
+      "PowerShell(gh api *)",
+      "Bash(python -m py_compile pixart_ae_final_commit.py)",
+      "Bash(grep -n \"0\\\\.488\\\\|0\\\\.427\\\\|0\\\\.262\\\\|0\\\\.389\\\\|12\\\\.5\\\\|32\\\\.6\\\\|T4\\\\|2,000\\\\|2{,}000\" main.tex)",
+      "Bash(echo \"=== documentclass + \\\\\\\\input targets ===\")",
+      "Bash(grep -n \"documentclass\\\\|\\\\\\\\\\\\\\\\input{\\\\|\\\\\\\\\\\\\\\\bibliography\" main.tex)",
+      "Bash(grep -oE \"\\\\\\\\\\\\\\\\cite\\\\{[^}]*\\\\}\" main.tex)",
+      "Read(//tmp/**)",
+      "Bash(grep -oE \"@[a-zA-Z]+\\\\{[^,]+,\" references.bib)",
+      "Bash(cd *)",
+      "Bash(awk 'NR>=263 && NR<=280' pixart_ae_final_commit.py)",
+      "Bash(awk 'NR>=348 && NR<=580 && /^[a-zA-Z_]/ && !/^def |^class |^import |^from |^@/' pixart_ae_final_commit.py)",
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "Bash(rm -f D:/NAP/NAP_Management/vy_*.png)",
+      "Bash(DATABASE_URL=file:D:/NAP/NAP_Management/prisma/prisma/dev.db node -e ' *)",
+      "Bash(taskkill //F //IM electron.exe)",
+      "Bash(npm test *)",
+      "Bash(npx vite *)",
+      "Artifact"
     ]
   }
 }

@@ -23,10 +23,10 @@ export const AUTO_SIZE_STRATEGY_FILL = {
  * Default AG Grid configuration for consistent behavior across the application
  */
 export const DEFAULT_GRID_OPTIONS: Partial<GridOptions> = {
-  // Pagination
+  // Pagination — bỏ ô chọn cỡ trang cho gọn (giữ cố định 50 dòng/trang)
   pagination: true,
   paginationPageSize: 50,
-  paginationPageSizeSelector: [20, 50, 100],
+  paginationPageSizeSelector: false,
 
   // Selection
   cellSelection: true,
